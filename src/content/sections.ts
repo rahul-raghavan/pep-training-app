@@ -85,26 +85,26 @@ After completing this self-study, you'll shadow live conversations and eventuall
         id: 'welcome-mc-1',
         question: 'What is the primary goal of an admissions conversation at PEP?',
         options: [
-          'To enroll as many families as possible',
           'To help families understand PEP so they can decide if it\'s right for them',
-          'To convince hesitant parents to give PEP a try',
-          'To showcase all of PEP\'s features and achievements'
+          'To address all of the parent\'s concerns and objections effectively',
+          'To build rapport and leave a positive impression of the school',
+          'To identify families who can afford our fees and commit long-term'
         ],
-        correctIndex: 1,
-        explanation: 'Our goal is fit, not volume. We want families who genuinely align with our approach—they\'ll be happier, and so will we.'
+        correctIndex: 0,
+        explanation: 'Our goal is mutual fit, not persuasion. Addressing concerns, building rapport, and assessing commitment are all part of the process—but the primary goal is helping families make an informed decision, even if that decision is "PEP isn\'t right for us."'
       },
       {
         type: 'multiple_choice',
         id: 'welcome-mc-2',
-        question: 'Which of the following is a sign that an admissions conversation is going well?',
+        question: 'A parent leaves an admissions conversation feeling very positive about PEP. Is this a sign of a successful conversation?',
         options: [
-          'You\'ve covered all your talking points',
-          'The parent seems impressed by our achievements',
-          'You\'ve spent more time listening than talking',
-          'The parent has no more questions'
+          'Yes—a positive impression means they\'re likely to enroll',
+          'Only if they also have a clear and accurate picture of what PEP is and isn\'t',
+          'Only if they asked lots of questions during the conversation',
+          'No—the goal is to be neutral, not to create positive feelings'
         ],
-        correctIndex: 2,
-        explanation: 'Great admissions is about dialogue, not presentation. Listening more than talking means you\'re learning about the family and responding to their specific needs.'
+        correctIndex: 1,
+        explanation: 'A positive impression alone isn\'t enough. A parent could leave feeling great but have misconceptions about what we do. Success is when they leave with both a positive feeling AND an accurate understanding—including what we don\'t do and who we\'re not right for.'
       }
     ]
   },
@@ -233,41 +233,41 @@ The goal is for parents to *discover* the belief through their own experience, n
       {
         type: 'multiple_choice',
         id: 'belief-mc-1',
-        question: 'What is PEP\'s core belief about children and learning?',
+        question: 'PEP believes "children naturally want to learn." How is this different from saying "children should learn whatever they want"?',
         options: [
-          'Children learn best when given complete freedom without structure',
-          'Children naturally want to learn and don\'t need to be forced',
-          'Children need external motivation to learn effectively',
-          'Children should be allowed to learn only what interests them'
+          'It\'s not different—both mean following the child\'s interests completely',
+          'PEP provides structure and expectations, but doesn\'t use force or coercion as motivation',
+          'PEP only allows choice in non-academic areas like art and play',
+          'The difference is mainly in how we talk to parents, not in practice'
         ],
         correctIndex: 1,
-        explanation: 'Our core belief is that children are natural learners. They don\'t need to be forced—they need the right environment. This is different from "no structure" or "no expectations."'
+        explanation: 'Our belief that children want to learn doesn\'t mean "no structure." It means we don\'t need threats, rewards, or pressure as primary motivators. We still have clear expectations and a structured environment—we just trust that children will engage when the environment is right.'
       },
       {
         type: 'multiple_choice',
         id: 'belief-mc-2',
-        question: 'What does PEP stand for?',
+        question: 'Why is it significant that PEP\'s founders succeeded in traditional education before rejecting it?',
         options: [
-          'Progressive Education Program',
-          'Primary Education Path',
-          'Personalized Education Path',
-          'Positive Education Practice'
+          'It proves they\'re smart enough to run a school',
+          'It shows they understand both systems and chose this one deliberately',
+          'It helps justify our higher fees to parents',
+          'It\'s mainly useful for marketing to IIT/IIM parents'
         ],
-        correctIndex: 2,
-        explanation: 'PEP = Personalized Education Path. Each word matters: Personalized (for this child), Education (real learning, not just activity), Path (a journey with a destination).'
+        correctIndex: 1,
+        explanation: 'Many alternative schools are founded by people who struggled in traditional education. Our founders won that game—IIT, IIM, successful careers—and still rejected it. This gives credibility: they\'re not making excuses for failure, they\'re making a deliberate choice based on seeing both sides.'
       },
       {
         type: 'multiple_choice',
         id: 'belief-mc-3',
         question: 'What is the "enemy" in PEP\'s positioning?',
         options: [
-          'Other schools in the area',
-          'The belief that learning requires suffering',
-          'Technology and screen time',
-          'Government curriculum requirements'
+          'Traditional schools like DPS and NPS that compete with us',
+          'The belief that children must suffer to succeed—that joy and rigour are opposites',
+          'Parents who prioritize grades and test scores over holistic development',
+          'The government\'s rigid curriculum requirements'
         ],
         correctIndex: 1,
-        explanation: 'Our enemy is the false belief that children must suffer to succeed—that joy and rigour are incompatible. This is the lie we reject.'
+        explanation: 'Our enemy is a belief, not a competitor or a group of people. The lie that "learning requires suffering" is what we fight. This framing lets us be against an idea without attacking other schools or parents directly.'
       },
       {
         type: 'voice',
