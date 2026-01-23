@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { VoiceExercise } from '@/content/types';
+import FeedbackDisplay from './FeedbackDisplay';
 
 interface Props {
   exercise: VoiceExercise;
@@ -278,65 +279,7 @@ export default function VoiceRecorder({ exercise, traineeId, sectionId, onComple
             )}
 
             {/* Feedback */}
-            <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
-              {/* Score header */}
-              <div className={`px-4 py-3 flex items-center justify-between ${
-                score >= 4 ? 'bg-green-50 border-b border-green-100' :
-                score >= 3 ? 'bg-amber-50 border-b border-amber-100' :
-                'bg-red-50 border-b border-red-100'
-              }`}>
-                <span className="font-medium text-slate-700">AI Feedback</span>
-                <div className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                  score >= 4 ? 'bg-green-100 text-green-700' :
-                  score >= 3 ? 'bg-amber-100 text-amber-700' :
-                  'bg-red-100 text-red-700'
-                }`}>
-                  {score}/5
-                </div>
-              </div>
-
-              {/* Feedback content */}
-              <div className="p-4 space-y-3 text-sm">
-                {feedback.split('\n\n').map((paragraph, idx) => {
-                  // Check if it's a header line (starts with **)
-                  if (paragraph.startsWith('**') && paragraph.includes(':**')) {
-                    const [header, ...rest] = paragraph.split(':**');
-                    const headerText = header.replace(/\*\*/g, '');
-                    const content = rest.join(':**').replace(/\*\*/g, '');
-                    return (
-                      <div key={idx}>
-                        <h6 className="font-semibold text-slate-800 mb-1">{headerText}</h6>
-                        <p className="text-slate-600">{content}</p>
-                      </div>
-                    );
-                  }
-                  // Check for bullet points
-                  if (paragraph.includes('\n-')) {
-                    const lines = paragraph.split('\n');
-                    return (
-                      <div key={idx}>
-                        {lines[0] && !lines[0].startsWith('-') && (
-                          <h6 className="font-semibold text-slate-800 mb-1">
-                            {lines[0].replace(/\*\*/g, '')}
-                          </h6>
-                        )}
-                        <ul className="list-disc list-inside space-y-1 text-slate-600">
-                          {lines.filter(l => l.startsWith('-')).map((line, i) => (
-                            <li key={i}>{line.substring(1).trim()}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    );
-                  }
-                  // Regular paragraph
-                  return (
-                    <p key={idx} className="text-slate-600">
-                      {paragraph.replace(/\*\*/g, '')}
-                    </p>
-                  );
-                })}
-              </div>
-            </div>
+            <FeedbackDisplay feedback={feedback} score={score} />
 
             {/* Re-record option */}
             {!existingResponse && (

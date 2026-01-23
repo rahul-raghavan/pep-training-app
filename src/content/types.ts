@@ -70,5 +70,6 @@ export type Response = {
   audio_url?: string;
   ai_feedback?: string;
   ai_score?: number;
+  correct?: boolean;
   created_at: string;
 };

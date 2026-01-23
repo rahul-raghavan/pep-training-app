@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import FeedbackDisplay from '@/components/FeedbackDisplay';
 
 interface SectionSummary {
   id: string;
@@ -236,44 +237,78 @@ export default function TraineeDetailPage() {
                 {expandedSection === section.id && section.responses.length > 0 && (
                   <div className="px-4 pb-4">
                     <div className="ml-12 space-y-4">
-                      {section.responses.map((response, idx) => (
-                        <div key={idx} className="bg-slate-50 rounded-lg p-4">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm font-medium text-slate-700">
-                              {response.exerciseType === 'voice' ? 'Voice Exercise' : 'Knowledge Check'}
-                            </span>
-                            {response.score !== undefined && (
-                              <span className={`text-sm font-medium ${
-                                response.score >= 4 ? 'text-green-600' :
-                                response.score >= 3 ? 'text-amber-600' : 'text-red-600'
-                              }`}>
-                                Score: {response.score}/5
-                              </span>
+                      {(() => {
+                        // Group responses by exercise
+                        const groupedByExercise: Record<string, typeof section.responses> = {};
+                        section.responses.forEach(r => {
+                          if (!groupedByExercise[r.exerciseId]) {
+                            groupedByExercise[r.exerciseId] = [];
+                          }
+                          groupedByExercise[r.exerciseId].push(r);
+                        });
+
+                        return Object.entries(groupedByExercise).map(([exerciseId, attempts]) => (
+                          <div key={exerciseId} className="space-y-2">
+                            {attempts.length > 1 && (
+                              <div className="text-xs text-slate-500 font-medium">
+                                {attempts[0].exerciseType === 'voice' ? 'Voice Exercise' : 'Knowledge Check'} — {attempts.length} attempts
+                              </div>
                             )}
+                            {attempts.map((response, attemptIdx) => (
+                              <div key={attemptIdx} className="bg-slate-50 rounded-lg p-4">
+                                <div className="flex items-center justify-between mb-3">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-sm font-medium text-slate-700">
+                                      {response.exerciseType === 'voice' ? 'Voice Exercise' : 'Knowledge Check'}
+                                      {attempts.length > 1 && (
+                                        <span className="text-slate-400 font-normal"> (Attempt {attemptIdx + 1})</span>
+                                      )}
+                                    </span>
+                                    <span className="text-xs text-slate-400">
+                                      {new Date(response.createdAt).toLocaleDateString('en-US', {
+                                        month: 'short',
+                                        day: 'numeric',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                      })}
+                                    </span>
+                                  </div>
+                                  {response.score !== undefined && !response.feedback && (
+                                    <span className={`text-sm font-medium ${
+                                      response.score >= 4 ? 'text-green-600' :
+                                      response.score >= 3 ? 'text-amber-600' : 'text-red-600'
+                                    }`}>
+                                      {response.score}/5
+                                    </span>
+                                  )}
+                                </div>
+
+                                {response.transcription && (
+                                  <div className="mb-3">
+                                    <div className="text-xs text-slate-500 mb-1">Response:</div>
+                                    <p className="text-sm text-slate-700 bg-white p-2 rounded border border-slate-200">{response.transcription}</p>
+                                  </div>
+                                )}
+
+                                {response.audioUrl && (
+                                  <div className="mb-3">
+                                    <div className="text-xs text-slate-500 mb-1">Recording:</div>
+                                    <audio src={response.audioUrl} controls className="w-full h-8" />
+                                  </div>
+                                )}
+
+                                {response.feedback && (
+                                  <FeedbackDisplay
+                                    feedback={response.feedback}
+                                    score={response.score}
+                                    compact
+                                  />
+                                )}
+                              </div>
+                            ))}
                           </div>
-
-                          {response.transcription && (
-                            <div className="mb-3">
-                              <div className="text-xs text-slate-500 mb-1">Response:</div>
-                              <p className="text-sm text-slate-700">{response.transcription}</p>
-                            </div>
-                          )}
-
-                          {response.audioUrl && (
-                            <div className="mb-3">
-                              <div className="text-xs text-slate-500 mb-1">Recording:</div>
-                              <audio src={response.audioUrl} controls className="w-full h-8" />
-                            </div>
-                          )}
-
-                          {response.feedback && (
-                            <div>
-                              <div className="text-xs text-slate-500 mb-1">AI Feedback:</div>
-                              <p className="text-sm text-slate-600 whitespace-pre-wrap">{response.feedback}</p>
-                            </div>
-                          )}
-                        </div>
-                      ))}
+                        ));
+                      })()}
                     </div>
                   </div>
                 )}

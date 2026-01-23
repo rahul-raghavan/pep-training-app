@@ -148,6 +148,17 @@ export default function SectionPage() {
     return responses.find(r => r.section_id === sectionId && r.exercise_id === exerciseId);
   };
 
+  // Get all responses for an exercise (for tracking multiple attempts)
+  const getExerciseResponses = (exerciseId: string) => {
+    return responses.filter(r => r.section_id === sectionId && r.exercise_id === exerciseId);
+  };
+
+  // Check if any attempt was correct for multiple choice
+  const wasEverCorrect = (exerciseId: string) => {
+    const exerciseResponses = getExerciseResponses(exerciseId);
+    return exerciseResponses.some(r => r.correct === true);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
@@ -195,9 +206,12 @@ export default function SectionPage() {
 
               {section.exercises.map((exercise: Exercise) => {
                 const existingResponse = getExistingResponse(exercise.id);
-                const isComplete = completedExercises.has(exercise.id);
 
                 if (exercise.type === 'multiple_choice') {
+                  const previousResponses = getExerciseResponses(exercise.id);
+                  const previousAttempts = previousResponses.length;
+                  const previouslyCorrect = wasEverCorrect(exercise.id);
+
                   return (
                     <MultipleChoice
                       key={exercise.id}
@@ -210,7 +224,8 @@ export default function SectionPage() {
                           correct
                         );
                       }}
-                      disabled={isComplete || isAlreadyComplete}
+                      previousAttempts={previousAttempts}
+                      previouslyCorrect={previouslyCorrect}
                     />
                   );
                 }

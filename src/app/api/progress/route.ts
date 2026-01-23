@@ -75,6 +75,7 @@ export async function PUT(request: NextRequest) {
       exercise_type: exerciseType,
       response_text: responseText,
       ai_score: correct ? 5 : 0, // For MC: 5 if correct, 0 if wrong
+      correct: correct,
     });
 
     return NextResponse.json({ success: true });

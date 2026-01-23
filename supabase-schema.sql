@@ -36,6 +36,7 @@ CREATE TABLE responses (
   audio_url TEXT,
   ai_feedback TEXT,
   ai_score INTEGER CHECK (ai_score >= 1 AND ai_score <= 5),
+  correct BOOLEAN,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 

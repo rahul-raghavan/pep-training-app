@@ -6,10 +6,11 @@ import { MultipleChoiceExercise } from '@/content/types';
 interface Props {
   exercise: MultipleChoiceExercise;
   onComplete: (correct: boolean) => void;
-  disabled?: boolean;
+  previousAttempts?: number;
+  previouslyCorrect?: boolean;
 }
 
-export default function MultipleChoice({ exercise, onComplete, disabled }: Props) {
+export default function MultipleChoice({ exercise, onComplete, previousAttempts = 0, previouslyCorrect }: Props) {
   const [selected, setSelected] = useState<number | null>(null);
   const [submitted, setSubmitted] = useState(false);
 
@@ -19,13 +20,30 @@ export default function MultipleChoice({ exercise, onComplete, disabled }: Props
     onComplete(selected === exercise.correctIndex);
   };
 
+  const handleRetry = () => {
+    setSelected(null);
+    setSubmitted(false);
+  };
+
   const isCorrect = selected === exercise.correctIndex;
 
   return (
     <div className="bg-white border border-slate-200 rounded-lg p-6 my-6">
-      <div className="flex items-center gap-2 mb-4">
-        <div className="bg-slate-100 text-slate-600 text-xs font-medium px-2 py-1 rounded">
-          Knowledge Check
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <div className="bg-slate-100 text-slate-600 text-xs font-medium px-2 py-1 rounded">
+            Knowledge Check
+          </div>
+          {previousAttempts > 0 && (
+            <div className={`text-xs px-2 py-1 rounded ${
+              previouslyCorrect
+                ? 'bg-green-100 text-green-700'
+                : 'bg-amber-100 text-amber-700'
+            }`}>
+              {previousAttempts} previous attempt{previousAttempts > 1 ? 's' : ''}
+              {previouslyCorrect && ' (answered correctly)'}
+            </div>
+          )}
         </div>
       </div>
 
@@ -51,10 +69,10 @@ export default function MultipleChoice({ exercise, onComplete, disabled }: Props
           return (
             <button
               key={index}
-              onClick={() => !submitted && !disabled && setSelected(index)}
-              disabled={submitted || disabled}
+              onClick={() => !submitted && setSelected(index)}
+              disabled={submitted}
               className={`w-full text-left p-4 rounded-lg border-2 transition-colors ${optionClass} ${
-                submitted || disabled ? 'cursor-default' : 'cursor-pointer'
+                submitted ? 'cursor-default' : 'cursor-pointer'
               }`}
             >
               <div className="flex items-start gap-3">
@@ -82,7 +100,7 @@ export default function MultipleChoice({ exercise, onComplete, disabled }: Props
       {!submitted && (
         <button
           onClick={handleSubmit}
-          disabled={selected === null || disabled}
+          disabled={selected === null}
           className="mt-4 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           Check Answer
@@ -91,22 +109,30 @@ export default function MultipleChoice({ exercise, onComplete, disabled }: Props
 
       {submitted && (
         <div className={`mt-4 p-4 rounded-lg ${isCorrect ? 'bg-green-50' : 'bg-amber-50'}`}>
-          <div className="flex items-center gap-2 mb-2">
-            {isCorrect ? (
-              <>
-                <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-                <span className="font-medium text-green-800">Correct!</span>
-              </>
-            ) : (
-              <>
-                <svg className="w-5 h-5 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                </svg>
-                <span className="font-medium text-amber-800">Not quite</span>
-              </>
-            )}
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              {isCorrect ? (
+                <>
+                  <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <span className="font-medium text-green-800">Correct!</span>
+                </>
+              ) : (
+                <>
+                  <svg className="w-5 h-5 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  <span className="font-medium text-amber-800">Not quite</span>
+                </>
+              )}
+            </div>
+            <button
+              onClick={handleRetry}
+              className="text-sm text-slate-600 hover:text-slate-800 underline"
+            >
+              Try again
+            </button>
           </div>
           <p className="text-sm text-slate-700">{exercise.explanation}</p>
         </div>
