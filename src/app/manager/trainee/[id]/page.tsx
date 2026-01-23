@@ -25,6 +25,14 @@ interface SectionSummary {
   }[];
 }
 
+interface AssessmentAttempt {
+  id: string;
+  score: number;
+  total: number;
+  answers: Record<string, number>;
+  created_at: string;
+}
+
 interface TraineeDetail {
   trainee: {
     id: string;
@@ -35,6 +43,7 @@ interface TraineeDetail {
     last_active_at?: string;
   };
   sections: SectionSummary[];
+  assessmentAttempts: AssessmentAttempt[];
   stats: {
     completedSections: number;
     totalSections: number;
@@ -42,6 +51,8 @@ interface TraineeDetail {
     overallAvgScore: number | null;
     totalResponses: number;
     sectionsNeedingAttention: number;
+    assessmentAttempts: number;
+    bestAssessmentScore: number | null;
   };
 }
 
@@ -104,7 +115,7 @@ export default function TraineeDetailPage() {
 
   if (!data) return null;
 
-  const { trainee, sections, stats } = data;
+  const { trainee, sections, assessmentAttempts, stats } = data;
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -137,7 +148,7 @@ export default function TraineeDetailPage() {
 
       <main className="max-w-4xl mx-auto px-4 py-8">
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
           <div className="bg-white rounded-lg border border-slate-200 p-4">
             <div className="text-sm text-slate-500">Progress</div>
             <div className="text-2xl font-semibold text-slate-900">{stats.progressPercent}%</div>
@@ -156,6 +167,17 @@ export default function TraineeDetailPage() {
           <div className="bg-white rounded-lg border border-slate-200 p-4">
             <div className="text-sm text-slate-500">Responses</div>
             <div className="text-2xl font-semibold text-slate-900">{stats.totalResponses}</div>
+          </div>
+          <div className="bg-white rounded-lg border border-slate-200 p-4">
+            <div className="text-sm text-slate-500">Assessment</div>
+            <div className={`text-2xl font-semibold ${
+              stats.bestAssessmentScore === null ? 'text-slate-400' :
+              stats.bestAssessmentScore >= 12 ? 'text-green-600' :
+              stats.bestAssessmentScore >= 10 ? 'text-amber-600' : 'text-red-600'
+            }`}>
+              {stats.bestAssessmentScore !== null ? `${stats.bestAssessmentScore}/15` : 'N/A'}
+            </div>
+            <div className="text-xs text-slate-500">{stats.assessmentAttempts} attempt{stats.assessmentAttempts !== 1 ? 's' : ''}</div>
           </div>
           <div className="bg-white rounded-lg border border-slate-200 p-4">
             <div className="text-sm text-slate-500">Needs Attention</div>
@@ -327,6 +349,73 @@ export default function TraineeDetailPage() {
               </div>
             ))}
           </div>
+        </div>
+
+        {/* Assessment Attempts */}
+        <div className="bg-white rounded-lg border border-slate-200 mt-8">
+          <div className="p-4 border-b border-slate-200">
+            <h2 className="font-medium text-slate-900">Final Assessment Attempts</h2>
+          </div>
+
+          {assessmentAttempts.length === 0 ? (
+            <div className="p-6 text-center text-slate-500">
+              {stats.progressPercent === 100
+                ? 'No assessment attempts yet'
+                : 'Assessment unlocks after completing all modules'}
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-100">
+              {assessmentAttempts.map((attempt, index) => {
+                const passed = attempt.score >= 12;
+                const percentage = Math.round((attempt.score / attempt.total) * 100);
+
+                return (
+                  <div key={attempt.id} className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                          passed ? 'bg-green-100' : 'bg-red-100'
+                        }`}>
+                          {passed ? (
+                            <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          ) : (
+                            <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          )}
+                        </div>
+                        <div>
+                          <div className="font-medium text-slate-900">
+                            Attempt {assessmentAttempts.length - index}
+                            {index === 0 && assessmentAttempts.length > 1 && (
+                              <span className="ml-2 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
+                                Most Recent
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-sm text-slate-500">
+                            {formatDate(attempt.created_at)}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className={`text-xl font-semibold ${
+                          passed ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                          {attempt.score}/{attempt.total}
+                        </div>
+                        <div className={`text-sm ${passed ? 'text-green-600' : 'text-red-600'}`}>
+                          {percentage}% — {passed ? 'Passed' : 'Not Passed'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </main>
     </div>

@@ -87,6 +87,13 @@ export async function GET(
     };
   });
 
+  // Fetch assessment attempts
+  const { data: assessmentAttempts } = await supabase
+    .from('assessment_attempts')
+    .select('*')
+    .eq('trainee_id', traineeId)
+    .order('created_at', { ascending: false });
+
   // Calculate overall stats
   const completedSections = sectionSummaries.filter(s => s.status === 'completed').length;
   const allVoiceScores = responses?.filter(r => r.exercise_type === 'voice' && r.ai_score).map(r => r.ai_score!) || [];
@@ -94,9 +101,15 @@ export async function GET(
     ? Math.round(allVoiceScores.reduce((a, b) => a + b, 0) / allVoiceScores.length * 10) / 10
     : null;
 
+  // Best assessment score
+  const bestAssessmentScore = assessmentAttempts && assessmentAttempts.length > 0
+    ? Math.max(...assessmentAttempts.map(a => a.score))
+    : null;
+
   return NextResponse.json({
     trainee,
     sections: sectionSummaries,
+    assessmentAttempts: assessmentAttempts || [],
     stats: {
       completedSections,
       totalSections: sections.length,
@@ -104,6 +117,8 @@ export async function GET(
       overallAvgScore,
       totalResponses: responses?.length || 0,
       sectionsNeedingAttention: sectionSummaries.filter(s => s.needsAttention).length,
+      assessmentAttempts: assessmentAttempts?.length || 0,
+      bestAssessmentScore,
     },
   });
 }

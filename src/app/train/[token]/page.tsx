@@ -171,17 +171,62 @@ export default function TraineeDashboard() {
           </div>
         </div>
 
+        {/* Final Assessment Card */}
+        <div className={`mt-8 rounded-lg border p-6 ${
+          allComplete
+            ? 'bg-blue-50 border-blue-200'
+            : 'bg-slate-50 border-slate-200'
+        }`}>
+          <div className="flex items-start gap-4">
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
+              allComplete ? 'bg-blue-100' : 'bg-slate-200'
+            }`}>
+              <svg className={`w-6 h-6 ${allComplete ? 'text-blue-600' : 'text-slate-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <h3 className={`text-lg font-semibold mb-1 ${allComplete ? 'text-blue-900' : 'text-slate-400'}`}>
+                Final Assessment
+              </h3>
+              <p className={`text-sm mb-4 ${allComplete ? 'text-blue-700' : 'text-slate-400'}`}>
+                {allComplete
+                  ? 'You\'ve completed all modules! Take the final assessment to test your knowledge.'
+                  : 'Complete all training modules to unlock the final assessment.'}
+              </p>
+              {allComplete ? (
+                <Link
+                  href={`/train/${token}/assessment`}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Take Assessment
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </Link>
+              ) : (
+                <span className="inline-flex items-center gap-2 px-4 py-2 bg-slate-200 text-slate-400 rounded-lg cursor-not-allowed">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                  Locked
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
         {/* Completion message */}
         {allComplete && (
-          <div className="mt-8 bg-green-50 border border-green-200 rounded-lg p-6 text-center">
+          <div className="mt-6 bg-green-50 border border-green-200 rounded-lg p-6 text-center">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg className="w-8 h-8 text-green-600" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
               </svg>
             </div>
-            <h3 className="text-xl font-semibold text-green-900 mb-2">Training Complete!</h3>
+            <h3 className="text-xl font-semibold text-green-900 mb-2">All Modules Complete!</h3>
             <p className="text-green-800">
-              Congratulations! You&apos;ve completed all sections. Your manager will review your progress and reach out about next steps.
+              Great work! Don&apos;t forget to take the final assessment above.
             </p>
           </div>
         )}

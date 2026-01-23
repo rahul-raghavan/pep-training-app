@@ -40,22 +40,35 @@ CREATE TABLE responses (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Assessment attempts (final assessment)
+CREATE TABLE assessment_attempts (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  trainee_id UUID REFERENCES trainees(id) ON DELETE CASCADE,
+  score INTEGER NOT NULL,
+  total INTEGER NOT NULL,
+  answers JSONB,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Create indexes for common queries
 CREATE INDEX idx_trainees_access_token ON trainees(access_token);
 CREATE INDEX idx_progress_trainee_id ON progress(trainee_id);
 CREATE INDEX idx_responses_trainee_id ON responses(trainee_id);
 CREATE INDEX idx_responses_section_id ON responses(section_id);
+CREATE INDEX idx_assessment_attempts_trainee_id ON assessment_attempts(trainee_id);
 
 -- Enable Row Level Security (RLS)
 ALTER TABLE trainees ENABLE ROW LEVEL SECURITY;
 ALTER TABLE progress ENABLE ROW LEVEL SECURITY;
 ALTER TABLE responses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE assessment_attempts ENABLE ROW LEVEL SECURITY;
 
 -- Create policies to allow all operations (using service role key)
 -- In production, you might want more restrictive policies
 CREATE POLICY "Allow all operations on trainees" ON trainees FOR ALL USING (true);
 CREATE POLICY "Allow all operations on progress" ON progress FOR ALL USING (true);
 CREATE POLICY "Allow all operations on responses" ON responses FOR ALL USING (true);
+CREATE POLICY "Allow all operations on assessment_attempts" ON assessment_attempts FOR ALL USING (true);
 
 -- Create storage bucket for audio recordings
 -- Note: Run this separately in the Supabase Storage settings or via the API
