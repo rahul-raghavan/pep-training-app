@@ -16,6 +16,7 @@ interface SectionSummary {
   responses: {
     exerciseId: string;
     exerciseType: string;
+    questionText?: string;
     transcription?: string;
     audioUrl?: string;
     feedback?: string;
@@ -249,6 +250,17 @@ export default function TraineeDetailPage() {
 
                         return Object.entries(groupedByExercise).map(([exerciseId, attempts]) => (
                           <div key={exerciseId} className="space-y-2">
+                            {/* Exercise question/scenario header */}
+                            {attempts[0].questionText && (
+                              <div className="bg-white border border-slate-200 rounded-lg p-3 mb-2">
+                                <div className="text-xs text-slate-500 mb-1">
+                                  {attempts[0].exerciseType === 'voice' ? 'Scenario:' : 'Question:'}
+                                </div>
+                                <p className="text-sm text-slate-800 italic">
+                                  {attempts[0].exerciseType === 'voice' ? `"${attempts[0].questionText}"` : attempts[0].questionText}
+                                </p>
+                              </div>
+                            )}
                             {attempts.length > 1 && (
                               <div className="text-xs text-slate-500 font-medium">
                                 {attempts[0].exerciseType === 'voice' ? 'Voice Exercise' : 'Knowledge Check'} — {attempts.length} attempts

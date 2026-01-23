@@ -143,11 +143,6 @@ export default function SectionPage() {
   const currentSectionProgress = progress.find(p => p.section_id === sectionId);
   const isAlreadyComplete = currentSectionProgress?.status === 'completed';
 
-  // Find existing responses for this section
-  const getExistingResponse = (exerciseId: string) => {
-    return responses.find(r => r.section_id === sectionId && r.exercise_id === exerciseId);
-  };
-
   // Get all responses for an exercise (for tracking multiple attempts)
   const getExerciseResponses = (exerciseId: string) => {
     return responses.filter(r => r.section_id === sectionId && r.exercise_id === exerciseId);
@@ -205,8 +200,6 @@ export default function SectionPage() {
               <h2 className="text-xl font-semibold text-slate-900 mb-6">Exercises</h2>
 
               {section.exercises.map((exercise: Exercise) => {
-                const existingResponse = getExistingResponse(exercise.id);
-
                 if (exercise.type === 'multiple_choice') {
                   const previousResponses = getExerciseResponses(exercise.id);
                   const previousAttempts = previousResponses.length;
@@ -231,6 +224,14 @@ export default function SectionPage() {
                 }
 
                 if (exercise.type === 'voice') {
+                  const voiceAttempts = getExerciseResponses(exercise.id).map(r => ({
+                    transcription: r.response_text || '',
+                    feedback: r.ai_feedback || '',
+                    score: r.ai_score || 0,
+                    audioUrl: r.audio_url,
+                    createdAt: r.created_at,
+                  }));
+
                   return (
                     <VoiceRecorder
                       key={exercise.id}
@@ -238,12 +239,7 @@ export default function SectionPage() {
                       traineeId={trainee.id}
                       sectionId={sectionId}
                       onComplete={() => handleVoiceComplete(exercise.id)}
-                      existingResponse={existingResponse ? {
-                        transcription: existingResponse.response_text || '',
-                        feedback: existingResponse.ai_feedback || '',
-                        score: existingResponse.ai_score || 0,
-                        audioUrl: existingResponse.audio_url,
-                      } : undefined}
+                      previousAttempts={voiceAttempts}
                     />
                   );
                 }

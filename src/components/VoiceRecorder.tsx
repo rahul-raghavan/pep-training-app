@@ -4,45 +4,62 @@ import { useState, useRef, useEffect } from 'react';
 import { VoiceExercise } from '@/content/types';
 import FeedbackDisplay from './FeedbackDisplay';
 
+interface PreviousAttempt {
+  transcription: string;
+  feedback: string;
+  score: number;
+  audioUrl?: string;
+  createdAt: string;
+}
+
 interface Props {
   exercise: VoiceExercise;
   traineeId: string;
   sectionId: string;
   onComplete: (feedback: string, score: number) => void;
-  existingResponse?: {
-    transcription: string;
-    feedback: string;
-    score: number;
-    audioUrl?: string;
-  };
+  previousAttempts?: PreviousAttempt[];
 }
 
 type RecordingState = 'idle' | 'recording' | 'recorded' | 'transcribing' | 'getting-feedback' | 'complete';
 
-export default function VoiceRecorder({ exercise, traineeId, sectionId, onComplete, existingResponse }: Props) {
-  const [state, setState] = useState<RecordingState>(existingResponse ? 'complete' : 'idle');
-  const [audioUrl, setAudioUrl] = useState<string | null>(existingResponse?.audioUrl || null);
+export default function VoiceRecorder({ exercise, traineeId, sectionId, onComplete, previousAttempts = [] }: Props) {
+  const [state, setState] = useState<RecordingState>('idle');
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
-  const [transcription, setTranscription] = useState<string>(existingResponse?.transcription || '');
-  const [feedback, setFeedback] = useState<string>(existingResponse?.feedback || '');
-  const [score, setScore] = useState<number>(existingResponse?.score || 0);
+  const [transcription, setTranscription] = useState<string>('');
+  const [feedback, setFeedback] = useState<string>('');
+  const [score, setScore] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
   const [recordingTime, setRecordingTime] = useState(0);
+  const [showPreviousAttempts, setShowPreviousAttempts] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Get the best previous score
+  const bestPreviousScore = previousAttempts.length > 0
+    ? Math.max(...previousAttempts.map(a => a.score))
+    : null;
+
+  // Check if audio is still available (within 30 days)
+  const isAudioAvailable = (createdAt: string) => {
+    const created = new Date(createdAt);
+    const now = new Date();
+    const daysDiff = (now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24);
+    return daysDiff <= 30;
+  };
 
   useEffect(() => {
     return () => {
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
-      if (audioUrl && !existingResponse?.audioUrl) {
+      if (audioUrl) {
         URL.revokeObjectURL(audioUrl);
       }
     };
-  }, [audioUrl, existingResponse?.audioUrl]);
+  }, [audioUrl]);
 
   const startRecording = async () => {
     try {
@@ -90,7 +107,7 @@ export default function VoiceRecorder({ exercise, traineeId, sectionId, onComple
   };
 
   const resetRecording = () => {
-    if (audioUrl && !existingResponse?.audioUrl) {
+    if (audioUrl) {
       URL.revokeObjectURL(audioUrl);
     }
     setAudioUrl(null);
@@ -170,11 +187,75 @@ export default function VoiceRecorder({ exercise, traineeId, sectionId, onComple
 
   return (
     <div className="bg-white border border-slate-200 rounded-lg p-6 my-6">
-      <div className="flex items-center gap-2 mb-4">
-        <div className="bg-blue-100 text-blue-700 text-xs font-medium px-2 py-1 rounded">
-          Voice Exercise
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <div className="bg-blue-100 text-blue-700 text-xs font-medium px-2 py-1 rounded">
+            Voice Exercise
+          </div>
+          {previousAttempts.length > 0 && (
+            <div className={`text-xs px-2 py-1 rounded ${
+              bestPreviousScore && bestPreviousScore >= 4
+                ? 'bg-green-100 text-green-700'
+                : 'bg-amber-100 text-amber-700'
+            }`}>
+              {previousAttempts.length} previous attempt{previousAttempts.length > 1 ? 's' : ''}
+              {bestPreviousScore && ` (best: ${bestPreviousScore}/5)`}
+            </div>
+          )}
         </div>
+        {previousAttempts.length > 0 && (
+          <button
+            onClick={() => setShowPreviousAttempts(!showPreviousAttempts)}
+            className="text-xs text-slate-500 hover:text-slate-700 underline"
+          >
+            {showPreviousAttempts ? 'Hide' : 'Show'} previous attempts
+          </button>
+        )}
       </div>
+
+      {/* Previous attempts */}
+      {showPreviousAttempts && previousAttempts.length > 0 && (
+        <div className="mb-6 space-y-3">
+          {previousAttempts.map((attempt, idx) => (
+            <div key={idx} className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-slate-700">
+                  Attempt {idx + 1}
+                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-400">
+                    {new Date(attempt.createdAt).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </span>
+                  <span className={`text-xs font-medium px-2 py-0.5 rounded ${
+                    attempt.score >= 4 ? 'bg-green-100 text-green-700' :
+                    attempt.score >= 3 ? 'bg-amber-100 text-amber-700' :
+                    'bg-red-100 text-red-700'
+                  }`}>
+                    {attempt.score}/5
+                  </span>
+                </div>
+              </div>
+              {attempt.audioUrl && isAudioAvailable(attempt.createdAt) ? (
+                <audio src={attempt.audioUrl} controls className="w-full h-8 mb-2" />
+              ) : attempt.audioUrl ? (
+                <p className="text-xs text-slate-400 italic mb-2">Audio recording expired</p>
+              ) : null}
+              <p className="text-sm text-slate-600 mb-2">{attempt.transcription}</p>
+              <details className="text-xs">
+                <summary className="text-slate-500 cursor-pointer hover:text-slate-700">View feedback</summary>
+                <div className="mt-2">
+                  <FeedbackDisplay feedback={attempt.feedback} score={attempt.score} compact />
+                </div>
+              </details>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Scenario */}
       <div className="mb-6">
@@ -281,15 +362,13 @@ export default function VoiceRecorder({ exercise, traineeId, sectionId, onComple
             {/* Feedback */}
             <FeedbackDisplay feedback={feedback} score={score} />
 
-            {/* Re-record option */}
-            {!existingResponse && (
-              <button
-                onClick={resetRecording}
-                className="text-sm text-slate-600 hover:text-slate-800 underline"
-              >
-                Try again with a new recording
-              </button>
-            )}
+            {/* Re-record option - always available */}
+            <button
+              onClick={resetRecording}
+              className="text-sm text-slate-600 hover:text-slate-800 underline"
+            >
+              Try again with a new recording
+            </button>
           </div>
         )}
       </div>

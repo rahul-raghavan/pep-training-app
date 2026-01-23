@@ -61,15 +61,29 @@ export async function GET(
       completedAt: sectionProgress?.completed_at,
       avgScore,
       needsAttention,
-      responses: sectionResponses.map(r => ({
-        exerciseId: r.exercise_id,
-        exerciseType: r.exercise_type,
-        transcription: r.response_text,
-        audioUrl: r.audio_url,
-        feedback: r.ai_feedback,
-        score: r.ai_score,
-        createdAt: r.created_at,
-      })),
+      responses: sectionResponses.map(r => {
+        // Find the exercise to get the question/scenario
+        const exercise = section.exercises.find(e => e.id === r.exercise_id);
+        let questionText = '';
+        if (exercise) {
+          if (exercise.type === 'multiple_choice') {
+            questionText = exercise.question;
+          } else if (exercise.type === 'voice') {
+            questionText = exercise.scenario;
+          }
+        }
+
+        return {
+          exerciseId: r.exercise_id,
+          exerciseType: r.exercise_type,
+          questionText,
+          transcription: r.response_text,
+          audioUrl: r.audio_url,
+          feedback: r.ai_feedback,
+          score: r.ai_score,
+          createdAt: r.created_at,
+        };
+      }),
     };
   });
 
