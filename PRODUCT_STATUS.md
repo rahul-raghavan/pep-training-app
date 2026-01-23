@@ -42,9 +42,21 @@ A web application for training PEP admissions team members through interactive c
 
 ## Current Content
 
-### Completed Training Sections
+### Completed Training Sections (All 9 Modules)
 1. **Welcome & Orientation** - What great admissions looks like
 2. **The PEP Belief System** - Core beliefs that shape everything
+3. **The Science** - Developmental research, motivation theory, Montessori evidence
+4. **How the Program Works** - Daily structure, prepared environment, mixed-age classrooms
+5. **Outcomes** - What we can/cannot promise, academic and non-academic outcomes
+6. **The Admissions Conversation** - Structure, discovery questions, tailoring
+7. **Objection Handling** - AEIO framework, common objections with responses
+8. **Qualification** - Green/yellow/red flags, graceful decline techniques
+9. **What You Must Never Say** - Hard rules, escalation paths
+
+Each module includes:
+- Educational content with callouts (info, warning, tip)
+- 2-3 Multiple choice knowledge checks
+- 1-2 Voice exercises with AI evaluation
 
 ## Data Retention Policy
 - All exercise attempts stored indefinitely (text, feedback, scores)
@@ -54,21 +66,17 @@ A web application for training PEP admissions team members through interactive c
 
 ## Next Steps
 
-### Content Expansion - Primary Training Modules
-Complete the training content by adding all remaining modules for the Primary program:
+### Potential Enhancements
+- [ ] Add elementary-specific training modules
+- [ ] Add middle school-specific training modules
+- [ ] Implement scheduled cleanup of old audio files (30-day retention)
+- [ ] Add progress analytics for managers
+- [ ] Implement certification workflow after training completion
 
-- [ ] **The Science** - Developmental research and why our approach works
-- [ ] **How the Program Works** - Daily life, methods, materials
-- [ ] **Outcomes** - What we deliver and how to talk about it
-- [ ] **The Admissions Conversation** - Flow, structure, key messages
-- [ ] **Objection Handling** - Common questions and how to respond
-- [ ] **Qualification** - Identifying good-fit and wrong-fit families
-- [ ] **What You Must Never Say** - Hard rules and escalation paths
+---
 
-Each module will include:
-- Educational content with callouts and examples
-- Multiple choice knowledge checks
-- Voice exercises for practicing real conversation scenarios
+## Related Documents
+- `ADMISSIONS_FORM_DESIGN.md` - Non-gameable admissions form with scenario questions and scoring guide
 
 ---
 
