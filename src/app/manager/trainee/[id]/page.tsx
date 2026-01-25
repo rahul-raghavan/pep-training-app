@@ -21,6 +21,7 @@ interface SectionSummary {
     audioUrl?: string;
     feedback?: string;
     score?: number;
+    correct?: boolean;
     createdAt: string;
   }[];
 }
@@ -307,7 +308,16 @@ export default function TraineeDetailPage() {
                                       })}
                                     </span>
                                   </div>
-                                  {response.score !== undefined && !response.feedback && (
+                                  {response.exerciseType === 'multiple_choice' && response.correct !== undefined && (
+                                    <span className={`text-sm font-medium px-2 py-1 rounded ${
+                                      response.correct
+                                        ? 'bg-green-100 text-green-700'
+                                        : 'bg-red-100 text-red-700'
+                                    }`}>
+                                      {response.correct ? 'Correct' : 'Incorrect'}
+                                    </span>
+                                  )}
+                                  {response.exerciseType === 'voice' && response.score !== undefined && (
                                     <span className={`text-sm font-medium ${
                                       response.score >= 4 ? 'text-green-600' :
                                       response.score >= 3 ? 'text-amber-600' : 'text-red-600'

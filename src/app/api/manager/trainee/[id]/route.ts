@@ -81,6 +81,7 @@ export async function GET(
           audioUrl: r.audio_url,
           feedback: r.ai_feedback,
           score: r.ai_score,
+          correct: r.correct,
           createdAt: r.created_at,
         };
       }),
