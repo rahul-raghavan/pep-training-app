@@ -90,6 +90,9 @@ export default function SectionPage() {
     });
 
     setCompletedExercises(prev => new Set([...prev, exerciseId]));
+
+    // Refresh data to get updated response count
+    await fetchData();
   };
 
   const handleVoiceComplete = (exerciseId: string) => {
@@ -154,6 +157,12 @@ export default function SectionPage() {
     return exerciseResponses.some(r => r.correct === true);
   };
 
+  // Count correct attempts for multiple choice
+  const countCorrectAttempts = (exerciseId: string) => {
+    const exerciseResponses = getExerciseResponses(exerciseId);
+    return exerciseResponses.filter(r => r.correct === true).length;
+  };
+
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
@@ -205,6 +214,8 @@ export default function SectionPage() {
                   const previousAttempts = previousResponses.length;
                   const previouslyCorrect = wasEverCorrect(exercise.id);
 
+                  const correctCount = countCorrectAttempts(exercise.id);
+
                   return (
                     <MultipleChoice
                       key={exercise.id}
@@ -219,6 +230,7 @@ export default function SectionPage() {
                       }}
                       previousAttempts={previousAttempts}
                       previouslyCorrect={previouslyCorrect}
+                      correctAttempts={correctCount}
                     />
                   );
                 }

@@ -8,9 +8,10 @@ interface Props {
   onComplete: (correct: boolean) => void;
   previousAttempts?: number;
   previouslyCorrect?: boolean;
+  correctAttempts?: number;
 }
 
-export default function MultipleChoice({ exercise, onComplete, previousAttempts = 0, previouslyCorrect }: Props) {
+export default function MultipleChoice({ exercise, onComplete, previousAttempts = 0, previouslyCorrect, correctAttempts = 0 }: Props) {
   const [selected, setSelected] = useState<number | null>(null);
   const [submitted, setSubmitted] = useState(false);
 
@@ -41,7 +42,8 @@ export default function MultipleChoice({ exercise, onComplete, previousAttempts 
                 : 'bg-amber-100 text-amber-700'
             }`}>
               {previousAttempts} previous attempt{previousAttempts > 1 ? 's' : ''}
-              {previouslyCorrect && ' (answered correctly)'}
+              {correctAttempts > 0 && ` (${correctAttempts} correct)`}
+              {correctAttempts === 0 && previousAttempts > 0 && ' (none correct yet)'}
             </div>
           )}
         </div>
