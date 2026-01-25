@@ -85,26 +85,39 @@ After completing this self-study, you'll shadow live conversations and eventuall
         id: 'welcome-mc-1',
         question: 'What is the primary goal of an admissions conversation at PEP?',
         options: [
-          'To help families understand PEP so they can decide if it\'s right for them',
-          'To address all of the parent\'s concerns and objections effectively',
-          'To build rapport and leave a positive impression of the school',
-          'To identify families who can afford our fees and commit long-term'
+          'Help families understand PEP so they can decide if it fits',
+          'Address parent concerns and build confidence in enrolling',
+          'Identify aligned families and move them toward enrollment',
+          'Share PEP\'s philosophy and differentiate from competitors'
         ],
         correctIndex: 0,
-        explanation: 'Our goal is mutual fit, not persuasion. Addressing concerns, building rapport, and assessing commitment are all part of the process—but the primary goal is helping families make an informed decision, even if that decision is "PEP isn\'t right for us."'
+        explanation: 'Our goal is mutual fit, not persuasion. Options B, C, and D are all things that happen in admissions—but the primary goal is helping families make an informed decision, even if that decision is "PEP isn\'t right for us."'
       },
       {
         type: 'multiple_choice',
         id: 'welcome-mc-2',
-        question: 'A parent leaves an admissions conversation feeling very positive about PEP. Is this a sign of a successful conversation?',
+        question: 'A parent leaves feeling very positive about PEP. Is this a successful conversation?',
         options: [
-          'Yes—a positive impression means they\'re likely to enroll',
-          'Only if they also have a clear and accurate picture of what PEP is and isn\'t',
-          'Only if they asked lots of questions during the conversation',
-          'No—the goal is to be neutral, not to create positive feelings'
+          'Yes—positive feelings indicate alignment with our values',
+          'Yes—but only if they also understood our approach accurately',
+          'No—we should remain neutral to avoid overselling',
+          'It depends on whether they asked good questions'
         ],
         correctIndex: 1,
-        explanation: 'A positive impression alone isn\'t enough. A parent could leave feeling great but have misconceptions about what we do. Success is when they leave with both a positive feeling AND an accurate understanding—including what we don\'t do and who we\'re not right for.'
+        explanation: 'A positive impression alone isn\'t enough. A parent could leave feeling great but have misconceptions. Success requires both positive feelings AND accurate understanding—including what we don\'t do.'
+      },
+      {
+        type: 'multiple_choice',
+        id: 'welcome-mc-3',
+        question: 'Which behavior indicates you\'re conducting the admissions conversation WRONG?',
+        options: [
+          'Spending significant time asking about the child\'s interests',
+          'Sharing what PEP doesn\'t do and who we\'re not right for',
+          'Speaking for most of the conversation while parents listen',
+          'Letting uncomfortable silences sit while parents think'
+        ],
+        correctIndex: 2,
+        explanation: 'If you\'re doing most of the talking, you\'re doing it wrong. Admissions should be a dialogue where you listen more than you speak. The other options are all signs of a good conversation.'
       }
     ]
   },
@@ -233,41 +246,54 @@ The goal is for parents to *discover* the belief through their own experience, n
       {
         type: 'multiple_choice',
         id: 'belief-mc-1',
-        question: 'PEP believes "children naturally want to learn." How is this different from saying "children should learn whatever they want"?',
+        question: '"Children naturally want to learn" vs "children should learn whatever they want"—what\'s the difference?',
         options: [
-          'It\'s not different—both mean following the child\'s interests completely',
-          'PEP provides structure and expectations, but doesn\'t use force or coercion as motivation',
-          'PEP only allows choice in non-academic areas like art and play',
-          'The difference is mainly in how we talk to parents, not in practice'
+          'No real difference—both prioritize child-led learning',
+          'We have structure and expectations; we just don\'t use force as motivation',
+          'We allow choice only in non-academic areas',
+          'It\'s mainly a difference in how we explain it to parents'
         ],
         correctIndex: 1,
-        explanation: 'Our belief that children want to learn doesn\'t mean "no structure." It means we don\'t need threats, rewards, or pressure as primary motivators. We still have clear expectations and a structured environment—we just trust that children will engage when the environment is right.'
+        explanation: 'Our belief doesn\'t mean "no structure." We have clear expectations and a prepared environment—we just trust children will engage without threats or coercion when the environment is right.'
       },
       {
         type: 'multiple_choice',
         id: 'belief-mc-2',
-        question: 'Why is it significant that PEP\'s founders succeeded in traditional education before rejecting it?',
+        question: 'Why does it matter that PEP\'s founders succeeded in traditional education?',
         options: [
-          'It proves they\'re smart enough to run a school',
-          'It shows they understand both systems and chose this one deliberately',
-          'It helps justify our higher fees to parents',
-          'It\'s mainly useful for marketing to IIT/IIM parents'
+          'It proves they have the credentials to run a school',
+          'It shows they chose this approach after seeing both systems',
+          'It helps when marketing to high-achieving parents',
+          'It demonstrates the flaws in traditional education'
         ],
         correctIndex: 1,
-        explanation: 'Many alternative schools are founded by people who struggled in traditional education. Our founders won that game—IIT, IIM, successful careers—and still rejected it. This gives credibility: they\'re not making excuses for failure, they\'re making a deliberate choice based on seeing both sides.'
+        explanation: 'Many alternative schools are founded by people who struggled traditionally. Our founders won that game—and still rejected it. This gives credibility: they made a deliberate choice, not an excuse for failure.'
       },
       {
         type: 'multiple_choice',
         id: 'belief-mc-3',
-        question: 'What is the "enemy" in PEP\'s positioning?',
+        question: 'What is PEP\'s "enemy" in our positioning?',
         options: [
-          'Traditional schools like DPS and NPS that compete with us',
-          'The belief that children must suffer to succeed—that joy and rigour are opposites',
-          'Parents who prioritize grades and test scores over holistic development',
-          'The government\'s rigid curriculum requirements'
+          'Traditional schools that compete with us for enrollment',
+          'The belief that joy and rigour are opposites',
+          'Parents who over-prioritize grades and test scores',
+          'Rigid government curriculum requirements'
         ],
         correctIndex: 1,
-        explanation: 'Our enemy is a belief, not a competitor or a group of people. The lie that "learning requires suffering" is what we fight. This framing lets us be against an idea without attacking other schools or parents directly.'
+        explanation: 'Our enemy is a belief, not a competitor or group of people. Fighting an idea ("learning requires suffering") lets us differentiate without attacking schools or parents directly.'
+      },
+      {
+        type: 'multiple_choice',
+        id: 'belief-mc-4',
+        question: 'A parent says "I turned out fine with traditional schooling." The best internal response is:',
+        options: [
+          'They\'re probably not a good fit for PEP',
+          'I should highlight the costs of traditional education they may have missed',
+          'I should explore what "fine" means to them without arguing',
+          'I should share our founders\' similar background'
+        ],
+        correctIndex: 2,
+        explanation: 'Don\'t argue or dismiss their experience. Get curious about what "fine" means to them. Our founders had similar backgrounds—invite reflection rather than debate.'
       },
       {
         type: 'voice',
@@ -473,28 +499,41 @@ Then choose 1-2 key points relevant to their concern:
       {
         type: 'multiple_choice',
         id: 'science-mc-1',
-        question: 'A parent says: "My neighbor\'s child started reading at 4. Shouldn\'t we start early to give kids an advantage?" Based on the Montessori approach, the best response is:',
+        question: 'Parent: "My neighbor\'s child reads at 4. Shouldn\'t we start early?" Best response?',
         options: [
-          '"Every child is different—some are ready earlier than others"',
-          '"We offer phonics and reading when children show readiness. Many of our students do read early—the difference is we follow their lead rather than force a timeline."',
+          '"Every child develops at their own pace"',
+          '"Many of our students read early—we follow readiness, not timelines"',
           '"We focus on the whole child, not just academics"',
-          '"Reading isn\'t the most important skill at that age"'
+          '"Early reading doesn\'t predict long-term ability"'
         ],
         correctIndex: 1,
-        explanation: 'This answer acknowledges that early reading CAN happen at PEP, but distinguishes our approach (following the child\'s readiness) from forced early academics. It addresses their concern without dismissing early literacy as unimportant.'
+        explanation: 'This acknowledges early reading CAN happen at PEP while distinguishing our approach. The other answers either deflect the concern or sound dismissive of academics.'
       },
       {
         type: 'multiple_choice',
         id: 'science-mc-2',
-        question: 'Self-Determination Theory identifies three core psychological needs. Which of these is NOT one of them?',
+        question: 'Which is NOT one of the three core needs in Self-Determination Theory?',
         options: [
-          'Autonomy — feeling in control of your own actions',
-          'Competence — feeling capable and effective',
-          'Achievement — feeling successful compared to others',
-          'Relatedness — feeling connected to others'
+          'Autonomy—feeling in control of your actions',
+          'Competence—feeling capable and effective',
+          'Achievement—feeling successful compared to others',
+          'Relatedness—feeling connected to others'
         ],
         correctIndex: 2,
-        explanation: 'Achievement (especially comparative achievement) is NOT a core need—and in fact, comparison-based achievement systems undermine intrinsic motivation. The three needs are Autonomy, Competence, and Relatedness.'
+        explanation: 'Achievement (especially comparative) is NOT a core need—comparison-based systems actually undermine intrinsic motivation. The three needs are Autonomy, Competence, and Relatedness.'
+      },
+      {
+        type: 'multiple_choice',
+        id: 'science-mc-3',
+        question: 'What\'s the problem with forcing academics before the brain is ready?',
+        options: [
+          'Children will fall behind their peers developmentally',
+          'It creates negative associations with learning itself',
+          'It violates Montessori principles',
+          'Parents will become frustrated with slow progress'
+        ],
+        correctIndex: 1,
+        explanation: 'The real damage is psychological—forcing learning creates anxiety and teaches children that learning is something done TO them, not BY them. This undermines intrinsic motivation long-term.'
       },
       {
         type: 'voice',
@@ -674,28 +713,41 @@ While children have choice, the environment covers all essential areas:
       {
         type: 'multiple_choice',
         id: 'program-mc-1',
-        question: 'A parent asks: "What if my child only chooses art and never does math?" The best response is:',
+        question: 'Parent: "What if my child only chooses art and never does math?" Best response?',
         options: [
-          '"We require children to do some math every day"',
-          '"Art is just as valuable as math for development"',
-          '"Our guides know each child well and find ways to spark interest in avoided areas—choice doesn\'t mean no guidance"',
-          '"Children naturally balance themselves over time"'
+          '"We ensure children engage with all areas daily"',
+          '"Art develops skills that support math readiness"',
+          '"Guides notice avoidance and find ways to spark interest"',
+          '"Children naturally seek balance over time"'
         ],
         correctIndex: 2,
-        explanation: 'This response addresses the real concern (will my child learn math?) while explaining how choice works within a guided system. The other answers either contradict our philosophy or don\'t address the concern.'
+        explanation: 'This addresses the real concern (will my child learn math?) while explaining how choice works with guidance. The other answers either overstate our control or don\'t address the concern directly.'
       },
       {
         type: 'multiple_choice',
         id: 'program-mc-2',
-        question: 'Why are PEP classrooms mixed-age (3-year spans) rather than single-age?',
+        question: 'Why are classrooms mixed-age (3-year spans)?',
         options: [
-          'It\'s more cost-effective for the school',
-          'Younger children learn from older ones, older children deepen understanding by teaching, and everyone develops socially',
-          'It reduces competition for grades',
-          'Maria Montessori required it in her method'
+          'It\'s more practical for scheduling and staffing',
+          'Younger children learn from older; older deepen learning by teaching',
+          'It reduces harmful competition between same-age peers',
+          'It follows traditional Montessori requirements'
         ],
         correctIndex: 1,
-        explanation: 'Mixed-age grouping has specific developmental benefits for both younger and older children. It\'s not about cost or tradition—it\'s about how children actually learn best.'
+        explanation: 'Mixed-age has specific developmental benefits—not about cost, tradition, or reducing competition. It\'s how learning naturally happens in families and communities.'
+      },
+      {
+        type: 'multiple_choice',
+        id: 'program-mc-3',
+        question: 'What\'s the purpose of the three-hour work cycle?',
+        options: [
+          'To cover more curriculum than shorter periods allow',
+          'To allow deep concentration without interruption',
+          'To give guides time for individual lessons',
+          'To match the attention span of young children'
+        ],
+        correctIndex: 1,
+        explanation: 'The three-hour cycle protects deep focus—the opposite of traditional schools where bells interrupt every 40 minutes. It\'s not about coverage, guide time, or matching attention spans (children build concentration through this structure).'
       },
       {
         type: 'voice',
@@ -872,28 +924,41 @@ These matter as much as academics—arguably more:
       {
         type: 'multiple_choice',
         id: 'outcomes-mc-1',
-        question: 'A parent asks: "Will my child be at grade level?" The best response is:',
+        question: 'Parent: "Will my child be at grade level?" Best response?',
         options: [
-          '"Yes, absolutely—our students meet or exceed grade level standards"',
-          '"We don\'t believe in grade levels, so that\'s not how we measure progress"',
-          '"We don\'t use grade level as a measure because it ignores individual development. Your child will progress appropriately for them—some areas may be ahead, some may take more time."',
-          '"Grade level is an artificial construct created by traditional schools"'
+          '"Yes—our students typically meet or exceed benchmarks"',
+          '"We don\'t use grade level since it ignores individual development"',
+          '"Some areas may be ahead, some may take more time—we track individual progress"',
+          '"Grade level is an arbitrary standard we don\'t measure against"'
         ],
         correctIndex: 2,
-        explanation: 'This answer is honest without being dismissive. It reframes the question while acknowledging the parent\'s underlying concern (is my child learning?). The other answers are either dishonest, defensive, or dismissive.'
+        explanation: 'This is honest without being dismissive. It acknowledges their concern while reframing how we measure progress. The other options either overpromise, sound defensive, or dismiss a legitimate concern.'
       },
       {
         type: 'multiple_choice',
         id: 'outcomes-mc-2',
-        question: 'Which of these is something we CAN promise to parents?',
+        question: 'Which can we actually promise parents?',
         options: [
-          'Your child will get into a top college',
-          'Your child will be ahead of grade level',
-          'Your child will love coming to school and develop a love of learning',
-          'Your child will pass board exams with top marks'
+          'Your child will be prepared for competitive exams',
+          'Your child will be known deeply by their teachers',
+          'Your child will exceed grade-level standards',
+          'Your child will transition easily to any school'
+        ],
+        correctIndex: 1,
+        explanation: 'We can promise what\'s in our control: individual attention, being known, love of learning. We cannot promise exam results, grade levels, or easy transitions to different school systems.'
+      },
+      {
+        type: 'multiple_choice',
+        id: 'outcomes-mc-3',
+        question: 'A parent only asks about academics. What\'s the best internal approach?',
+        options: [
+          'Recognize they may not be a good fit for PEP',
+          'Redirect them to our non-academic outcomes',
+          'Acknowledge academics matter, then broaden to long-term qualities',
+          'Challenge their narrow definition of success'
         ],
         correctIndex: 2,
-        explanation: 'We can promise things within our control: a joyful environment, known children, love of learning. We cannot promise external outcomes like college admissions or test scores.'
+        explanation: 'Don\'t dismiss their concern or assume misalignment. Start where they are (academics matter to us too), then expand the conversation to the qualities that drive long-term success.'
       },
       {
         type: 'voice',
@@ -1129,28 +1194,41 @@ Same as above, plus: we invite the child to come to school and spend 30-45 minut
       {
         type: 'multiple_choice',
         id: 'conversation-mc-1',
-        question: 'In an admissions conversation, you should spend more time:',
+        question: 'In admissions, where should you spend the MOST time?',
         options: [
-          'Sharing information about PEP\'s philosophy and approach',
-          'Asking questions and listening to understand the family',
-          'Showing them the classroom and materials',
-          'Answering their questions about the program'
+          'Sharing PEP\'s philosophy and approach',
+          'Asking questions and listening to understand them',
+          'Touring the classroom and showing materials',
+          'Answering their specific questions'
         ],
         correctIndex: 1,
-        explanation: 'Discovery (listening and asking) should take more time than Share (telling). The more you understand about them, the more relevant your sharing will be. A parent who feels heard is a parent who trusts you.'
+        explanation: 'Discovery should take more time than Share. The more you understand about them, the more relevant your sharing becomes. A parent who feels heard trusts you more.'
       },
       {
         type: 'multiple_choice',
         id: 'conversation-mc-2',
-        question: 'A parent nods along to everything you say but never asks questions or raises concerns. You should:',
+        question: 'A parent nods along but asks no questions. What should you do?',
         options: [
-          'Take their agreement at face value—they\'re clearly aligned',
-          'Continue sharing more information since they seem interested',
-          'Gently probe: "What stands out to you? What concerns you?"',
-          'Move quickly to enrollment since they seem ready'
+          'Take their agreement at face value—they seem aligned',
+          'Share more information since they\'re clearly engaged',
+          'Probe: "What stands out? What concerns you?"',
+          'Move toward next steps since they seem ready'
         ],
         correctIndex: 2,
-        explanation: 'Silence isn\'t agreement. Parents may nod to be polite while having serious reservations. Always probe for real reactions before assuming alignment.'
+        explanation: 'Silence isn\'t agreement. Parents may nod to be polite while having reservations. Always probe for real reactions before assuming alignment.'
+      },
+      {
+        type: 'multiple_choice',
+        id: 'conversation-mc-3',
+        question: 'What\'s the FIRST question you should ask in discovery?',
+        options: [
+          '"What brings you to look at alternative education?"',
+          '"Tell me about your child—what are they like?"',
+          '"How did you hear about PEP?"',
+          '"What do you know about Montessori?"'
+        ],
+        correctIndex: 2,
+        explanation: 'Start with how they found you. If referred, you can connect through that family. Understanding what they\'ve already been told helps you build on it.'
       },
       {
         type: 'voice',
@@ -1330,28 +1408,41 @@ Be specific and honest about your center's setup.`
       {
         type: 'multiple_choice',
         id: 'objection-mc-1',
-        question: 'A parent asks: "What if my child refuses to do math?" The FIRST thing you should do is:',
+        question: 'Parent: "What if my child refuses to do math?" What\'s the FIRST step?',
         options: [
-          'Explain how guides help children who avoid certain areas',
-          'Ask what makes them think their child might refuse math',
-          'Reassure them that children eventually balance themselves',
-          'Describe the math materials and how engaging they are'
+          'Explain how guides spark interest in avoided areas',
+          'Ask what makes them think their child might refuse',
+          'Reassure them children naturally balance over time',
+          'Describe how engaging the math materials are'
         ],
         correctIndex: 1,
-        explanation: 'In the AEIO framework, after Acknowledging, you Explore. Understanding what\'s behind the question helps you tailor your response. Maybe they\'ve seen avoidance behavior; maybe they\'re just worried hypothetically. Find out first.'
+        explanation: 'In AEIO: Acknowledge, then Explore. Understanding what\'s behind the question helps you tailor your response. Maybe they\'ve seen avoidance; maybe it\'s hypothetical. Find out first.'
       },
       {
         type: 'multiple_choice',
         id: 'objection-mc-2',
-        question: 'A parent keeps asking: "But how do you MAKE SURE they learn? How do you ENSURE they cover everything?" This is:',
+        question: 'Parent keeps asking: "How do you ENSURE they learn everything?" This is:',
         options: [
-          'A normal concern that can be addressed with the right explanation',
-          'A sign they need more information about the curriculum',
-          'A potential red flag showing fundamental misalignment with PEP\'s beliefs',
-          'An opportunity to explain the research on intrinsic motivation'
+          'A normal concern needing better explanation',
+          'A sign they need more curriculum details',
+          'A potential red flag—belief that children must be forced',
+          'An opportunity to share research on motivation'
         ],
         correctIndex: 2,
-        explanation: 'The language of "make sure" and "ensure" reveals a belief that children must be forced to learn. This may indicate fundamental misalignment. It\'s worth exploring, but don\'t oversell—some beliefs don\'t change.'
+        explanation: 'The language "ensure" and "make sure" reveals a belief that learning requires force. This may indicate fundamental misalignment. Explore it, but don\'t oversell—some beliefs don\'t change.'
+      },
+      {
+        type: 'multiple_choice',
+        id: 'objection-mc-3',
+        question: 'In the AEIO framework, what does the "O" stand for?',
+        options: [
+          'Overcome—help them move past the objection',
+          'Offer evidence—give them ways to verify',
+          'Optimize—tailor your response to their needs',
+          'Open—invite further questions'
+        ],
+        correctIndex: 1,
+        explanation: 'O is Offer evidence—give them ways to verify: meet families, observe classrooms, see student work. It\'s not about overcoming objections through argument.'
       },
       {
         type: 'voice',
@@ -1554,28 +1645,41 @@ Don't wait until the end to qualify. Throughout the conversation, notice:
       {
         type: 'multiple_choice',
         id: 'qual-mc-1',
-        question: 'A parent says: "We love the philosophy, but we\'ll probably move to a regular school for board prep in 8th grade." This is:',
+        question: 'Parent: "We love it, but will probably switch to regular school for boards." This is:',
         options: [
-          'A green flag—they\'re being honest and thoughtful',
-          'A yellow flag—they like PEP but see it as temporary',
-          'A red flag—they don\'t really believe in the approach',
-          'Neutral—many families do this and it works fine'
+          'Green flag—they\'re being honest and transparent',
+          'Yellow flag—they like PEP but see it as temporary',
+          'Red flag—they don\'t really believe in the approach',
+          'Neutral—this is common and works fine'
         ],
         correctIndex: 1,
-        explanation: 'This reveals they see PEP as a phase, not a commitment. It\'s not a red flag (they\'re honest and may genuinely appreciate the early years), but it\'s worth exploring. Will they undermine the approach by preparing to leave? Will their anxiety transfer to the child?'
+        explanation: 'They see PEP as a phase, not a commitment. Not a red flag (they\'re honest), but worth exploring: will their exit plan create anxiety that transfers to the child?'
       },
       {
         type: 'multiple_choice',
         id: 'qual-mc-2',
-        question: 'You realize a family is not a good fit for PEP. The best approach is to:',
+        question: 'You realize a family isn\'t a good fit. Best approach?',
         options: [
-          'Continue the conversation and let them decide not to enroll',
-          'Be direct but kind, explain why PEP may not meet their needs, and suggest alternatives',
-          'Point out the flaws in their thinking so they understand why they\'re wrong',
-          'Be vague and let them figure it out from the slow response to their application'
+          'Let the conversation continue; they\'ll self-select out',
+          'Be direct and kind; explain the mismatch honestly',
+          'Help them see the flaws in their current thinking',
+          'Be vague; let the slow application process signal it'
         ],
         correctIndex: 1,
-        explanation: 'A graceful, direct decline is a service to everyone. Don\'t waste their time, don\'t judge them, and don\'t ghost them. Be honest about fit and help them find what they\'re actually looking for.'
+        explanation: 'A graceful, direct decline serves everyone. Don\'t waste their time, don\'t judge, don\'t ghost. Be honest about fit and suggest alternatives if possible.'
+      },
+      {
+        type: 'multiple_choice',
+        id: 'qual-mc-3',
+        question: 'Which parent statement is a GREEN flag?',
+        options: [
+          '"We want our child to be happy AND learn—that\'s why we\'re here"',
+          '"We\'ll try this for a year and see how it goes"',
+          '"Anything is better than their current school"',
+          '"How will they keep up with their cousins?"'
+        ],
+        correctIndex: 0,
+        explanation: 'Green flags show philosophy alignment: valuing both joy AND learning. The others show short-term thinking, escapism, or comparison anxiety—all yellow/red flags.'
       },
       {
         type: 'voice',
@@ -1729,28 +1833,41 @@ Never pretend to know something you don't. Never make promises outside your auth
       {
         type: 'multiple_choice',
         id: 'never-mc-1',
-        question: 'A parent asks: "Can you guarantee my child will be reading by age 6?" The correct response is:',
+        question: 'Parent: "Can you guarantee reading by age 6?" Correct response?',
         options: [
-          '"Yes, our approach ensures children read early"',
-          '"Most children in our program are reading by 6"',
-          '"We focus on building strong foundations. Most children read by 7-8, though there\'s natural variation based on each child\'s development."',
-          '"We don\'t focus on timelines like that"'
+          '"Yes—our approach supports early reading"',
+          '"Most of our children are reading by that age"',
+          '"Most read fluently by preschool exit, with natural variation"',
+          '"We don\'t make timeline guarantees"'
         ],
         correctIndex: 2,
-        explanation: 'Never guarantee specific outcomes. The correct answer sets realistic expectations, explains our approach, and acknowledges individual variation—without dismissing their concern or making promises we can\'t keep.'
+        explanation: 'Never guarantee specific outcomes. This answer sets realistic expectations and acknowledges variation without dismissing their concern or making promises we can\'t keep.'
       },
       {
         type: 'multiple_choice',
         id: 'never-mc-2',
-        question: 'A parent says: "I think my child might have ADHD. Can PEP help with that?" The correct response is:',
+        question: 'Parent: "I think my child might have ADHD. Can PEP help?" Correct response?',
         options: [
-          '"Yes, our approach is great for children with ADHD"',
-          '"I\'d recommend speaking with a specialist about that. We work with each child as they are, and our environment supports many different kinds of learners."',
-          '"We\'ve had a lot of success with ADHD children"',
-          '"What makes you think they have ADHD?"'
+          '"Our approach often works well for such children"',
+          '"I\'d suggest consulting a specialist; we support all kinds of learners"',
+          '"We\'ve seen good results with similar children"',
+          '"What makes you think they might have ADHD?"'
         ],
         correctIndex: 1,
-        explanation: 'Never diagnose or claim expertise in conditions you\'re not qualified to assess. Recommend they consult specialists, and reassure that we work with children as they are without making promises about "fixing" anything.'
+        explanation: 'Never diagnose or claim expertise in conditions. Recommend specialists, and reassure we work with children as they are—without promising to "fix" anything.'
+      },
+      {
+        type: 'multiple_choice',
+        id: 'never-mc-3',
+        question: 'Parent criticizes their current school by name. You should:',
+        options: [
+          'Agree and contrast with PEP\'s approach',
+          'Redirect to what PEP offers without commenting on them',
+          'Explain why those schools take that approach',
+          'Share that you\'ve heard similar feedback'
+        ],
+        correctIndex: 1,
+        explanation: 'Never criticize other schools by name—even if the parent invites it. Redirect to PEP\'s strengths without validating criticism or adding your own.'
       },
       {
         type: 'voice',
