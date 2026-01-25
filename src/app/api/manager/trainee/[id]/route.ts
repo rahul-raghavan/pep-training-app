@@ -53,6 +53,32 @@ export async function GET(
     // Flag sections with low scores
     const needsAttention = avgScore !== null && avgScore < 3;
 
+    // Build exercises with their responses
+    const exercises = section.exercises.map(exercise => {
+      const exerciseResponses = sectionResponses.filter(r => r.exercise_id === exercise.id);
+
+      let questionText = '';
+      if (exercise.type === 'multiple_choice') {
+        questionText = exercise.question;
+      } else if (exercise.type === 'voice') {
+        questionText = exercise.scenario;
+      }
+
+      return {
+        exerciseId: exercise.id,
+        exerciseType: exercise.type,
+        questionText,
+        attempts: exerciseResponses.map(r => ({
+          transcription: r.response_text,
+          audioUrl: r.audio_url,
+          feedback: r.ai_feedback,
+          score: r.ai_score,
+          correct: r.correct,
+          createdAt: r.created_at,
+        })),
+      };
+    });
+
     return {
       id: section.id,
       title: section.title,
@@ -61,30 +87,9 @@ export async function GET(
       completedAt: sectionProgress?.completed_at,
       avgScore,
       needsAttention,
-      responses: sectionResponses.map(r => {
-        // Find the exercise to get the question/scenario
-        const exercise = section.exercises.find(e => e.id === r.exercise_id);
-        let questionText = '';
-        if (exercise) {
-          if (exercise.type === 'multiple_choice') {
-            questionText = exercise.question;
-          } else if (exercise.type === 'voice') {
-            questionText = exercise.scenario;
-          }
-        }
-
-        return {
-          exerciseId: r.exercise_id,
-          exerciseType: r.exercise_type,
-          questionText,
-          transcription: r.response_text,
-          audioUrl: r.audio_url,
-          feedback: r.ai_feedback,
-          score: r.ai_score,
-          correct: r.correct,
-          createdAt: r.created_at,
-        };
-      }),
+      exercises,
+      // Keep responses for backward compatibility with stats
+      totalResponses: sectionResponses.length,
     };
   });
 

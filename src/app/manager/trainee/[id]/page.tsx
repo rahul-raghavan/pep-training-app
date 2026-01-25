@@ -5,6 +5,22 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import FeedbackDisplay from '@/components/FeedbackDisplay';
 
+interface ExerciseAttempt {
+  transcription?: string;
+  audioUrl?: string;
+  feedback?: string;
+  score?: number;
+  correct?: boolean;
+  createdAt: string;
+}
+
+interface ExerciseSummary {
+  exerciseId: string;
+  exerciseType: string;
+  questionText?: string;
+  attempts: ExerciseAttempt[];
+}
+
 interface SectionSummary {
   id: string;
   title: string;
@@ -13,17 +29,8 @@ interface SectionSummary {
   completedAt?: string;
   avgScore: number | null;
   needsAttention: boolean;
-  responses: {
-    exerciseId: string;
-    exerciseType: string;
-    questionText?: string;
-    transcription?: string;
-    audioUrl?: string;
-    feedback?: string;
-    score?: number;
-    correct?: boolean;
-    createdAt: string;
-  }[];
+  exercises: ExerciseSummary[];
+  totalResponses: number;
 }
 
 interface AssessmentAttempt {
@@ -242,7 +249,7 @@ export default function TraineeDetailPage() {
                         )}
                       </div>
                       <div className="text-sm text-slate-500">
-                        {section.responses.length} responses
+                        {section.totalResponses} responses • {section.exercises.length} exercises
                         {section.avgScore !== null && ` • Avg: ${section.avgScore}/5`}
                       </div>
                     </div>
@@ -258,101 +265,101 @@ export default function TraineeDetailPage() {
                 </button>
 
                 {/* Expanded content */}
-                {expandedSection === section.id && section.responses.length > 0 && (
+                {expandedSection === section.id && section.exercises.length > 0 && (
                   <div className="px-4 pb-4">
                     <div className="ml-12 space-y-4">
-                      {(() => {
-                        // Group responses by exercise
-                        const groupedByExercise: Record<string, typeof section.responses> = {};
-                        section.responses.forEach(r => {
-                          if (!groupedByExercise[r.exerciseId]) {
-                            groupedByExercise[r.exerciseId] = [];
-                          }
-                          groupedByExercise[r.exerciseId].push(r);
-                        });
+                      {section.exercises.map((exercise) => (
+                        <div key={exercise.exerciseId} className="space-y-2">
+                          {/* Exercise question/scenario header */}
+                          {exercise.questionText && (
+                            <div className="bg-white border border-slate-200 rounded-lg p-3 mb-2">
+                              <div className="text-xs text-slate-500 mb-1">
+                                {exercise.exerciseType === 'voice' ? 'Scenario:' : 'Question:'}
+                              </div>
+                              <p className="text-sm text-slate-800 italic">
+                                {exercise.exerciseType === 'voice' ? `"${exercise.questionText}"` : exercise.questionText}
+                              </p>
+                            </div>
+                          )}
 
-                        return Object.entries(groupedByExercise).map(([exerciseId, attempts]) => (
-                          <div key={exerciseId} className="space-y-2">
-                            {/* Exercise question/scenario header */}
-                            {attempts[0].questionText && (
-                              <div className="bg-white border border-slate-200 rounded-lg p-3 mb-2">
-                                <div className="text-xs text-slate-500 mb-1">
-                                  {attempts[0].exerciseType === 'voice' ? 'Scenario:' : 'Question:'}
+                          {exercise.attempts.length === 0 ? (
+                            <div className="bg-slate-50 rounded-lg p-4 text-center">
+                              <span className="text-sm text-slate-400">
+                                {exercise.exerciseType === 'voice' ? 'Voice Exercise' : 'Knowledge Check'} — No attempts yet
+                              </span>
+                            </div>
+                          ) : (
+                            <>
+                              {exercise.attempts.length > 1 && (
+                                <div className="text-xs text-slate-500 font-medium">
+                                  {exercise.exerciseType === 'voice' ? 'Voice Exercise' : 'Knowledge Check'} — {exercise.attempts.length} attempts
                                 </div>
-                                <p className="text-sm text-slate-800 italic">
-                                  {attempts[0].exerciseType === 'voice' ? `"${attempts[0].questionText}"` : attempts[0].questionText}
-                                </p>
-                              </div>
-                            )}
-                            {attempts.length > 1 && (
-                              <div className="text-xs text-slate-500 font-medium">
-                                {attempts[0].exerciseType === 'voice' ? 'Voice Exercise' : 'Knowledge Check'} — {attempts.length} attempts
-                              </div>
-                            )}
-                            {attempts.map((response, attemptIdx) => (
-                              <div key={attemptIdx} className="bg-slate-50 rounded-lg p-4">
-                                <div className="flex items-center justify-between mb-3">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-sm font-medium text-slate-700">
-                                      {response.exerciseType === 'voice' ? 'Voice Exercise' : 'Knowledge Check'}
-                                      {attempts.length > 1 && (
-                                        <span className="text-slate-400 font-normal"> (Attempt {attemptIdx + 1})</span>
-                                      )}
-                                    </span>
-                                    <span className="text-xs text-slate-400">
-                                      {new Date(response.createdAt).toLocaleDateString('en-US', {
-                                        month: 'short',
-                                        day: 'numeric',
-                                        hour: '2-digit',
-                                        minute: '2-digit'
-                                      })}
-                                    </span>
+                              )}
+                              {exercise.attempts.map((attempt, attemptIdx) => (
+                                <div key={attemptIdx} className="bg-slate-50 rounded-lg p-4">
+                                  <div className="flex items-center justify-between mb-3">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-sm font-medium text-slate-700">
+                                        {exercise.exerciseType === 'voice' ? 'Voice Exercise' : 'Knowledge Check'}
+                                        {exercise.attempts.length > 1 && (
+                                          <span className="text-slate-400 font-normal"> (Attempt {attemptIdx + 1})</span>
+                                        )}
+                                      </span>
+                                      <span className="text-xs text-slate-400">
+                                        {new Date(attempt.createdAt).toLocaleDateString('en-US', {
+                                          month: 'short',
+                                          day: 'numeric',
+                                          hour: '2-digit',
+                                          minute: '2-digit'
+                                        })}
+                                      </span>
+                                    </div>
+                                    {exercise.exerciseType === 'multiple_choice' && attempt.correct !== undefined && (
+                                      <span className={`text-sm font-medium px-2 py-1 rounded ${
+                                        attempt.correct
+                                          ? 'bg-green-100 text-green-700'
+                                          : 'bg-red-100 text-red-700'
+                                      }`}>
+                                        {attempt.correct ? 'Correct' : 'Incorrect'}
+                                      </span>
+                                    )}
+                                    {exercise.exerciseType === 'voice' && attempt.score !== undefined && (
+                                      <span className={`text-sm font-medium ${
+                                        attempt.score >= 4 ? 'text-green-600' :
+                                        attempt.score >= 3 ? 'text-amber-600' : 'text-red-600'
+                                      }`}>
+                                        {attempt.score}/5
+                                      </span>
+                                    )}
                                   </div>
-                                  {response.exerciseType === 'multiple_choice' && response.correct !== undefined && (
-                                    <span className={`text-sm font-medium px-2 py-1 rounded ${
-                                      response.correct
-                                        ? 'bg-green-100 text-green-700'
-                                        : 'bg-red-100 text-red-700'
-                                    }`}>
-                                      {response.correct ? 'Correct' : 'Incorrect'}
-                                    </span>
+
+                                  {attempt.transcription && (
+                                    <div className="mb-3">
+                                      <div className="text-xs text-slate-500 mb-1">Response:</div>
+                                      <p className="text-sm text-slate-700 bg-white p-2 rounded border border-slate-200">{attempt.transcription}</p>
+                                    </div>
                                   )}
-                                  {response.exerciseType === 'voice' && response.score !== undefined && (
-                                    <span className={`text-sm font-medium ${
-                                      response.score >= 4 ? 'text-green-600' :
-                                      response.score >= 3 ? 'text-amber-600' : 'text-red-600'
-                                    }`}>
-                                      {response.score}/5
-                                    </span>
+
+                                  {attempt.audioUrl && (
+                                    <div className="mb-3">
+                                      <div className="text-xs text-slate-500 mb-1">Recording:</div>
+                                      <audio src={attempt.audioUrl} controls className="w-full h-8" />
+                                    </div>
+                                  )}
+
+                                  {attempt.feedback && (
+                                    <FeedbackDisplay
+                                      feedback={attempt.feedback}
+                                      score={attempt.score}
+                                      compact
+                                    />
                                   )}
                                 </div>
-
-                                {response.transcription && (
-                                  <div className="mb-3">
-                                    <div className="text-xs text-slate-500 mb-1">Response:</div>
-                                    <p className="text-sm text-slate-700 bg-white p-2 rounded border border-slate-200">{response.transcription}</p>
-                                  </div>
-                                )}
-
-                                {response.audioUrl && (
-                                  <div className="mb-3">
-                                    <div className="text-xs text-slate-500 mb-1">Recording:</div>
-                                    <audio src={response.audioUrl} controls className="w-full h-8" />
-                                  </div>
-                                )}
-
-                                {response.feedback && (
-                                  <FeedbackDisplay
-                                    feedback={response.feedback}
-                                    score={response.score}
-                                    compact
-                                  />
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        ));
-                      })()}
+                              ))}
+                            </>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
