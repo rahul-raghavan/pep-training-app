@@ -163,7 +163,7 @@ This belief poisons everything. It turns learning—which should be joyful—int
         type: 'text',
         content: `## What PEP Stands For
 
-PEP stands for **Personalized Education Path**.
+PEP stands for **Personalized Education Paths**.
 
 This isn't a clever name—it's a description of what we do:
 
@@ -204,7 +204,7 @@ Our promise to parents:
 Not one or the other. Both. That's what PEP delivers.
 
 We don't achieve this through wishful thinking. We achieve it through system design:
-- Small groups matched to level (never bored, never lost)
+- One-on-one attention for our youngest children (primary level); small groups matched to level for older children (never bored, never lost)
 - Individual attention (each child known deeply)
 - Appropriate challenge (hard enough to grow, not so hard it breaks them)
 - Science-forward methods (we use what works)
@@ -356,8 +356,11 @@ Our approach isn't based on philosophy alone. It's grounded in decades of develo
 
 Children are born with an incredibly powerful learning system. A baby's brain forms over 1 million new neural connections per second in the first few years. This isn't random—it's driven by curiosity, exploration, and interaction with the environment.
 
-Traditional schooling often works *against* this natural system by:
+Traditional schooling often works *against* this natural system in two ways:
 - Forcing learning before the brain is ready (developmentally inappropriate expectations)
+- Holding children back when they ARE ready (rigid age-based curricula that ignore individual readiness)
+
+It also undermines natural learning by:
 - Replacing intrinsic motivation with external rewards/punishments
 - Fragmenting knowledge into disconnected subjects
 - Prioritizing memorization over understanding
@@ -370,7 +373,7 @@ Examples:
 - **Language (0-6 years):** Children absorb language without formal instruction
 - **Order (1-3 years):** Children crave routine and organization
 - **Small objects (1-4 years):** Fascination with tiny things develops fine motor skills
-- **Social development (2.5-5 years):** Learning to work with others
+- **Social development (4+ years):** Learning to work with others, developing empathy and collaboration
 
 **When we force learning outside these windows, it requires enormous effort. When we support learning during these windows, it happens naturally.**`
       },
@@ -403,26 +406,32 @@ When these needs are met, intrinsic motivation flourishes. When they're thwarted
       },
       {
         type: 'text',
-        content: `## The Problem with Early Academics
+        content: `## The Montessori Approach to Early Literacy
 
-Research consistently shows that pushing academics too early backfires:
+One of Montessori's great successes—both historically and in our experience—is that children often begin reading and writing quite early. But there's a crucial difference between how Montessori achieves this and how traditional early academics work.
 
-**The Finland Example:**
-Finnish children don't start formal reading instruction until age 7. By age 15, they outperform students from countries that start at age 4-5. Early instruction doesn't help—it may actually harm.
+**The Montessori Phonics Method:**
+Montessori developed a systematic phonics approach that follows the child's natural development:
+- Children work with sandpaper letters, tracing and feeling the shapes while hearing the sounds
+- They build words with the moveable alphabet before they can write
+- Writing often comes before reading (the hand prepares the mind)
+- Each step is concrete before abstract
 
-**The Play Research:**
-Children who spend more time in play-based learning in early years show better academic outcomes, better social skills, and less anxiety than children in academic-focused preschools. The advantage grows over time.
+**Why this works:**
+- The child is ready—we're responding to their sensitive period for language, not forcing it
+- It's hands-on and multi-sensory, not drill-based
+- Children experience success and joy, not pressure and anxiety
+- The pace is individual—some children read at 4, some at 6, both are normal
 
-**Why does early pressure backfire?**
-- Creates anxiety and negative associations with learning
-- Teaches children that learning is something done *to* them, not *by* them
-- Misses the window for developing executive function through play
-- Replaces broad development with narrow skill drilling`
+**The problem isn't early learning—it's forced learning:**
+The issue with traditional early academics isn't the "early" part—it's the forcing. When children are pushed to read before they're developmentally ready, or when instruction is abstract and pressured, it creates anxiety and negative associations. But when children are offered the right materials at the right time, in a way that respects their development, early literacy emerges naturally.
+
+**Note:** Some educational approaches (like Waldorf) intentionally delay formal reading instruction, and research shows children who start later often catch up quickly. This reminds us that there's a range of normal development. What matters is not hitting a specific age target, but ensuring the child's experience of learning remains positive and builds genuine capability.`
       },
       {
         type: 'callout',
-        variant: 'warning',
-        content: `**Key point for parents:** "Early" doesn't mean "better." A child who learns to read at 7 after years of rich language exposure will likely become a better reader than a child drilled on phonics at 4. Development can't be rushed—only supported or damaged.`
+        variant: 'tip',
+        content: `**Key point for parents:** At PEP, we don't hold children back, and we don't push them forward before they're ready. When children show interest and readiness, we offer them the tools to learn. Many of our students are reading and writing well before they leave preschool—not because we forced them, but because we gave them the right environment at the right time.`
       },
       {
         type: 'text',
@@ -464,15 +473,15 @@ Then choose 1-2 key points relevant to their concern:
       {
         type: 'multiple_choice',
         id: 'science-mc-1',
-        question: 'A parent says: "My neighbor\'s child started reading at 4. Shouldn\'t we start early to give kids an advantage?" Based on the research, the best response is:',
+        question: 'A parent says: "My neighbor\'s child started reading at 4. Shouldn\'t we start early to give kids an advantage?" Based on the Montessori approach, the best response is:',
         options: [
           '"Every child is different—some are ready earlier than others"',
-          '"Early reading instruction doesn\'t predict long-term reading ability, and can create negative associations with learning"',
+          '"We offer phonics and reading when children show readiness. Many of our students do read early—the difference is we follow their lead rather than force a timeline."',
           '"We focus on the whole child, not just academics"',
           '"Reading isn\'t the most important skill at that age"'
         ],
         correctIndex: 1,
-        explanation: 'The research-backed answer addresses their assumption directly: early doesn\'t mean better. Finland shows that later formal instruction can lead to better outcomes. The other answers deflect rather than educate.'
+        explanation: 'This answer acknowledges that early reading CAN happen at PEP, but distinguishes our approach (following the child\'s readiness) from forced early academics. It addresses their concern without dismissing early literacy as unimportant.'
       },
       {
         type: 'multiple_choice',
@@ -525,47 +534,34 @@ Parents need to understand what their child's day actually looks like. Abstract 
         type: 'text',
         content: `## The Daily Structure
 
-A typical day at PEP is structured but not rigid:
+The cornerstone of a PEP day is the **three-hour work cycle**—a long, uninterrupted period where children choose their work, engage deeply, and learn at their own pace. This is what makes Montessori fundamentally different from traditional schooling.
 
-**Morning Circle (15-20 min)**
-- Community gathering
-- Songs, discussions, calendar
-- Setting intentions for the day
+**The Morning Work Cycle (3 hours)**
+- Children arrive and choose their work from the prepared environment
+- Teachers observe, guide, and give individual or small-group lessons
+- This is when deep concentration and real learning happens
+- Snack is brought from home and eaten at the child's own pace during the work cycle
+- No bells, no interruptions—children complete their work cycles naturally
 
-**Work Period 1 (2-2.5 hours)**
-- Children choose from prepared activities
-- Teachers observe and guide
-- Deep, uninterrupted focus time
+**Circle Times (occasional, through the week)**
+- Community gatherings for songs, discussions, stories
+- Not a daily "morning circle"—rather, circles happen when they serve a purpose
+- May include sharing work, discussing projects, or exploring topics together
 
-**Snack & Outdoor Time (45 min)**
-- Healthy snack (brought from home or provided)
-- Free play outdoors
-- Gross motor development
+**For younger children (half-day):**
+Once the morning work cycle ends, some children go home. This is typical for our youngest students who are building stamina.
 
-**Work Period 2 (1.5-2 hours)**
-- Continued self-directed work
-- Small group lessons
-- One-on-one time with teachers
+**For children staying full-day:**
+- **Community Lunch:** After the morning work cycle, children come together to eat as a community. This is a social time where everyone sits together.
+- **Afternoon Work Cycle:** On most days, there's a second work cycle in the afternoon. Some days include local/regional language instruction, ongoing academic learning, or field trips. The afternoon is a continuation of meaningful learning.
+- **Creative Activities:** Throughout the day (morning or afternoon), children have opportunities for arts, music, and other creative work integrated into their experience.
 
-**Lunch & Rest**
-- Community meal
-- Younger children: rest time
-- Older children: quiet activities
-
-**Afternoon Activities**
-- Story time
-- Group projects
-- Specialist activities (music, art, movement)
-
-**Closing Circle**
-- Reflection on the day
-- Sharing work
-- Transition to home`
+**Note:** Different PEP centers may vary slightly in their schedules, but all share these core elements: the three-hour work cycle, community meal time, and child-paced snacks during work periods.`
       },
       {
         type: 'callout',
         variant: 'info',
-        content: `**Key insight for parents:** The long, uninterrupted work periods are essential. This is when deep learning happens. It's the opposite of traditional schools where every 40 minutes a bell rings and children switch contexts.`
+        content: `**Key insight for parents:** The three-hour work cycle is sacred. This extended, uninterrupted time is when deep learning happens. It's the opposite of traditional schools where every 40 minutes a bell rings and children switch contexts. Protecting this time allows children to develop genuine concentration and follow their interests to completion.`
       },
       {
         type: 'text',
@@ -705,21 +701,21 @@ While children have choice, the environment covers all essential areas:
         type: 'voice',
         id: 'program-voice-1',
         scenario: 'A parent asks: "Can you walk me through what a typical day looks like for a 5-year-old at PEP?"',
-        guidance: `Describe the flow of the day:
-- Morning circle
-- Long work periods (emphasize "uninterrupted")
-- Snack and outdoor play
-- Lunch and rest
-- Afternoon activities
-- Closing circle
+        guidance: `Describe the flow of the day, emphasizing the three-hour work cycle:
+- The morning three-hour work cycle (the heart of the day)
+- Children choosing their work from the environment
+- Snack eaten at their own pace during the work cycle
+- Community lunch together
+- Afternoon work cycle for those staying full-day
+- Occasional circle times for community gatherings
 
-Make it vivid—help them picture their child there. Mention specifics like "choosing their own work from the shelves" and "working on a rug on the floor."`,
+Make it vivid—help them picture their child there. Mention specifics like "choosing their own work from the shelves" and "deep, uninterrupted concentration."`,
         aiPrompt: `Evaluate if the trainee:
-1. Gave a clear sense of the day's structure
-2. Mentioned key elements (work periods, outdoor time, community gatherings)
-3. Emphasized child choice and independence
-4. Made it vivid and concrete (not abstract)
-5. Sounded warm and inviting
+1. Emphasized the three-hour work cycle as central
+2. Mentioned snack during work cycle (not a separate snack time)
+3. Described community lunch together
+4. Mentioned child choice and independence
+5. Made it vivid and concrete (not abstract)
 
 Did the parent get a real picture of what their child's day would look like?`
       },
@@ -800,15 +796,19 @@ Honest answer: If your child stays through our high school program, they will be
         type: 'text',
         content: `## Academic Outcomes
 
+*While nothing is guaranteed—every child develops differently—here's what we typically see:*
+
 **Reading & Writing:**
-- Children typically read fluently by age 7-8 (some earlier, some later)
-- Writing develops naturally through the materials
-- By age 9-10, most children are voracious readers
+- Children typically read fluently and write well by the time they exit preschool
+- A genuine culture of reading and writing develops—children who enjoy books and express themselves through writing
+- By elementary years, most children are voracious readers with strong comprehension
 
 **Mathematics:**
-- Strong conceptual understanding (not just procedures)
-- Children can explain *why* math works, not just *how*
-- May look "behind" on paper tests but have deeper understanding
+- Children work with large numbers (four-digit numbers and beyond) with conceptual understanding
+- They can explain *why* math works, not just *how*—understanding place value, carrying, borrowing at a deep level
+- Operations (addition, subtraction, and often multiplication and division) with large numbers
+- Children who grasp these concepts may be exposed to concepts typically taught only at elementary level
+- This depth of understanding serves them better than surface-level speed
 
 **General Knowledge:**
 - Broad exposure through cultural curriculum
@@ -972,6 +972,11 @@ A good admissions conversation has five phases:
 
 Great questions to understand the family:
 
+**How they found us (start here!):**
+- "How did you hear about PEP?"
+- If referred: "Oh, you know the [Family Name]! How do you know them?"
+- This is important—families referred by current parents often have some context already. Understanding what they've been told helps you build on it and address any gaps.
+
 **About the child:**
 - "Tell me about [child's name]. What are they like?"
 - "What does [child] love to do? What are they curious about?"
@@ -1063,7 +1068,12 @@ An admissions conversation should feel spacious. If you're hurrying to cover eve
         type: 'text',
         content: `## The Tour
 
-The classroom tour is often the most powerful part:
+The classroom tour is often the most powerful part—but set expectations appropriately:
+
+**Important to clarify upfront:**
+- This is NOT a formal observation—parents will not be able to stand inside the classroom and interact with the class
+- We will peek in quietly and observe from the doorway or through windows
+- If class is not in session, we'll walk through the space and I'll help you visualize what happens here
 
 **What to point out:**
 - Children's concentration and focus
@@ -1076,13 +1086,43 @@ The classroom tour is often the most powerful part:
 - "Notice how focused that child is..."
 - "Watch how she puts the materials back when she's done..."
 - "See how the older child is helping the younger one..."
+- Use what you see to contextualize what you discussed earlier
 
 **What to avoid:**
 - Interrupting children's work
 - Talking loudly in the classroom
 - Rushing through the space
+- Making promises about what the parent can do during the tour
 
 **Let the environment speak for itself.** Often the best thing you can do is be quiet and let them observe.`
+      },
+      {
+        type: 'text',
+        content: `## Closing: The Next Steps
+
+How you end the conversation matters. Here's the process:
+
+**What we tell families:**
+"We're going to send you some reading material about Montessori and our approach. Along with that, we'll send you a questionnaire—it's meant to be completed after you've done the reading. Once you submit the questionnaire, we'll review it and take the next steps."
+
+**For children under 3:**
+If the questionnaire responses look aligned and everything seems clear, we move them toward admission. If we notice areas where the parents want something Montessori can't provide, we have an honest conversation. We may suggest alternatives or invite them to revise their expectations. Not every family is right for us, and that's okay.
+
+**For children 3 and above:**
+Same as above, plus: we invite the child to come to school and spend 30-45 minutes with us.
+
+**Why do we do this child visit?**
+- To get to know the child ourselves
+- To understand their temperament, interests, and how they engage
+- To identify any characteristics that might make success in a Montessori environment less likely
+- To ensure we can serve this child well
+
+**Important:** This is a diplomatic way of screening for special needs or behavioral challenges that we may not be equipped to handle. We're not qualified to diagnose anything, but we can observe. If we have concerns after the visit, we discuss them honestly with the parents and may suggest the child would be better served elsewhere. This is a kindness to everyone involved.
+
+**What NOT to do:**
+- Don't pressure for immediate decisions
+- Don't promise admission before the process is complete
+- Don't skip steps to "close the deal"`
       }
     ],
     exercises: [
@@ -1259,6 +1299,26 @@ Give them a way to verify: meet families, observe classrooms, talk to teachers, 
 - **Explore:** "What would make it feel 'worth it' to you? What are you comparing to?"
 - **Inform:** "Our fees reflect small class sizes, highly trained guides, quality materials, and individual attention. In traditional schools, your child is one of 40. Here, they're known. That level of attention costs more—but the difference in experience is dramatic."
 - **Offer:** "I'd suggest visiting a traditional school and visiting us on the same week. See the difference for yourself."`
+      },
+      {
+        type: 'text',
+        content: `## Objection: "What about physical activities? I don't see much open space."
+
+**What they're really asking:** "Will my child get enough physical development? Are you just focused on academics?"
+
+**Response framework:**
+- **Acknowledge:** "Physical development is really important, and I'm glad you're thinking about it."
+- **Explore:** "What kinds of physical activities are you hoping your child will have?"
+- **Inform:** "We take gross motor development very seriously—even if it looks different from what you might expect. Children have structured time for physical activities: we take them to play areas (which may be outdoors, on a terrace, or sometimes off-site), and at some locations we offer gymnastics instruction. Children are given dedicated time, they're given coaching, and they have adults who are skilled at supporting physical development."
+- **Offer:** "Let me tell you specifically what physical activities look like at [this center], so you know what to expect."
+
+**Important:** This answer varies by location. You need to know your center's specific arrangements:
+- Where is the play area? (Ground, terrace, external)
+- Do you offer gymnastics? Where?
+- How often do children go for physical activity?
+- Who supervises and coaches?
+
+Be specific and honest about your center's setup.`
       },
       {
         type: 'callout',
