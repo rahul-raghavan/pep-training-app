@@ -1,7 +1,7 @@
-# PEP Admissions Training App — Technical Specification
+# PEP Admissions Training App - Technical Specification
 
 ## Overview
-A web application for training admissions team members through self-paced learning with voice-based practice exercises and AI feedback.
+A web application for training admissions team members through self-paced learning with voice-based practice exercises, AI feedback, and comprehensive assessment.
 
 ---
 
@@ -49,21 +49,25 @@ CREATE TABLE responses (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   trainee_id UUID REFERENCES trainees(id) ON DELETE CASCADE,
   section_id TEXT NOT NULL,
-  exercise_id TEXT NOT NULL, -- e.g., "kc-1", "practice-1"
-  exercise_type TEXT NOT NULL, -- "multiple_choice", "short_answer", "voice"
+  exercise_id TEXT NOT NULL, -- e.g., "belief-mc-1", "belief-voice-1"
+  exercise_type TEXT NOT NULL, -- "multiple_choice", "voice"
   response_text TEXT, -- For text answers or transcriptions
   audio_url TEXT, -- For voice recordings (Supabase Storage URL)
   ai_feedback TEXT, -- Claude's feedback
-  ai_score INTEGER, -- Optional 1-5 rating from AI
+  ai_score INTEGER, -- 1-5 rating from AI (voice) or 0/5 (MC correct/incorrect)
+  correct BOOLEAN, -- For multiple choice: was it correct?
   created_at TIMESTAMP DEFAULT NOW()
 );
 
--- Manager access (simple shared password)
-CREATE TABLE settings (
-  key TEXT PRIMARY KEY,
-  value TEXT NOT NULL
+-- Assessment attempts (final assessment)
+CREATE TABLE assessment_attempts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  trainee_id UUID REFERENCES trainees(id) ON DELETE CASCADE,
+  score INTEGER NOT NULL,
+  total INTEGER NOT NULL,
+  answers JSONB, -- Record of question_id -> selected_index
+  created_at TIMESTAMP DEFAULT NOW()
 );
--- INSERT INTO settings (key, value) VALUES ('manager_password', 'your-password-here');
 ```
 
 ---
@@ -72,87 +76,79 @@ CREATE TABLE settings (
 
 | Route | Purpose |
 |-------|---------|
-| `/train/[token]` | Trainee's unique training link |
-| `/train/[token]/[section]` | Specific section |
+| `/train/[token]` | Trainee's unique training link (dashboard) |
+| `/train/[token]/[section]` | Specific section content |
+| `/train/[token]/assessment` | Final assessment |
 | `/manager` | Manager login |
 | `/manager/dashboard` | Manager dashboard |
+| `/manager/content` | Content preview (all modules + assessment) |
 | `/manager/trainee/[id]` | Individual trainee detail |
 
 ---
 
-## Page Components
+## API Routes
 
-### Trainee Flow
-
-1. **Landing Page** (`/train/[token]`)
-   - Welcome message
-   - Progress overview (sections with status)
-   - Continue button (to next incomplete section)
-
-2. **Section Page** (`/train/[token]/[section]`)
-   - Content blocks (markdown rendered)
-   - Knowledge checks (inline, instant feedback)
-   - Voice exercises (record, transcribe, get AI feedback)
-   - Next section button (when all exercises complete)
-
-3. **Completion Page**
-   - Self-assessment checklist
-   - Summary of performance
-   - "Your manager will review your progress"
-
-### Manager Flow
-
-1. **Login** (`/manager`)
-   - Simple password input
-   - Sets cookie/session
-
-2. **Dashboard** (`/manager/dashboard`)
-   - List of all trainees
-   - For each: name, progress %, last active, status indicator
-   - "Generate New Link" button
-   - Click trainee to see detail
-
-3. **Trainee Detail** (`/manager/trainee/[id]`)
-   - Section-by-section breakdown
-   - AI feedback summaries per section
-   - Flagged areas (low scores)
-   - Option to listen to specific recordings if needed
+| Route | Method | Purpose |
+|-------|--------|---------|
+| `/api/trainee` | GET | Fetch trainee by token |
+| `/api/trainee` | POST | Create new trainee |
+| `/api/progress` | POST | Update section status |
+| `/api/progress` | PUT | Save exercise response |
+| `/api/transcribe` | POST | Whisper transcription |
+| `/api/feedback` | POST | Claude feedback for voice |
+| `/api/assessment` | GET | Fetch assessment attempts |
+| `/api/assessment` | POST | Save assessment attempt |
+| `/api/manager` | POST | Manager login |
+| `/api/manager/trainee/[id]` | GET | Fetch trainee details |
 
 ---
 
 ## Content Structure
 
-Content stored as TypeScript objects (not database) for easy editing:
+Content stored as TypeScript objects in `src/content/`:
 
+### sections.ts
 ```typescript
-// content/sections.ts
-
 export const sections = [
   {
     id: "welcome",
     title: "Welcome & Orientation",
     estimatedMinutes: 30,
-    content: [...], // Array of content blocks
-    exercises: [...] // Array of exercises
+    content: ContentBlock[], // Text, callouts, quotes, tables
+    exercises: Exercise[]   // Multiple choice and voice
   },
+  // ... 9 total sections
+];
+```
+
+### assessment.ts
+```typescript
+export const assessmentQuestions: AssessmentQuestion[] = [
   {
-    id: "belief-system",
-    title: "The PEP Belief System",
-    estimatedMinutes: 45,
-    content: [...],
-    exercises: [...]
-  }
-  // ... more sections
+    id: string,
+    question: string,
+    options: string[],
+    correctIndex: number,
+    explanation: string,
+    module: string
+  },
+  // ... 15 questions
 ];
 
-// Content block types
+export const PASSING_SCORE = 12; // 80%
+```
+
+### Content Block Types
+```typescript
 type ContentBlock =
   | { type: "text", content: string } // Markdown
   | { type: "callout", variant: "info" | "warning" | "tip", content: string }
   | { type: "table", headers: string[], rows: string[][] }
   | { type: "quote", content: string, attribution?: string };
+```
 
-// Exercise types
+### Exercise Types
+```typescript
 type Exercise =
   | {
       type: "multiple_choice",
@@ -163,17 +159,11 @@ type Exercise =
       explanation: string
     }
   | {
-      type: "short_answer",
-      id: string,
-      question: string,
-      sampleAnswer: string // For self-check
-    }
-  | {
       type: "voice",
       id: string,
-      scenario: string, // "A parent says..."
-      guidance: string, // What a good answer includes
-      aiPrompt: string  // Prompt for Claude to evaluate
+      scenario: string,   // "A parent says..."
+      guidance: string,   // What a good answer includes
+      aiPrompt: string    // Prompt for Claude to evaluate
     };
 ```
 
@@ -189,6 +179,7 @@ type Exercise =
 6. Transcription + exercise context sent to Claude for feedback
 7. Feedback displayed to user
 8. All saved to `responses` table
+9. User can re-attempt (new row in responses)
 
 ---
 
@@ -222,29 +213,61 @@ Keep feedback encouraging but honest. Be specific, not generic.
 
 ---
 
-## MVP Scope (First 2 Sections)
+## File Structure
 
-### Section 1: Welcome & Orientation
-- Why admissions matters at PEP
-- What great admissions looks like
-- How to use this training
-- **Exercise:** Multiple choice on admissions role
-
-### Section 2: The PEP Belief System
-- Founding story
-- Core belief: children want to learn
-- The enemy: traditional schooling's lie
-- The promise: rigour with joy
-- **Exercises:**
-  - Multiple choice on core belief
-  - Voice: "Explain PEP's founding story in your own words"
-  - Voice: "A parent asks what makes PEP different from other schools"
+```
+pep-training-app/
+├── src/
+│   ├── app/
+│   │   ├── layout.tsx
+│   │   ├── page.tsx
+│   │   ├── train/
+│   │   │   └── [token]/
+│   │   │       ├── page.tsx           # Trainee dashboard
+│   │   │       ├── assessment/
+│   │   │       │   └── page.tsx       # Final assessment
+│   │   │       └── [section]/
+│   │   │           └── page.tsx       # Section content
+│   │   ├── manager/
+│   │   │   ├── page.tsx               # Login
+│   │   │   ├── dashboard/
+│   │   │   │   └── page.tsx           # Dashboard
+│   │   │   ├── content/
+│   │   │   │   └── page.tsx           # Content preview
+│   │   │   └── trainee/
+│   │   │       └── [id]/
+│   │   │           └── page.tsx       # Trainee detail
+│   │   └── api/
+│   │       ├── transcribe/route.ts
+│   │       ├── feedback/route.ts
+│   │       ├── trainee/route.ts
+│   │       ├── progress/route.ts
+│   │       ├── assessment/route.ts
+│   │       └── manager/
+│   │           ├── route.ts
+│   │           └── trainee/[id]/route.ts
+│   ├── components/
+│   │   ├── ContentBlock.tsx
+│   │   ├── MultipleChoice.tsx
+│   │   ├── VoiceRecorder.tsx
+│   │   ├── ProgressBar.tsx
+│   │   └── FeedbackDisplay.tsx
+│   ├── content/
+│   │   ├── sections.ts
+│   │   ├── assessment.ts
+│   │   └── types.ts
+│   └── lib/
+│       └── supabase.ts
+├── supabase-schema.sql
+├── migration-add-assessment-attempts.sql
+└── ...
+```
 
 ---
 
 ## Environment Variables
 
-```
+```bash
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
@@ -256,66 +279,30 @@ OPENAI_API_KEY=
 # Anthropic (Claude)
 ANTHROPIC_API_KEY=
 
-# Manager password (or store in DB)
+# Manager password
 MANAGER_PASSWORD=
 ```
 
 ---
 
-## File Structure
+## Key Implementation Details
 
-```
-pep-training-app/
-├── app/
-│   ├── layout.tsx
-│   ├── page.tsx (redirect to /manager or landing)
-│   ├── train/
-│   │   └── [token]/
-│   │       ├── page.tsx (trainee home)
-│   │       └── [section]/
-│   │           └── page.tsx (section content)
-│   ├── manager/
-│   │   ├── page.tsx (login)
-│   │   ├── dashboard/
-│   │   │   └── page.tsx
-│   │   └── trainee/
-│   │       └── [id]/
-│   │           └── page.tsx
-│   └── api/
-│       ├── transcribe/
-│       │   └── route.ts (Whisper API)
-│       ├── feedback/
-│       │   └── route.ts (Claude API)
-│       ├── trainee/
-│       │   └── route.ts (CRUD)
-│       └── progress/
-│           └── route.ts (update progress)
-├── components/
-│   ├── ContentBlock.tsx
-│   ├── MultipleChoice.tsx
-│   ├── ShortAnswer.tsx
-│   ├── VoiceRecorder.tsx
-│   ├── ProgressBar.tsx
-│   └── ...
-├── content/
-│   ├── sections.ts (all content)
-│   └── types.ts
-├── lib/
-│   ├── supabase.ts
-│   ├── whisper.ts
-│   └── claude.ts
-└── ...
-```
+### Multiple Choice Tracking
+- Each attempt creates a new row in `responses`
+- `correct` field stores true/false
+- `ai_score` stores 5 (correct) or 0 (incorrect)
+- UI shows attempt count and correct count
+- Manager view shows "Correct" or "Incorrect" badge per attempt
 
----
+### Final Assessment
+- Stored in `assessment_attempts` table
+- `answers` JSONB stores `{ questionId: selectedIndex }`
+- Score and total tracked
+- Passing score: 12/15 (80%)
+- Retakeable - each attempt is a new row
 
-## Next Steps
-
-1. Initialize Next.js project
-2. Set up Supabase project and tables
-3. Build core components (ContentBlock, VoiceRecorder)
-4. Implement trainee flow for Section 1 & 2
-5. Implement API routes for transcription and feedback
-6. Build manager dashboard
-7. Test end-to-end
-8. Deploy to Vercel
+### Manager Trainee View
+- Shows ALL exercises (not just those with responses)
+- Groups attempts by exercise
+- Shows "No attempts yet" for unanswered exercises
+- Displays correct/incorrect for MC, score/5 for voice

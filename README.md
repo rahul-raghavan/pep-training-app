@@ -1,14 +1,16 @@
 # PEP Admissions Training App
 
-A web application for training admissions team members through self-paced learning with voice-based practice exercises and AI feedback.
+A web application for training admissions team members through self-paced learning with voice-based practice exercises, AI feedback, and a comprehensive final assessment.
 
 ## Features
 
-- **Trainee Flow**: Self-paced training with progress tracking
-- **Voice Exercises**: Record responses, get AI transcription and feedback
-- **Knowledge Checks**: Multiple choice questions with instant feedback
-- **Manager Dashboard**: Monitor trainee progress, view summaries and scores
-- **AI Feedback**: Claude evaluates voice responses with specific, actionable feedback
+- **9 Training Modules** - Complete curriculum covering all aspects of PEP admissions
+- **Voice Exercises** - Record responses, get AI transcription and personalized feedback
+- **Knowledge Checks** - 27 multiple choice questions with instant feedback and re-attempts
+- **Final Assessment** - 15-question comprehensive assessment with detailed results report
+- **Manager Dashboard** - Monitor trainee progress, view all responses and scores
+- **Content Preview** - Managers can view all training content without locks
+- **AI Feedback** - Claude evaluates voice responses with specific, actionable feedback
 
 ## Tech Stack
 
@@ -18,6 +20,21 @@ A web application for training admissions team members through self-paced learni
 - **AI Feedback**: Claude API (Anthropic)
 - **Transcription**: OpenAI Whisper API
 - **Styling**: Tailwind CSS
+- **Hosting**: Vercel
+
+## Training Content
+
+1. Welcome & Orientation
+2. The PEP Belief System
+3. The Science
+4. How the Program Works
+5. Outcomes
+6. The Admissions Conversation
+7. Objection Handling
+8. Qualification
+9. What You Must Never Say
+
+Plus a 15-question final assessment covering all modules.
 
 ## Setup Instructions
 
@@ -74,6 +91,7 @@ The app will be available at `http://localhost:3000`
 3. Share the link with the trainee
 4. Monitor progress on the dashboard
 5. Click on a trainee to see detailed responses and feedback
+6. Use `/manager/content` to preview all training content
 
 ### For Trainees
 
@@ -81,17 +99,42 @@ The app will be available at `http://localhost:3000`
 2. Work through each section in order
 3. Complete knowledge checks and voice exercises
 4. Get instant AI feedback on voice responses
-5. Continue until all sections are complete
+5. Complete the final assessment after finishing all modules
 
-## Adding More Content
+## File Structure
 
-To add more training sections, edit `src/content/sections.ts`. Each section has:
+```
+src/
+├── app/
+│   ├── api/
+│   │   ├── assessment/       # Final assessment API
+│   │   ├── feedback/         # Claude API for AI feedback
+│   │   ├── manager/          # Manager authentication and data
+│   │   ├── progress/         # Progress tracking
+│   │   ├── trainee/          # Trainee CRUD operations
+│   │   └── transcribe/       # Whisper API for transcription
+│   ├── manager/
+│   │   ├── content/          # Content preview for managers
+│   │   ├── dashboard/        # Manager dashboard
+│   │   └── trainee/[id]/     # Individual trainee view
+│   └── train/[token]/
+│       ├── assessment/       # Final assessment page
+│       └── [section]/        # Training content pages
+├── components/               # Reusable UI components
+├── content/
+│   ├── assessment.ts         # Final assessment questions
+│   ├── sections.ts           # Training content
+│   └── types.ts              # TypeScript types
+└── lib/
+    └── supabase.ts           # Supabase client setup
+```
 
-- `id`: Unique identifier
-- `title`: Display name
-- `estimatedMinutes`: Time estimate
-- `content`: Array of content blocks (text, callouts, quotes, tables)
-- `exercises`: Array of exercises (multiple_choice, voice)
+## Database Tables
+
+- **trainees** - Trainee info and unique access tokens
+- **progress** - Section completion status per trainee
+- **responses** - All exercise attempts (MC and voice)
+- **assessment_attempts** - Final assessment attempts
 
 ## Deployment
 
@@ -102,50 +145,12 @@ To add more training sections, edit `src/content/sections.ts`. Each section has:
 3. Add environment variables in the Vercel dashboard
 4. Deploy!
 
-### Environment Variables for Production
+## Documentation
 
-Make sure to set all environment variables in your Vercel project settings.
+- `PRODUCT_STATUS.md` - Current features and recent updates
+- `TECHNICAL_SPEC.md` - Technical architecture details
+- `ADMISSIONS_FORM_DESIGN.md` - Related admissions form design
 
-## File Structure
+## Repository
 
-```
-src/
-├── app/
-│   ├── api/
-│   │   ├── feedback/      # Claude API for AI feedback
-│   │   ├── manager/       # Manager authentication and data
-│   │   ├── progress/      # Progress tracking
-│   │   ├── trainee/       # Trainee CRUD operations
-│   │   └── transcribe/    # Whisper API for transcription
-│   ├── manager/
-│   │   ├── dashboard/     # Manager dashboard
-│   │   └── trainee/[id]/  # Individual trainee view
-│   └── train/[token]/
-│       └── [section]/     # Training content pages
-├── components/            # Reusable UI components
-├── content/
-│   ├── sections.ts        # Training content
-│   └── types.ts           # TypeScript types
-└── lib/
-    └── supabase.ts        # Supabase client setup
-```
-
-## Current MVP Scope
-
-This MVP includes:
-- 2 training sections (Welcome & Belief System)
-- Voice recording with transcription
-- AI feedback on voice responses
-- Progress tracking
-- Manager dashboard
-
-Future sections to add:
-- The Science
-- How the Program Works
-- Outcomes
-- The Admissions Conversation
-- Objection Handling
-- Qualification
-- What You Must Never Say
-# pep-training-app
-# pep-training-app
+https://github.com/rahul-raghavan/pep-training-app
