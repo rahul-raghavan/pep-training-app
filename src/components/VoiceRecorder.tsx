@@ -136,7 +136,8 @@ export default function VoiceRecorder({ exercise, traineeId, sectionId, onComple
       });
 
       if (!transcribeRes.ok) {
-        throw new Error('Failed to transcribe audio');
+        const errorData = await transcribeRes.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to transcribe audio');
       }
 
       const { transcription: text, audioUrl: uploadedUrl } = await transcribeRes.json();
@@ -164,7 +165,8 @@ export default function VoiceRecorder({ exercise, traineeId, sectionId, onComple
       });
 
       if (!feedbackRes.ok) {
-        throw new Error('Failed to get feedback');
+        const errorData = await feedbackRes.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to get feedback');
       }
 
       const { feedback: fb, score: sc } = await feedbackRes.json();
@@ -173,7 +175,14 @@ export default function VoiceRecorder({ exercise, traineeId, sectionId, onComple
       setState('complete');
       onComplete(fb, sc);
     } catch (err) {
-      setError('Something went wrong. Please try again.');
+      const message = err instanceof Error ? err.message : 'Something went wrong';
+      if (message.includes('transcribe')) {
+        setError('Could not transcribe your recording. Your recording may be too long — try keeping it under 2 minutes.');
+      } else if (message.includes('feedback')) {
+        setError('Could not generate feedback. Please try submitting again.');
+      } else {
+        setError('Something went wrong. Please try again.');
+      }
       console.error('Error submitting recording:', err);
       setState('recorded');
     }
