@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { requireAdmin } from '@/lib/auth';
+import { requireAdmin, requireSuperAdmin } from '@/lib/auth';
 
 // GET - Single program
 export async function GET(request: NextRequest, { params }: { params: Promise<{ programId: string }> }) {
@@ -54,9 +54,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   }
 }
 
-// DELETE - Delete program
+// DELETE - Delete program (super_admin only)
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ programId: string }> }) {
-  const { error: authError } = await requireAdmin(request);
+  const { error: authError } = await requireSuperAdmin(request);
   if (authError) return authError;
 
   const { programId } = await params;

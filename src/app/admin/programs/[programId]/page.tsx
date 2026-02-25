@@ -272,11 +272,13 @@ export default function ProgramEditorPage() {
                   </select>
                 </div>
               </div>
-              <div className="pt-4 border-t border-slate-100">
-                <button onClick={handleDelete} className="text-sm text-red-600 hover:text-red-800">
-                  Delete Program
-                </button>
-              </div>
+              {user?.role === 'super_admin' && (
+                <div className="pt-4 border-t border-slate-100">
+                  <button onClick={handleDelete} className="text-sm text-red-600 hover:text-red-800">
+                    Delete Program
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <div className="space-y-2 text-sm text-slate-600">

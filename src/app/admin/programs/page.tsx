@@ -111,28 +111,36 @@ export default function ProgramsListPage() {
             <h1 className="text-2xl font-semibold text-slate-900">Training Programs</h1>
             <p className="text-slate-600">Create and manage training programs</p>
           </div>
-          <button
-            onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            New Program
-          </button>
+          {user?.role === 'super_admin' && (
+            <button
+              onClick={() => setShowCreate(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              New Program
+            </button>
+          )}
         </div>
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-8">
         {programs.length === 0 ? (
           <div className="bg-white rounded-lg border border-slate-200 p-8 text-center">
-            <p className="text-slate-500 mb-4">No programs yet. Create your first training program.</p>
-            <button
-              onClick={() => setShowCreate(true)}
-              className="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800"
-            >
-              Create Program
-            </button>
+            <p className="text-slate-500 mb-4">
+              {user?.role === 'super_admin'
+                ? 'No programs yet. Create your first training program.'
+                : 'No programs yet. Ask a super admin to create one.'}
+            </p>
+            {user?.role === 'super_admin' && (
+              <button
+                onClick={() => setShowCreate(true)}
+                className="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800"
+              >
+                Create Program
+              </button>
+            )}
           </div>
         ) : (
           <div className="grid gap-4">

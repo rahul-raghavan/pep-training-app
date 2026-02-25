@@ -82,8 +82,31 @@ export async function GET(request: Request) {
     role = existingProfile.role;
   } else {
     // First login — create profile
-    role = SUPER_ADMIN_EMAILS.includes(email) ? 'super_admin' : 'user';
     const name = user.user_metadata?.full_name || user.user_metadata?.name || email.split('@')[0];
+
+    // Determine role: hardcoded super_admins first, then check pre_assigned_role, else default to 'user'
+    if (SUPER_ADMIN_EMAILS.includes(email)) {
+      role = 'super_admin';
+    } else {
+      // Check if a super_admin pre-registered this user with a specific role
+      const { data: preRegistered } = await admin
+        .from('trainees')
+        .select('id, pre_assigned_role')
+        .eq('email', email)
+        .not('pre_assigned_role', 'is', null)
+        .single();
+
+      if (preRegistered?.pre_assigned_role) {
+        role = preRegistered.pre_assigned_role;
+        // Clear pre_assigned_role — it's a one-time use
+        await admin
+          .from('trainees')
+          .update({ pre_assigned_role: null })
+          .eq('id', preRegistered.id);
+      } else {
+        role = 'user';
+      }
+    }
 
     const { error: profileError } = await admin.from('profiles').insert({
       id: user.id,

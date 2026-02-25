@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { requireAdmin } from '@/lib/auth';
+import { requireAdmin, requireSuperAdmin } from '@/lib/auth';
 
 // GET - List all programs
 export async function GET(request: NextRequest) {
@@ -32,9 +32,9 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ programs: programsWithCounts });
 }
 
-// POST - Create a program
+// POST - Create a program (super_admin only)
 export async function POST(request: NextRequest) {
-  const { error: authError } = await requireAdmin(request);
+  const { error: authError } = await requireSuperAdmin(request);
   if (authError) return authError;
 
   try {

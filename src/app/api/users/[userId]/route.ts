@@ -109,3 +109,29 @@ export async function PUT(
     return NextResponse.json({ error: 'Failed to update user' }, { status: 500 });
   }
 }
+
+// DELETE - Deactivate a user (super_admin only, soft delete)
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ userId: string }> }
+) {
+  const { error: authError } = await requireSuperAdmin(request);
+  if (authError) return authError;
+
+  const { userId } = await params;
+  const supabase = createAdminClient();
+
+  const { data: profile, error } = await supabase
+    .from('profiles')
+    .update({ is_active: false })
+    .eq('id', userId)
+    .select()
+    .single();
+
+  if (error || !profile) {
+    console.error('Error deactivating user:', error);
+    return NextResponse.json({ error: 'Failed to deactivate user' }, { status: 500 });
+  }
+
+  return NextResponse.json({ message: 'User deactivated', user: profile });
+}
