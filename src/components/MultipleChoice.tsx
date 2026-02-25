@@ -5,7 +5,7 @@ import { MultipleChoiceExercise } from '@/content/types';
 
 interface Props {
   exercise: MultipleChoiceExercise;
-  onComplete: (correct: boolean) => void;
+  onComplete: (correct: boolean, selectedIndex: number) => void;
   previousAttempts?: number;
   previouslyCorrect?: boolean;
   correctAttempts?: number;
@@ -18,7 +18,7 @@ export default function MultipleChoice({ exercise, onComplete, previousAttempts 
   const handleSubmit = () => {
     if (selected === null) return;
     setSubmitted(true);
-    onComplete(selected === exercise.correctIndex);
+    onComplete(selected === exercise.correctIndex, selected);
   };
 
   const handleRetry = () => {

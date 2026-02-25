@@ -14,8 +14,8 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Admissions Training",
-  description: "PEP School Admissions Training Program",
+  title: "PEP Training",
+  description: "PEP School Training Platform",
 };
 
 export default function RootLayout({

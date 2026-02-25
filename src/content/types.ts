@@ -3,7 +3,8 @@ export type ContentBlock =
   | { type: 'text'; content: string }
   | { type: 'callout'; variant: 'info' | 'warning' | 'tip'; content: string }
   | { type: 'table'; headers: string[]; rows: string[][] }
-  | { type: 'quote'; content: string; attribution?: string };
+  | { type: 'quote'; content: string; attribution?: string }
+  | { type: 'video'; url: string; source: 'youtube' | 'uploaded'; title?: string };
 
 // Exercise types
 export type MultipleChoiceExercise = {
@@ -49,6 +50,7 @@ export type Trainee = {
   access_token: string;
   created_at: string;
   last_active_at?: string;
+  user_id?: string;
 };
 
 export type Progress = {

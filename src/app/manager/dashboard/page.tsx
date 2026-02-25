@@ -17,6 +17,13 @@ interface TraineeSummary {
   avgScore: number | null;
   status: 'not_started' | 'in_progress' | 'completed';
   exerciseCount: number;
+  programs: { title: string; slug: string }[];
+}
+
+interface ProgramInfo {
+  id: string;
+  title: string;
+  slug: string;
 }
 
 export default function ManagerDashboard() {
@@ -27,8 +34,11 @@ export default function ManagerDashboard() {
   const [showNewTraineeModal, setShowNewTraineeModal] = useState(false);
   const [newTraineeName, setNewTraineeName] = useState('');
   const [newTraineeEmail, setNewTraineeEmail] = useState('');
+  const [selectedProgramId, setSelectedProgramId] = useState('');
+  const [programs, setPrograms] = useState<ProgramInfo[]>([]);
   const [creating, setCreating] = useState(false);
   const [newTraineeLink, setNewTraineeLink] = useState<string | null>(null);
+  const [filterProgram, setFilterProgram] = useState<string>('all');
 
   const fetchTrainees = async () => {
     try {
@@ -47,8 +57,21 @@ export default function ManagerDashboard() {
     }
   };
 
+  const fetchPrograms = async () => {
+    try {
+      const res = await fetch('/api/programs');
+      if (res.ok) {
+        const data = await res.json();
+        setPrograms(data.programs || []);
+      }
+    } catch {
+      // ignore
+    }
+  };
+
   useEffect(() => {
     fetchTrainees();
+    fetchPrograms();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -60,7 +83,7 @@ export default function ManagerDashboard() {
       const res = await fetch('/api/trainee', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newTraineeName, email: newTraineeEmail }),
+        body: JSON.stringify({ name: newTraineeName, email: newTraineeEmail, program_id: selectedProgramId || undefined }),
       });
 
       if (!res.ok) throw new Error('Failed to create');
@@ -87,6 +110,7 @@ export default function ManagerDashboard() {
     setShowNewTraineeModal(false);
     setNewTraineeName('');
     setNewTraineeEmail('');
+    setSelectedProgramId('');
     setNewTraineeLink(null);
   };
 
@@ -98,6 +122,24 @@ export default function ManagerDashboard() {
       hour: '2-digit',
       minute: '2-digit',
     });
+  };
+
+  // Build list of unique program names from trainees for filtering
+  const allProgramNames = Array.from(
+    new Set(trainees.flatMap(t => t.programs.map(p => p.title)))
+  ).sort();
+
+  // Filter trainees
+  const filteredTrainees = filterProgram === 'all'
+    ? trainees
+    : trainees.filter(t => t.programs.some(p => p.title === filterProgram));
+
+  // Stats for filtered view
+  const stats = {
+    total: filteredTrainees.length,
+    inProgress: filteredTrainees.filter(t => t.status === 'in_progress').length,
+    completed: filteredTrainees.filter(t => t.status === 'completed').length,
+    notStarted: filteredTrainees.filter(t => t.status === 'not_started').length,
   };
 
   if (loading) {
@@ -119,13 +161,13 @@ export default function ManagerDashboard() {
           </div>
           <div className="flex items-center gap-3">
             <Link
-              href="/manager/content"
+              href="/manager/programs"
               className="flex items-center gap-2 px-4 py-2 border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
               </svg>
-              Preview Content
+              Programs
             </Link>
             <button
               onClick={() => setShowNewTraineeModal(true)}
@@ -147,45 +189,75 @@ export default function ManagerDashboard() {
           </div>
         )}
 
+        {/* Program filter */}
+        {allProgramNames.length > 1 && (
+          <div className="mb-6 flex items-center gap-2">
+            <span className="text-sm text-slate-500">Filter by program:</span>
+            <div className="flex gap-2 flex-wrap">
+              <button
+                onClick={() => setFilterProgram('all')}
+                className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                  filterProgram === 'all'
+                    ? 'bg-slate-900 text-white'
+                    : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                All Programs
+              </button>
+              {allProgramNames.map(name => (
+                <button
+                  key={name}
+                  onClick={() => setFilterProgram(name)}
+                  className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                    filterProgram === name
+                      ? 'bg-slate-900 text-white'
+                      : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  {name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Stats overview */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           <div className="bg-white rounded-lg border border-slate-200 p-4">
             <div className="text-sm text-slate-500">Total Trainees</div>
-            <div className="text-2xl font-semibold text-slate-900">{trainees.length}</div>
+            <div className="text-2xl font-semibold text-slate-900">{stats.total}</div>
           </div>
           <div className="bg-white rounded-lg border border-slate-200 p-4">
             <div className="text-sm text-slate-500">In Progress</div>
-            <div className="text-2xl font-semibold text-blue-600">
-              {trainees.filter(t => t.status === 'in_progress').length}
-            </div>
+            <div className="text-2xl font-semibold text-blue-600">{stats.inProgress}</div>
           </div>
           <div className="bg-white rounded-lg border border-slate-200 p-4">
             <div className="text-sm text-slate-500">Completed</div>
-            <div className="text-2xl font-semibold text-green-600">
-              {trainees.filter(t => t.status === 'completed').length}
-            </div>
+            <div className="text-2xl font-semibold text-green-600">{stats.completed}</div>
           </div>
           <div className="bg-white rounded-lg border border-slate-200 p-4">
             <div className="text-sm text-slate-500">Not Started</div>
-            <div className="text-2xl font-semibold text-slate-400">
-              {trainees.filter(t => t.status === 'not_started').length}
-            </div>
+            <div className="text-2xl font-semibold text-slate-400">{stats.notStarted}</div>
           </div>
         </div>
 
         {/* Trainee list */}
         <div className="bg-white rounded-lg border border-slate-200">
           <div className="p-4 border-b border-slate-200">
-            <h2 className="font-medium text-slate-900">All Trainees</h2>
+            <h2 className="font-medium text-slate-900">
+              {filterProgram === 'all' ? 'All Trainees' : filterProgram}
+            </h2>
           </div>
 
-          {trainees.length === 0 ? (
+          {filteredTrainees.length === 0 ? (
             <div className="p-8 text-center text-slate-500">
-              No trainees yet. Click &quot;New Trainee Link&quot; to create one.
+              {trainees.length === 0
+                ? 'No trainees yet. Click "New Trainee Link" to create one.'
+                : 'No trainees in this program.'}
             </div>
           ) : (
             <div className="divide-y divide-slate-100">
-              {trainees.map(trainee => (
+              {filteredTrainees.map(trainee => (
                 <Link
                   key={trainee.id}
                   href={`/manager/trainee/${trainee.id}`}
@@ -214,6 +286,7 @@ export default function ManagerDashboard() {
                     <div>
                       <div className="font-medium text-slate-900">{trainee.name}</div>
                       <div className="text-sm text-slate-500">
+                        {filterProgram === 'all' && <>{trainee.programs.map(p => p.title).join(', ')} &middot; </>}
                         Last active: {formatDate(trainee.last_active_at)}
                       </div>
                     </div>
@@ -305,7 +378,7 @@ export default function ManagerDashboard() {
                       required
                     />
                   </div>
-                  <div className="mb-6">
+                  <div className="mb-4">
                     <label className="block text-sm font-medium text-slate-700 mb-2">
                       Email (optional)
                     </label>
@@ -316,6 +389,21 @@ export default function ManagerDashboard() {
                       className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900"
                       placeholder="trainee@email.com"
                     />
+                  </div>
+                  <div className="mb-6">
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Program *
+                    </label>
+                    <select
+                      value={selectedProgramId}
+                      onChange={(e) => setSelectedProgramId(e.target.value)}
+                      className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900"
+                    >
+                      <option value="">Admissions Training (legacy)</option>
+                      {programs.map(p => (
+                        <option key={p.id} value={p.id}>{p.title}</option>
+                      ))}
+                    </select>
                   </div>
                   <div className="flex gap-3">
                     <button

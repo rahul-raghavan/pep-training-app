@@ -220,11 +220,11 @@ export default function SectionPage() {
                     <MultipleChoice
                       key={exercise.id}
                       exercise={exercise}
-                      onComplete={(correct) => {
+                      onComplete={(correct, selectedIndex) => {
                         handleExerciseComplete(
                           exercise.id,
                           'multiple_choice',
-                          exercise.options[correct ? exercise.correctIndex : -1] || '',
+                          String(selectedIndex),
                           correct
                         );
                       }}

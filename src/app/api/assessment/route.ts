@@ -1,22 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { requireAuth } from '@/lib/auth';
 
-// GET - Fetch assessment attempts for a trainee
+// GET - Fetch assessment attempts for current user's trainee
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const traineeId = searchParams.get('traineeId');
+  const { user, error: authError } = await requireAuth(request);
+  if (authError) return authError;
 
-  if (!traineeId) {
-    return NextResponse.json({ error: 'Missing traineeId' }, { status: 400 });
+  const traineeId = request.nextUrl.searchParams.get('traineeId');
+  const programId = request.nextUrl.searchParams.get('programId');
+
+  if (!traineeId || traineeId !== user.traineeId) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const supabase = createServerClient();
+  const supabase = createAdminClient();
 
-  const { data: attempts, error } = await supabase
+  let query = supabase
     .from('assessment_attempts')
     .select('*')
     .eq('trainee_id', traineeId)
     .order('created_at', { ascending: false });
+
+  if (programId) {
+    query = query.eq('program_id', programId);
+  }
+
+  const { data: attempts, error } = await query;
 
   if (error) {
     console.error('Error fetching attempts:', error);
@@ -28,24 +38,37 @@ export async function GET(request: NextRequest) {
 
 // POST - Save a new assessment attempt
 export async function POST(request: NextRequest) {
+  const { user, error: authError } = await requireAuth(request);
+  if (authError) return authError;
+
   try {
     const body = await request.json();
-    const { traineeId, score, total, answers } = body;
+    const { traineeId, score, total, answers, programId } = body;
 
     if (!traineeId || score === undefined || !total) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    const supabase = createServerClient();
+    if (traineeId !== user.traineeId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const supabase = createAdminClient();
+
+    const insertData: Record<string, unknown> = {
+      trainee_id: traineeId,
+      score,
+      total,
+      answers,
+    };
+
+    if (programId) {
+      insertData.program_id = programId;
+    }
 
     const { data, error } = await supabase
       .from('assessment_attempts')
-      .insert({
-        trainee_id: traineeId,
-        score,
-        total,
-        answers,
-      })
+      .insert(insertData)
       .select()
       .single();
 

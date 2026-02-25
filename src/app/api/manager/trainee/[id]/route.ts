@@ -1,20 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase';
-import { sections } from '@/content/sections';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { requireAdmin } from '@/lib/auth';
 
-// GET - Fetch detailed info for a specific trainee
+// GET - Fetch detailed info for a specific trainee (program-engine only)
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  // Check for manager session
-  const session = request.cookies.get('manager_session');
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const { error: authError } = await requireAdmin(request);
+  if (authError) return authError;
 
   const { id: traineeId } = await params;
-  const supabase = createServerClient();
+  const supabase = createAdminClient();
 
   // Fetch trainee
   const { data: trainee, error: traineeError } = await supabase
@@ -27,46 +24,94 @@ export async function GET(
     return NextResponse.json({ error: 'Trainee not found' }, { status: 404 });
   }
 
-  // Fetch progress
+  // Find the trainee's enrolled program
+  const { data: enrollment } = await supabase
+    .from('trainee_programs')
+    .select('program_id, programs(title, slug, passing_score)')
+    .eq('trainee_id', traineeId)
+    .limit(1)
+    .single();
+
+  // If not enrolled in any program, return empty sections
+  if (!enrollment) {
+    return NextResponse.json({
+      trainee,
+      sections: [],
+      assessmentAttempts: [],
+      stats: {
+        completedSections: 0,
+        totalSections: 0,
+        progressPercent: 0,
+        overallAvgScore: null,
+        totalResponses: 0,
+        sectionsNeedingAttention: 0,
+        assessmentAttempts: 0,
+        bestAssessmentScore: null,
+      },
+    });
+  }
+
+  const programId = enrollment.program_id;
+
+  // Fetch program sections ordered by sort_order
+  const { data: programSections } = await supabase
+    .from('program_sections')
+    .select('*')
+    .eq('program_id', programId)
+    .order('sort_order', { ascending: true });
+
+  // Fetch program exercises for all sections
+  const sectionIds = (programSections || []).map(s => s.id);
+  const { data: programExercises } = await supabase
+    .from('program_exercises')
+    .select('*')
+    .in('section_id', sectionIds.length > 0 ? sectionIds : ['_none_'])
+    .order('sort_order', { ascending: true });
+
+  // Fetch trainee progress for these sections
   const { data: progress } = await supabase
     .from('progress')
     .select('*')
-    .eq('trainee_id', traineeId);
+    .eq('trainee_id', traineeId)
+    .in('section_id', sectionIds.length > 0 ? sectionIds : ['_none_']);
 
-  // Fetch responses
+  // Fetch trainee responses for these sections
   const { data: responses } = await supabase
     .from('responses')
     .select('*')
     .eq('trainee_id', traineeId)
+    .in('section_id', sectionIds.length > 0 ? sectionIds : ['_none_'])
     .order('created_at', { ascending: true });
 
-  // Build section-by-section summary
-  const sectionSummaries = sections.map(section => {
+  // Build section-by-section summary from DB data
+  const sectionSummaries = (programSections || []).map(section => {
     const sectionProgress = progress?.find(p => p.section_id === section.id);
     const sectionResponses = responses?.filter(r => r.section_id === section.id) || [];
+    const sectionExercises = programExercises?.filter(e => e.section_id === section.id) || [];
 
-    const voiceResponses = sectionResponses.filter(r => r.exercise_type === 'voice');
+    const voiceResponses = sectionResponses.filter(r => r.exercise_type === 'voice' && r.ai_score);
     const avgScore = voiceResponses.length > 0
       ? Math.round(voiceResponses.reduce((sum, r) => sum + (r.ai_score || 0), 0) / voiceResponses.length * 10) / 10
       : null;
 
-    // Flag sections with low scores
     const needsAttention = avgScore !== null && avgScore < 3;
 
     // Build exercises with their responses
-    const exercises = section.exercises.map(exercise => {
+    const exercises = sectionExercises.map(exercise => {
       const exerciseResponses = sectionResponses.filter(r => r.exercise_id === exercise.id);
 
       let questionText = '';
-      if (exercise.type === 'multiple_choice') {
-        questionText = exercise.question;
-      } else if (exercise.type === 'voice') {
-        questionText = exercise.scenario;
+      if (exercise.exercise_type === 'multiple_choice') {
+        questionText = exercise.question || '';
+      } else if (exercise.exercise_type === 'voice') {
+        questionText = exercise.scenario || '';
+      } else if (exercise.exercise_type === 'short_answer') {
+        questionText = exercise.question || '';
       }
 
       return {
         exerciseId: exercise.id,
-        exerciseType: exercise.type,
+        exerciseType: exercise.exercise_type,
         questionText,
         attempts: exerciseResponses.map(r => ({
           transcription: r.response_text,
@@ -88,10 +133,21 @@ export async function GET(
       avgScore,
       needsAttention,
       exercises,
-      // Keep responses for backward compatibility with stats
       totalResponses: sectionResponses.length,
     };
   });
+
+  // Fetch assessment question count for this program
+  const { data: assessmentQuestions } = await supabase
+    .from('program_assessment_questions')
+    .select('id')
+    .eq('program_id', programId);
+  const totalAssessmentQuestions = assessmentQuestions?.length || 0;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const programData = enrollment.programs as any;
+  const passingScorePercent = programData?.passing_score ?? 80;
+  const passingScoreCount = Math.ceil(totalAssessmentQuestions * passingScorePercent / 100);
 
   // Fetch assessment attempts
   const { data: assessmentAttempts } = await supabase
@@ -100,14 +156,16 @@ export async function GET(
     .eq('trainee_id', traineeId)
     .order('created_at', { ascending: false });
 
-  // Calculate overall stats
+  // Calculate overall stats — only count responses within program sections
   const completedSections = sectionSummaries.filter(s => s.status === 'completed').length;
-  const allVoiceScores = responses?.filter(r => r.exercise_type === 'voice' && r.ai_score).map(r => r.ai_score!) || [];
+  const totalSections = sectionSummaries.length;
+  const allVoiceScores = (responses || [])
+    .filter(r => r.exercise_type === 'voice' && r.ai_score)
+    .map(r => r.ai_score!);
   const overallAvgScore = allVoiceScores.length > 0
     ? Math.round(allVoiceScores.reduce((a, b) => a + b, 0) / allVoiceScores.length * 10) / 10
     : null;
 
-  // Best assessment score
   const bestAssessmentScore = assessmentAttempts && assessmentAttempts.length > 0
     ? Math.max(...assessmentAttempts.map(a => a.score))
     : null;
@@ -116,12 +174,16 @@ export async function GET(
     trainee,
     sections: sectionSummaries,
     assessmentAttempts: assessmentAttempts || [],
+    programInfo: {
+      passingScore: passingScoreCount,
+      totalAssessmentQuestions,
+    },
     stats: {
       completedSections,
-      totalSections: sections.length,
-      progressPercent: Math.round((completedSections / sections.length) * 100),
+      totalSections,
+      progressPercent: totalSections > 0 ? Math.round((completedSections / totalSections) * 100) : 0,
       overallAvgScore,
-      totalResponses: responses?.length || 0,
+      totalResponses: (responses || []).length,
       sectionsNeedingAttention: sectionSummaries.filter(s => s.needsAttention).length,
       assessmentAttempts: assessmentAttempts?.length || 0,
       bestAssessmentScore,
