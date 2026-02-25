@@ -1,8 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { requireAuth } from '@/lib/auth';
+import { getProgramIdForSection, isTraineeEnrolled, getExerciseById } from '@/lib/programs';
+
+// Helper: check enrollment for a section. Returns null if OK, or a 403 response.
+// Skips check for legacy string IDs (non-UUID).
+async function checkSectionEnrollment(traineeId: string, sectionId: string): Promise<NextResponse | null> {
+  const programId = await getProgramIdForSection(sectionId);
+  if (!programId) return null; // Legacy string ID — skip enrollment check
+  if (!(await isTraineeEnrolled(traineeId, programId))) {
+    return NextResponse.json({ error: 'Not enrolled in this program' }, { status: 403 });
+  }
+  return null;
+}
 
 // POST - Update progress for a section
 export async function POST(request: NextRequest) {
+  const { user, error: authError } = await requireAuth(request);
+  if (authError) return authError;
+
   try {
     const body = await request.json();
     const { traineeId, sectionId, status } = body;
@@ -11,7 +27,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    const supabase = createServerClient();
+    // Verify the traineeId belongs to this user
+    if (traineeId !== user.traineeId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    // Enrollment check for program sections
+    const enrollmentError = await checkSectionEnrollment(traineeId, sectionId);
+    if (enrollmentError) return enrollmentError;
+
+    const supabase = createAdminClient();
 
     const updateData: Record<string, string> = { status };
 
@@ -58,6 +83,9 @@ export async function POST(request: NextRequest) {
 
 // Store a response (for multiple choice, short answer)
 export async function PUT(request: NextRequest) {
+  const { user, error: authError } = await requireAuth(request);
+  if (authError) return authError;
+
   try {
     const body = await request.json();
     const { traineeId, sectionId, exerciseId, exerciseType, responseText, correct } = body;
@@ -66,7 +94,30 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    const supabase = createServerClient();
+    if (traineeId !== user.traineeId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    // Enrollment check for program sections
+    const enrollmentError = await checkSectionEnrollment(traineeId, sectionId);
+    if (enrollmentError) return enrollmentError;
+
+    const supabase = createAdminClient();
+
+    // Server-side MC grading for program exercises (UUID exerciseIds)
+    let serverCorrect = correct;
+    let aiScore: number | null = correct ? 5 : 0;
+
+    if (exerciseType === 'multiple_choice') {
+      const exercise = await getExerciseById(exerciseId);
+      if (exercise) {
+        // Program exercise found — grade server-side using selectedIndex from responseText
+        const selectedIndex = parseInt(responseText, 10);
+        serverCorrect = !isNaN(selectedIndex) && selectedIndex === exercise.correct_index;
+        aiScore = null; // MC exercises don't get AI scores
+      }
+      // If exercise not found (legacy string ID), fall back to client-provided correct boolean
+    }
 
     await supabase.from('responses').insert({
       trainee_id: traineeId,
@@ -74,8 +125,8 @@ export async function PUT(request: NextRequest) {
       exercise_id: exerciseId,
       exercise_type: exerciseType,
       response_text: responseText,
-      ai_score: correct ? 5 : 0, // For MC: 5 if correct, 0 if wrong
-      correct: correct,
+      ai_score: aiScore,
+      correct: serverCorrect,
     });
 
     return NextResponse.json({ success: true });

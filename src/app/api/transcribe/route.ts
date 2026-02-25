@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
-import { createServerClient } from '@/lib/supabase';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { requireAuth } from '@/lib/auth';
 
 // Allow up to 60 seconds for audio transcription (large files take time)
 export const maxDuration = 60;
@@ -10,6 +11,9 @@ const openai = new OpenAI({
 });
 
 export async function POST(request: NextRequest) {
+  const { error: authError } = await requireAuth(request);
+  if (authError) return authError;
+
   try {
     const formData = await request.formData();
     const audioFile = formData.get('audio') as File;
@@ -22,7 +26,7 @@ export async function POST(request: NextRequest) {
     const audioBuffer = Buffer.from(await audioFile.arrayBuffer());
 
     // Upload to Supabase Storage
-    const supabase = createServerClient();
+    const supabase = createAdminClient();
     const fileName = `recordings/${Date.now()}-${Math.random().toString(36).substring(7)}.webm`;
 
     const { data: uploadData, error: uploadError } = await supabase.storage
@@ -33,7 +37,6 @@ export async function POST(request: NextRequest) {
 
     if (uploadError) {
       console.error('Upload error:', uploadError);
-      // Continue without storing - transcription still works
     }
 
     // Get public URL if upload succeeded

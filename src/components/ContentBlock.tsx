@@ -88,6 +88,54 @@ export default function ContentBlock({ block }: Props) {
         </div>
       );
 
+    case 'video': {
+      if (block.source === 'youtube') {
+        // Extract YouTube video ID from various URL formats
+        const getYouTubeId = (url: string): string | null => {
+          const patterns = [
+            /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
+          ];
+          for (const pattern of patterns) {
+            const match = url.match(pattern);
+            if (match) return match[1];
+          }
+          return null;
+        };
+        const videoId = getYouTubeId(block.url);
+        if (!videoId) {
+          return <p className="text-red-500 text-sm">Invalid YouTube URL</p>;
+        }
+        return (
+          <div className="my-4">
+            {block.title && <p className="text-sm font-medium text-slate-700 mb-2">{block.title}</p>}
+            <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+              <iframe
+                className="absolute inset-0 w-full h-full rounded-lg"
+                src={`https://www.youtube.com/embed/${videoId}`}
+                title={block.title || 'Video'}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          </div>
+        );
+      }
+      // Uploaded video
+      return (
+        <div className="my-4">
+          {block.title && <p className="text-sm font-medium text-slate-700 mb-2">{block.title}</p>}
+          <video
+            className="w-full rounded-lg"
+            controls
+            preload="metadata"
+          >
+            <source src={block.url} />
+            Your browser does not support the video tag.
+          </video>
+        </div>
+      );
+    }
+
     default:
       return null;
   }

@@ -488,7 +488,7 @@ Don't get defensive. Welcome the question:
 "That's exactly the right question to ask. Let me share what the research shows..."
 
 Then choose 1-2 key points relevant to their concern:
-- If worried about reading: The Finland example
+- If worried about reading: The Finland example (Finland delays formal reading instruction until age 7, yet Finnish students consistently rank among the top readers in the world. This shows that starting later with the right approach doesn't mean falling behind—it often means better outcomes.)
 - If worried about motivation: The intrinsic motivation research
 - If worried about outcomes: The Montessori studies
 
@@ -1037,12 +1037,7 @@ A good admissions conversation has five phases:
 
 Great questions to understand the family:
 
-**How they found us (start here!):**
-- "How did you hear about PEP?"
-- If referred: "Oh, you know the [Family Name]! How do you know them?"
-- This is important—families referred by current parents often have some context already. Understanding what they've been told helps you build on it and address any gaps.
-
-**About the child:**
+**About the child (start here!):**
 - "Tell me about [child's name]. What are they like?"
 - "What does [child] love to do? What are they curious about?"
 - "What's something [child] finds challenging?"

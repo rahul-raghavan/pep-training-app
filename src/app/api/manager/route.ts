@@ -1,50 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase';
-import { sections } from '@/content/sections';
-
-// POST - Verify manager password
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const { password } = body;
-
-    const managerPassword = process.env.MANAGER_PASSWORD;
-
-    if (!managerPassword) {
-      return NextResponse.json({ error: 'Manager password not configured' }, { status: 500 });
-    }
-
-    if (password !== managerPassword) {
-      return NextResponse.json({ error: 'Invalid password' }, { status: 401 });
-    }
-
-    // Create a simple session token (in production, use proper session management)
-    const sessionToken = Buffer.from(`manager:${Date.now()}`).toString('base64');
-
-    const response = NextResponse.json({ success: true });
-    response.cookies.set('manager_session', sessionToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24, // 24 hours
-    });
-
-    return response;
-  } catch (error) {
-    console.error('Login error:', error);
-    return NextResponse.json({ error: 'Login failed' }, { status: 500 });
-  }
-}
-
+import { createAdminClient } from '@/lib/supabase/admin';
+import { requireAdmin } from '@/lib/auth';
 // GET - Fetch all trainees with their progress
 export async function GET(request: NextRequest) {
-  // Check for manager session
-  const session = request.cookies.get('manager_session');
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const { error: authError } = await requireAdmin(request);
+  if (authError) return authError;
 
-  const supabase = createServerClient();
+  const supabase = createAdminClient();
 
   // Fetch all trainees
   const { data: trainees, error: traineeError } = await supabase
@@ -62,14 +24,74 @@ export async function GET(request: NextRequest) {
   // Fetch all responses for summary
   const { data: responses } = await supabase.from('responses').select('*');
 
+  // Fetch program enrollments with program info
+  const { data: enrollments } = await supabase
+    .from('trainee_programs')
+    .select('trainee_id, program_id, programs(title, slug)');
+
+  // Build a map of trainee_id -> program info
+  const traineePrograms: Record<string, { title: string; slug: string; program_id: string }[]> = {};
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (enrollments || []).forEach((e: any) => {
+    if (!e.programs) return;
+    if (!traineePrograms[e.trainee_id]) traineePrograms[e.trainee_id] = [];
+    traineePrograms[e.trainee_id].push({ title: e.programs.title, slug: e.programs.slug, program_id: e.program_id });
+  });
+
+  // Fetch section counts per program
+  const { data: programSections } = await supabase
+    .from('program_sections')
+    .select('program_id');
+
+  const programSectionCounts: Record<string, number> = {};
+  (programSections || []).forEach((s: { program_id: string }) => {
+    programSectionCounts[s.program_id] = (programSectionCounts[s.program_id] || 0) + 1;
+  });
+
+  // Fetch actual program section IDs for accurate progress filtering
+  const { data: allProgramSectionRows } = await supabase
+    .from('program_sections')
+    .select('id, program_id');
+
+  const programSectionIdsByProgram: Record<string, Set<string>> = {};
+  (allProgramSectionRows || []).forEach((s: { id: string; program_id: string }) => {
+    if (!programSectionIdsByProgram[s.program_id]) programSectionIdsByProgram[s.program_id] = new Set();
+    programSectionIdsByProgram[s.program_id].add(s.id);
+  });
+
+  // When ?all=true, return all trainees (for enroll modal). Otherwise only enrolled ones.
+  const showAll = request.nextUrl.searchParams.get('all') === 'true';
+  const enrolledTrainees = showAll
+    ? (trainees || [])
+    : (trainees?.filter(t => traineePrograms[t.id]) || []);
+
   // Calculate summary for each trainee
-  const traineeSummaries = trainees?.map(trainee => {
+  const traineeSummaries = enrolledTrainees.map(trainee => {
     const traineeProgress = progress?.filter(p => p.trainee_id === trainee.id) || [];
     const traineeResponses = responses?.filter(r => r.trainee_id === trainee.id) || [];
 
-    const completedSections = traineeProgress.filter(p => p.status === 'completed').length;
-    const totalSections = sections.length;
-    const progressPercent = Math.round((completedSections / totalSections) * 100);
+    // Determine if trainee is enrolled in a DB program
+    const enrolledPrograms = traineePrograms[trainee.id];
+    const isDbProgram = enrolledPrograms && enrolledPrograms.length > 0;
+
+    let totalSections: number;
+    let completedSections: number;
+
+    if (isDbProgram) {
+      // Use program section counts — filter progress to only program section IDs
+      const primaryProgram = enrolledPrograms[0];
+      const sectionIdsForProgram = programSectionIdsByProgram[primaryProgram.program_id] || new Set();
+      totalSections = sectionIdsForProgram.size;
+      completedSections = traineeProgress.filter(
+        p => sectionIdsForProgram.has(p.section_id) && p.status === 'completed'
+      ).length;
+    } else {
+      // Not enrolled in any program
+      totalSections = 0;
+      completedSections = 0;
+    }
+
+    const progressPercent = totalSections > 0 ? Math.round((completedSections / totalSections) * 100) : 0;
 
     // Calculate average score from voice exercises
     const voiceResponses = traineeResponses.filter(r => r.exercise_type === 'voice' && r.ai_score);
@@ -79,11 +101,13 @@ export async function GET(request: NextRequest) {
 
     // Determine status
     let status = 'not_started';
-    if (completedSections === totalSections) {
+    if (completedSections === totalSections && totalSections > 0) {
       status = 'completed';
     } else if (completedSections > 0 || traineeProgress.some(p => p.status === 'in_progress')) {
       status = 'in_progress';
     }
+
+    const programs = enrolledPrograms || [];
 
     return {
       ...trainee,
@@ -93,6 +117,7 @@ export async function GET(request: NextRequest) {
       avgScore,
       status,
       exerciseCount: traineeResponses.length,
+      programs,
     };
   });
 

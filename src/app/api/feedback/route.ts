@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
-import { createServerClient } from '@/lib/supabase';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { requireAuth } from '@/lib/auth';
 
 // Allow up to 60 seconds for AI feedback generation
 export const maxDuration = 60;
@@ -10,12 +11,19 @@ const anthropic = new Anthropic({
 });
 
 export async function POST(request: NextRequest) {
+  const { user, error: authError } = await requireAuth(request);
+  if (authError) return authError;
+
   try {
     const body = await request.json();
     const { traineeId, sectionId, exerciseId, scenario, guidance, aiPrompt, transcription, audioUrl } = body;
 
     if (!transcription) {
       return NextResponse.json({ error: 'No transcription provided' }, { status: 400 });
+    }
+
+    if (traineeId !== user.traineeId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     // Build the prompt for Claude
@@ -80,7 +88,7 @@ Please evaluate this response.`;
     const score = scoreMatch ? parseInt(scoreMatch[1]) : 3;
 
     // Store the response in the database
-    const supabase = createServerClient();
+    const supabase = createAdminClient();
 
     const { error: dbError } = await supabase.from('responses').insert({
       trainee_id: traineeId,
@@ -95,7 +103,6 @@ Please evaluate this response.`;
 
     if (dbError) {
       console.error('Database error:', dbError);
-      // Continue anyway - feedback was generated
     }
 
     return NextResponse.json({
