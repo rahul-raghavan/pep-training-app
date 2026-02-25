@@ -33,6 +33,8 @@ export default function ProgramDashboard() {
   const [sections, setSections] = useState<SectionInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [assessmentPassed, setAssessmentPassed] = useState(false);
+  const [bestScore, setBestScore] = useState<{ score: number; total: number } | null>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -55,6 +57,30 @@ export default function ProgramDashboard() {
         setProgress(traineeData.progress);
         setProgram(programData.program);
         setSections(programData.sections);
+
+        // Fetch assessment attempts to check if passed
+        const attemptsRes = await fetch(
+          `/api/assessment?traineeId=${traineeData.trainee.id}&programId=${programData.program.id}`
+        );
+        if (attemptsRes.ok) {
+          const attemptsData = await attemptsRes.json();
+          const attempts = attemptsData.attempts || [];
+          const passingScore = programData.program.passing_score || 80;
+
+          // Find best attempt
+          let best: { score: number; total: number } | null = null;
+          for (const a of attempts) {
+            if (!best || a.score > best.score) {
+              best = { score: a.score, total: a.total };
+            }
+          }
+          if (best) {
+            setBestScore(best);
+            if ((best.score / best.total) * 100 >= passingScore) {
+              setAssessmentPassed(true);
+            }
+          }
+        }
       } catch {
         setError('This program was not found or you don\'t have access.');
       } finally {
@@ -215,50 +241,77 @@ export default function ProgramDashboard() {
           </div>
         </div>
 
-        {/* Final Assessment Card */}
-        <div className={`mt-8 rounded-lg border p-6 ${
-          allComplete ? 'bg-blue-50 border-blue-200' : 'bg-slate-50 border-slate-200'
-        }`}>
-          <div className="flex items-start gap-4">
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
-              allComplete ? 'bg-blue-100' : 'bg-slate-200'
-            }`}>
-              <svg className={`w-6 h-6 ${allComplete ? 'text-blue-600' : 'text-slate-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <div className="flex-1">
-              <h3 className={`text-lg font-semibold mb-1 ${allComplete ? 'text-blue-900' : 'text-slate-400'}`}>
-                Final Assessment
-              </h3>
-              <p className={`text-sm mb-4 ${allComplete ? 'text-blue-700' : 'text-slate-400'}`}>
-                {allComplete
-                  ? 'You\'ve completed all modules! Take the final assessment to test your knowledge.'
-                  : 'Complete all training modules to unlock the final assessment.'}
-              </p>
-              {allComplete ? (
-                <Link
-                  href={`/learn/${programSlug}/assessment`}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Take Assessment
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </Link>
-              ) : (
-                <span className="inline-flex items-center gap-2 px-4 py-2 bg-slate-200 text-slate-400 rounded-lg cursor-not-allowed">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
-                  Locked
-                </span>
-              )}
+        {/* Completion Badge — shown when assessment is passed */}
+        {assessmentPassed && bestScore && (
+          <div className="mt-8 bg-green-50 border border-green-200 rounded-lg p-6">
+            <div className="flex items-center gap-5">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <svg className="w-9 h-9 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-green-900 mb-1">Program Completed!</h3>
+                <p className="text-sm text-green-700">
+                  You passed the final assessment with a score of {bestScore.score}/{bestScore.total}. Great work!
+                </p>
+              </div>
+              <Link
+                href={`/learn/${programSlug}/assessment`}
+                className="text-sm text-green-700 hover:text-green-900 whitespace-nowrap"
+              >
+                View Results
+              </Link>
             </div>
           </div>
-        </div>
+        )}
 
-        {allComplete && (
+        {/* Final Assessment Card — shown when not yet passed */}
+        {!assessmentPassed && (
+          <div className={`mt-8 rounded-lg border p-6 ${
+            allComplete ? 'bg-blue-50 border-blue-200' : 'bg-slate-50 border-slate-200'
+          }`}>
+            <div className="flex items-start gap-4">
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
+                allComplete ? 'bg-blue-100' : 'bg-slate-200'
+              }`}>
+                <svg className={`w-6 h-6 ${allComplete ? 'text-blue-600' : 'text-slate-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className={`text-lg font-semibold mb-1 ${allComplete ? 'text-blue-900' : 'text-slate-400'}`}>
+                  Final Assessment
+                </h3>
+                <p className={`text-sm mb-4 ${allComplete ? 'text-blue-700' : 'text-slate-400'}`}>
+                  {allComplete
+                    ? 'You\'ve completed all modules! Take the final assessment to test your knowledge.'
+                    : 'Complete all training modules to unlock the final assessment.'}
+                </p>
+                {allComplete ? (
+                  <Link
+                    href={`/learn/${programSlug}/assessment`}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Take Assessment
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </Link>
+                ) : (
+                  <span className="inline-flex items-center gap-2 px-4 py-2 bg-slate-200 text-slate-400 rounded-lg cursor-not-allowed">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                    Locked
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {allComplete && !assessmentPassed && (
           <div className="mt-6 bg-green-50 border border-green-200 rounded-lg p-6 text-center">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg className="w-8 h-8 text-green-600" fill="currentColor" viewBox="0 0 20 20">

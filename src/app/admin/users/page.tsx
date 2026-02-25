@@ -21,6 +21,14 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [filterRole, setFilterRole] = useState<string>('all');
 
+  // Create user modal state
+  const [showCreate, setShowCreate] = useState(false);
+  const [newEmail, setNewEmail] = useState('');
+  const [newName, setNewName] = useState('');
+  const [newRole, setNewRole] = useState<string>('user');
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState('');
+
   useEffect(() => {
     if (!authLoading && authUser) {
       fetchUsers();
@@ -49,6 +57,56 @@ export default function UsersPage() {
     });
   };
 
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCreating(true);
+    setCreateError('');
+    try {
+      const res = await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: newEmail, name: newName, role: newRole }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setCreateError(data.error || 'Failed to create user');
+        return;
+      }
+      setShowCreate(false);
+      setNewEmail('');
+      setNewName('');
+      setNewRole('user');
+      fetchUsers();
+    } catch {
+      setCreateError('Failed to create user');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleDeactivate = async (userId: string) => {
+    if (!confirm('Deactivate this user? They will no longer be able to log in.')) return;
+    try {
+      const res = await fetch(`/api/users/${userId}`, { method: 'DELETE' });
+      if (res.ok) fetchUsers();
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleReactivate = async (userId: string) => {
+    try {
+      const res = await fetch(`/api/users/${userId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_active: true }),
+      });
+      if (res.ok) fetchUsers();
+    } catch {
+      // ignore
+    }
+  };
+
   const filteredUsers = filterRole === 'all'
     ? users
     : users.filter(u => u.role === filterRole);
@@ -59,6 +117,8 @@ export default function UsersPage() {
     admin: users.filter(u => u.role === 'admin').length,
     user: users.filter(u => u.role === 'user').length,
   };
+
+  const isSuperAdmin = authUser?.role === 'super_admin';
 
   if (authLoading || loading) {
     return (
@@ -82,12 +142,25 @@ export default function UsersPage() {
             <h1 className="text-2xl font-semibold text-slate-900">User Management</h1>
             <p className="text-slate-600">Manage users and their roles</p>
           </div>
-          <button
-            onClick={logout}
-            className="px-3 py-2 text-sm text-slate-500 hover:text-slate-700"
-          >
-            Sign out
-          </button>
+          <div className="flex items-center gap-3">
+            {isSuperAdmin && (
+              <button
+                onClick={() => setShowCreate(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Create User
+              </button>
+            )}
+            <button
+              onClick={logout}
+              className="px-3 py-2 text-sm text-slate-500 hover:text-slate-700"
+            >
+              Sign out
+            </button>
+          </div>
         </div>
       </header>
 
@@ -149,7 +222,9 @@ export default function UsersPage() {
               {filteredUsers.map(userItem => (
                 <div
                   key={userItem.id}
-                  className="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors"
+                  className={`flex items-center justify-between p-4 hover:bg-slate-50 transition-colors ${
+                    !userItem.is_active ? 'opacity-50' : ''
+                  }`}
                 >
                   <div className="flex items-center gap-4">
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
@@ -194,24 +269,42 @@ export default function UsersPage() {
                     </div>
 
                     {/* Only super_admin can change roles */}
-                    {authUser?.role === 'super_admin' && userItem.id !== authUser.id && (
-                      <select
-                        value={userItem.role}
-                        onChange={async (e) => {
-                          const newRole = e.target.value;
-                          const res = await fetch(`/api/users/${userItem.id}`, {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ role: newRole }),
-                          });
-                          if (res.ok) fetchUsers();
-                        }}
-                        className="text-sm border border-slate-200 rounded-lg px-2 py-1"
-                      >
-                        <option value="user">User</option>
-                        <option value="admin">Admin</option>
-                        <option value="super_admin">Super Admin</option>
-                      </select>
+                    {isSuperAdmin && userItem.id !== authUser.id && (
+                      <>
+                        <select
+                          value={userItem.role}
+                          onChange={async (e) => {
+                            const newRoleValue = e.target.value;
+                            const res = await fetch(`/api/users/${userItem.id}`, {
+                              method: 'PUT',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ role: newRoleValue }),
+                            });
+                            if (res.ok) fetchUsers();
+                          }}
+                          className="text-sm border border-slate-200 rounded-lg px-2 py-1"
+                        >
+                          <option value="user">User</option>
+                          <option value="admin">Admin</option>
+                          <option value="super_admin">Super Admin</option>
+                        </select>
+
+                        {userItem.is_active ? (
+                          <button
+                            onClick={() => handleDeactivate(userItem.id)}
+                            className="text-sm text-red-600 hover:text-red-800 whitespace-nowrap"
+                          >
+                            Deactivate
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleReactivate(userItem.id)}
+                            className="text-sm text-green-600 hover:text-green-800 whitespace-nowrap"
+                          >
+                            Reactivate
+                          </button>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
@@ -220,6 +313,76 @@ export default function UsersPage() {
           )}
         </div>
       </main>
+
+      {/* Create User Modal */}
+      {showCreate && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg w-full max-w-md">
+            <div className="p-6">
+              <h2 className="text-xl font-semibold text-slate-900 mb-1">Create User</h2>
+              <p className="text-sm text-slate-500 mb-4">
+                Pre-register a user. They&apos;ll get the assigned role on first Google login.
+              </p>
+              {createError && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                  {createError}
+                </div>
+              )}
+              <form onSubmit={handleCreateUser}>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Email *</label>
+                  <input
+                    type="email"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900"
+                    placeholder="name@pepschoolv2.com"
+                    required
+                  />
+                </div>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Name</label>
+                  <input
+                    type="text"
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900"
+                    placeholder="Full name"
+                  />
+                </div>
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Role</label>
+                  <select
+                    value={newRole}
+                    onChange={(e) => setNewRole(e.target.value)}
+                    className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900"
+                  >
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                    <option value="super_admin">Super Admin</option>
+                  </select>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => { setShowCreate(false); setNewEmail(''); setNewName(''); setNewRole('user'); setCreateError(''); }}
+                    className="flex-1 py-2 border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={creating || !newEmail}
+                    className="flex-1 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 disabled:opacity-50"
+                  >
+                    {creating ? 'Creating...' : 'Create User'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

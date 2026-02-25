@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { requireAdmin } from '@/lib/auth';
+import { requireAdmin, requireSuperAdmin } from '@/lib/auth';
 
 // GET - List all users with their profiles
 export async function GET(request: NextRequest) {
@@ -59,9 +59,9 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ users });
 }
 
-// POST - Create a new user by email (sends invite or creates profile)
+// POST - Pre-register a new user (super_admin only)
 export async function POST(request: NextRequest) {
-  const { error: authError } = await requireAdmin(request);
+  const { error: authError } = await requireSuperAdmin(request);
   if (authError) return authError;
 
   try {
@@ -73,14 +73,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate role
-    const validRoles = ['user', 'admin'];
+    const validRoles = ['user', 'admin', 'super_admin'];
     if (role && !validRoles.includes(role)) {
       return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
     }
 
     const supabase = createAdminClient();
 
-    // Check if profile already exists
+    // Check if profile already exists (user already logged in before)
     const { data: existing } = await supabase
       .from('profiles')
       .select('id')
@@ -91,14 +91,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User already exists' }, { status: 409 });
     }
 
-    // Create the user in Supabase Auth (they'll complete setup on first Google login)
-    // For now, just create a trainee record so they can be enrolled in programs
+    // Check if trainee record already exists for this email
+    const { data: existingTrainee } = await supabase
+      .from('trainees')
+      .select('id')
+      .eq('email', email.toLowerCase())
+      .single();
+
+    if (existingTrainee) {
+      return NextResponse.json({ error: 'User already pre-registered' }, { status: 409 });
+    }
+
+    // Create trainee record with pre_assigned_role
+    // When they log in via Google OAuth, the auth callback will pick up this role
     const { data: trainee, error: traineeError } = await supabase
       .from('trainees')
       .insert({
         name: name || email.split('@')[0],
         email: email.toLowerCase(),
         access_token: crypto.randomUUID(),
+        pre_assigned_role: role || 'user',
       })
       .select()
       .single();
@@ -109,7 +121,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({
-      message: 'User pre-registered. They will be fully set up on first Google login.',
+      message: 'User pre-registered. They will get the assigned role on first Google login.',
       trainee,
     });
   } catch (error) {

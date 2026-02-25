@@ -9,6 +9,43 @@ interface ProgramInfo {
   slug: string;
   title: string;
   description: string | null;
+  totalSections: number;
+  completedSections: number;
+  status: 'not_started' | 'in_progress' | 'sections_complete' | 'passed';
+  bestScore: number | null;
+  bestTotal: number | null;
+}
+
+function StatusBadge({ status }: { status: ProgramInfo['status'] }) {
+  switch (status) {
+    case 'passed':
+      return (
+        <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-green-100 text-green-700">
+          <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+          </svg>
+          Completed
+        </span>
+      );
+    case 'sections_complete':
+      return (
+        <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-blue-100 text-blue-700">
+          Assessment Ready
+        </span>
+      );
+    case 'in_progress':
+      return (
+        <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-amber-100 text-amber-700">
+          In Progress
+        </span>
+      );
+    default:
+      return (
+        <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-slate-100 text-slate-500">
+          Not Started
+        </span>
+      );
+  }
 }
 
 export default function LearnPage() {
@@ -81,27 +118,67 @@ export default function LearnPage() {
           </div>
         ) : (
           <div className="grid gap-4">
-            {programs.map(program => (
-              <Link
-                key={program.id}
-                href={`/learn/${program.slug}`}
-                className="bg-white rounded-lg border border-slate-200 p-6 hover:border-slate-300 hover:shadow-sm transition-all group"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-lg font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">
-                      {program.title}
-                    </h2>
-                    {program.description && (
-                      <p className="text-slate-600 mt-1">{program.description}</p>
-                    )}
+            {programs.map(program => {
+              const progressPercent = program.totalSections > 0
+                ? Math.round((program.completedSections / program.totalSections) * 100)
+                : 0;
+
+              return (
+                <Link
+                  key={program.id}
+                  href={`/learn/${program.slug}`}
+                  className="bg-white rounded-lg border border-slate-200 p-6 hover:border-slate-300 hover:shadow-sm transition-all group"
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-1">
+                        <h2 className="text-lg font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">
+                          {program.title}
+                        </h2>
+                        <StatusBadge status={program.status} />
+                      </div>
+                      {program.description && (
+                        <p className="text-slate-600 text-sm">{program.description}</p>
+                      )}
+                    </div>
+                    <svg className="w-5 h-5 text-slate-400 group-hover:text-blue-600 transition-colors flex-shrink-0 ml-4 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
                   </div>
-                  <svg className="w-5 h-5 text-slate-400 group-hover:text-blue-600 transition-colors flex-shrink-0 ml-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </div>
-              </Link>
-            ))}
+
+                  {/* Progress bar */}
+                  {program.totalSections > 0 && (
+                    <div>
+                      <div className="flex items-center justify-between text-sm mb-1.5">
+                        <span className="text-slate-500">
+                          {program.completedSections} of {program.totalSections} sections
+                        </span>
+                        {program.status === 'passed' && program.bestScore !== null && (
+                          <span className="text-green-600 font-medium">
+                            Assessment: {program.bestScore}/{program.bestTotal}
+                          </span>
+                        )}
+                        {program.status !== 'passed' && (
+                          <span className="text-slate-400">{progressPercent}%</span>
+                        )}
+                      </div>
+                      <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${
+                            program.status === 'passed'
+                              ? 'bg-green-500'
+                              : progressPercent > 0
+                              ? 'bg-blue-500'
+                              : 'bg-slate-200'
+                          }`}
+                          style={{ width: `${program.status === 'passed' ? 100 : progressPercent}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </Link>
+              );
+            })}
           </div>
         )}
       </main>
