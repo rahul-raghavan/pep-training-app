@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -13,13 +13,26 @@ interface UserProfile {
   created_at: string;
   traineeId: string | null;
   enrollments: { program_id: string; title: string; slug: string }[];
+  pending?: boolean;
+}
+
+interface Program {
+  id: string;
+  title: string;
+  slug: string;
+  is_active: boolean;
 }
 
 export default function UsersPage() {
   const { user: authUser, loading: authLoading, logout } = useAuth('admin');
   const [users, setUsers] = useState<UserProfile[]>([]);
+  const [programs, setPrograms] = useState<Program[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterRole, setFilterRole] = useState<string>('all');
+  const [hideInactive, setHideInactive] = useState(true);
+  const [enrollDropdownUserId, setEnrollDropdownUserId] = useState<string | null>(null);
+  const [enrollingProgramId, setEnrollingProgramId] = useState<string | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Create user modal state
   const [showCreate, setShowCreate] = useState(false);
@@ -32,8 +45,34 @@ export default function UsersPage() {
   useEffect(() => {
     if (!authLoading && authUser) {
       fetchUsers();
+      fetchPrograms();
     }
   }, [authLoading, authUser]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setEnrollDropdownUserId(null);
+      }
+    };
+    if (enrollDropdownUserId) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [enrollDropdownUserId]);
+
+  const fetchPrograms = async () => {
+    try {
+      const res = await fetch('/api/programs');
+      if (res.ok) {
+        const data = await res.json();
+        setPrograms((data.programs || []).filter((p: Program) => p.is_active));
+      }
+    } catch {
+      // ignore
+    }
+  };
 
   const fetchUsers = async () => {
     try {
@@ -107,9 +146,56 @@ export default function UsersPage() {
     }
   };
 
-  const filteredUsers = filterRole === 'all'
-    ? users
-    : users.filter(u => u.role === filterRole);
+  const handleDeletePending = async (traineeId: string) => {
+    if (!confirm('Permanently delete this pre-registered user? This cannot be undone.')) return;
+    try {
+      const res = await fetch(`/api/users/pending/${traineeId}`, { method: 'DELETE' });
+      if (res.ok) fetchUsers();
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleToggleEnrollment = async (userItem: UserProfile, programId: string) => {
+    if (!userItem.traineeId || enrollingProgramId) return;
+    setEnrollingProgramId(programId);
+
+    const isEnrolled = userItem.enrollments.some(e => e.program_id === programId);
+
+    try {
+      const res = isEnrolled
+        ? await fetch(`/api/enrollments?traineeId=${userItem.traineeId}&programId=${programId}`, { method: 'DELETE' })
+        : await fetch('/api/enrollments', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ traineeId: userItem.traineeId, programId }),
+          });
+
+      if (res.ok) {
+        // Update local state immediately
+        const program = programs.find(p => p.id === programId);
+        setUsers(prev => prev.map(u => {
+          if (u.id !== userItem.id) return u;
+          return {
+            ...u,
+            enrollments: isEnrolled
+              ? u.enrollments.filter(e => e.program_id !== programId)
+              : [...u.enrollments, { program_id: programId, title: program?.title || '', slug: program?.slug || '' }],
+          };
+        }));
+      }
+    } catch {
+      // ignore
+    } finally {
+      setEnrollingProgramId(null);
+    }
+  };
+
+  const filteredUsers = users.filter(u => {
+    if (filterRole !== 'all' && u.role !== filterRole) return false;
+    if (hideInactive && !u.is_active && !u.pending) return false;
+    return true;
+  });
 
   const roleCounts = {
     total: users.length,
@@ -186,23 +272,34 @@ export default function UsersPage() {
         </div>
 
         {/* Role filter */}
-        <div className="mb-6 flex items-center gap-2">
-          <span className="text-sm text-slate-500">Filter:</span>
-          <div className="flex gap-2">
-            {['all', 'super_admin', 'admin', 'user'].map(role => (
-              <button
-                key={role}
-                onClick={() => setFilterRole(role)}
-                className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
-                  filterRole === role
-                    ? 'bg-slate-900 text-white'
-                    : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
-                }`}
-              >
-                {role === 'all' ? 'All' : role === 'super_admin' ? 'Super Admin' : role === 'admin' ? 'Admin' : 'User'}
-              </button>
-            ))}
+        <div className="mb-6 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-slate-500">Filter:</span>
+            <div className="flex gap-2">
+              {['all', 'super_admin', 'admin', 'user'].map(role => (
+                <button
+                  key={role}
+                  onClick={() => setFilterRole(role)}
+                  className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                    filterRole === role
+                      ? 'bg-slate-900 text-white'
+                      : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  {role === 'all' ? 'All' : role === 'super_admin' ? 'Super Admin' : role === 'admin' ? 'Admin' : 'User'}
+                </button>
+              ))}
+            </div>
           </div>
+          <label className="flex items-center gap-2 text-sm text-slate-500 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={!hideInactive}
+              onChange={(e) => setHideInactive(!e.target.checked)}
+              className="rounded border-slate-300"
+            />
+            Show deactivated
+          </label>
         </div>
 
         {/* User list */}
@@ -241,12 +338,15 @@ export default function UsersPage() {
                     <div>
                       <div className="font-medium text-slate-900 flex items-center gap-2">
                         {userItem.name || userItem.email}
-                        {!userItem.is_active && (
+                        {userItem.pending && (
+                          <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded">Pending</span>
+                        )}
+                        {!userItem.is_active && !userItem.pending && (
                           <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded">Deactivated</span>
                         )}
                       </div>
                       <div className="text-sm text-slate-500">
-                        {userItem.email} &middot; Joined {formatDate(userItem.created_at)}
+                        {userItem.email} &middot; {userItem.pending ? 'Pre-registered' : `Joined ${formatDate(userItem.created_at)}`}
                       </div>
                     </div>
                   </div>
@@ -262,14 +362,72 @@ export default function UsersPage() {
                       {userItem.role === 'super_admin' ? 'Super Admin' : userItem.role === 'admin' ? 'Admin' : 'User'}
                     </span>
 
-                    <div className="text-sm text-slate-500">
-                      {userItem.enrollments.length > 0
-                        ? `${userItem.enrollments.length} program${userItem.enrollments.length > 1 ? 's' : ''}`
-                        : 'No programs'}
+                    <div className="relative">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEnrollDropdownUserId(enrollDropdownUserId === userItem.id ? null : userItem.id);
+                        }}
+                        disabled={!userItem.traineeId}
+                        className={`text-sm flex items-center gap-1 rounded-lg px-2 py-1 transition-colors ${
+                          userItem.traineeId
+                            ? 'text-slate-600 hover:bg-slate-100 cursor-pointer'
+                            : 'text-slate-400 cursor-not-allowed'
+                        }`}
+                        title={userItem.traineeId ? 'Click to assign programs' : 'No trainee record'}
+                      >
+                        {userItem.enrollments.length > 0
+                          ? `${userItem.enrollments.length} program${userItem.enrollments.length > 1 ? 's' : ''}`
+                          : 'No programs'}
+                        {userItem.traineeId && (
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        )}
+                      </button>
+
+                      {enrollDropdownUserId === userItem.id && programs.length > 0 && (
+                        <div
+                          ref={dropdownRef}
+                          className="absolute right-0 top-full mt-1 w-64 bg-white border border-slate-200 rounded-lg shadow-lg z-20"
+                        >
+                          <div className="p-2 border-b border-slate-100">
+                            <div className="text-xs font-medium text-slate-500 px-2 py-1">Assign programs</div>
+                          </div>
+                          <div className="p-1 max-h-48 overflow-y-auto">
+                            {programs.map(program => {
+                              const isEnrolled = userItem.enrollments.some(e => e.program_id === program.id);
+                              const isLoading = enrollingProgramId === program.id;
+                              return (
+                                <button
+                                  key={program.id}
+                                  onClick={() => handleToggleEnrollment(userItem, program.id)}
+                                  disabled={isLoading}
+                                  className="w-full flex items-center gap-2 px-2 py-2 rounded-md hover:bg-slate-50 text-left transition-colors"
+                                >
+                                  <div className={`w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center ${
+                                    isEnrolled ? 'bg-slate-900 border-slate-900' : 'border-slate-300'
+                                  }`}>
+                                    {isEnrolled && (
+                                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                      </svg>
+                                    )}
+                                    {isLoading && (
+                                      <div className="w-3 h-3 border border-slate-400 border-t-transparent rounded-full animate-spin" />
+                                    )}
+                                  </div>
+                                  <span className="text-sm text-slate-700">{program.title}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
-                    {/* Only super_admin can change roles */}
-                    {isSuperAdmin && userItem.id !== authUser.id && (
+                    {/* Super_admin controls for active (non-pending) users */}
+                    {isSuperAdmin && !userItem.pending && userItem.id !== authUser.id && (
                       <>
                         <select
                           value={userItem.role}
@@ -304,6 +462,19 @@ export default function UsersPage() {
                             Reactivate
                           </button>
                         )}
+                      </>
+                    )}
+
+                    {/* Pending users — show hint + delete option */}
+                    {isSuperAdmin && userItem.pending && (
+                      <>
+                        <span className="text-xs text-amber-600">Hasn&apos;t logged in yet</span>
+                        <button
+                          onClick={() => handleDeletePending(userItem.traineeId!)}
+                          className="text-sm text-red-600 hover:text-red-800 whitespace-nowrap"
+                        >
+                          Delete
+                        </button>
                       </>
                     )}
                   </div>

@@ -1,6 +1,26 @@
 import { createAdminClient } from './supabase/admin';
 import { ContentBlock, Exercise, Section } from '@/content/types';
 
+// --- In-memory cache for read-only content lookups ---
+const cache = new Map<string, { data: unknown; expires: number }>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+function cached<T>(key: string, fn: () => Promise<T>): Promise<T> {
+  const entry = cache.get(key);
+  if (entry && entry.expires > Date.now()) return Promise.resolve(entry.data as T);
+  const promise = fn();
+  promise.then(data => {
+    // Only cache truthy results — don't cache nulls from DB errors
+    if (data) cache.set(key, { data, expires: Date.now() + CACHE_TTL });
+  });
+  return promise;
+}
+
+/** Clear all cached program content. Call after admin edits. */
+export function clearProgramCache() {
+  cache.clear();
+}
+
 // Database row types
 export interface Program {
   id: string;
@@ -82,15 +102,17 @@ export async function getProgram(id: string): Promise<Program | null> {
   return data;
 }
 
-export async function getProgramBySlug(slug: string): Promise<Program | null> {
-  const supabase = createAdminClient();
-  const { data, error } = await supabase
-    .from('programs')
-    .select('*')
-    .eq('slug', slug)
-    .single();
-  if (error) return null;
-  return data;
+export function getProgramBySlug(slug: string): Promise<Program | null> {
+  return cached(`program:${slug}`, async () => {
+    const supabase = createAdminClient();
+    const { data, error } = await supabase
+      .from('programs')
+      .select('*')
+      .eq('slug', slug)
+      .single();
+    if (error) return null;
+    return data;
+  });
 }
 
 export async function listPrograms(): Promise<Program[]> {
@@ -102,60 +124,66 @@ export async function listPrograms(): Promise<Program[]> {
   return data || [];
 }
 
-export async function getProgramSections(programId: string): Promise<ProgramSection[]> {
-  const supabase = createAdminClient();
-  const { data } = await supabase
-    .from('program_sections')
-    .select('*')
-    .eq('program_id', programId)
-    .order('sort_order');
-  return data || [];
+export function getProgramSections(programId: string): Promise<ProgramSection[]> {
+  return cached(`sections:${programId}`, async () => {
+    const supabase = createAdminClient();
+    const { data } = await supabase
+      .from('program_sections')
+      .select('*')
+      .eq('program_id', programId)
+      .order('sort_order');
+    return data || [];
+  });
 }
 
-export async function getSectionBySlug(programId: string, sectionSlug: string): Promise<ProgramSection | null> {
-  const supabase = createAdminClient();
-  const { data, error } = await supabase
-    .from('program_sections')
-    .select('*')
-    .eq('program_id', programId)
-    .eq('slug', sectionSlug)
-    .single();
-  if (error) return null;
-  return data;
+export function getSectionBySlug(programId: string, sectionSlug: string): Promise<ProgramSection | null> {
+  return cached(`sectionSlug:${programId}:${sectionSlug}`, async () => {
+    const supabase = createAdminClient();
+    const { data, error } = await supabase
+      .from('program_sections')
+      .select('*')
+      .eq('program_id', programId)
+      .eq('slug', sectionSlug)
+      .single();
+    if (error) return null;
+    return data;
+  });
 }
 
-export async function getSectionWithContent(sectionId: string): Promise<{
+export function getSectionWithContent(sectionId: string): Promise<{
   section: ProgramSection;
   contentBlocks: ProgramContentBlock[];
   exercises: ProgramExercise[];
 } | null> {
-  const supabase = createAdminClient();
+  return cached(`sectionContent:${sectionId}`, async () => {
+    const supabase = createAdminClient();
 
-  const { data: section, error } = await supabase
-    .from('program_sections')
-    .select('*')
-    .eq('id', sectionId)
-    .single();
-  if (error || !section) return null;
-
-  const [{ data: contentBlocks }, { data: exercises }] = await Promise.all([
-    supabase
-      .from('program_content_blocks')
+    const { data: section, error } = await supabase
+      .from('program_sections')
       .select('*')
-      .eq('section_id', sectionId)
-      .order('sort_order'),
-    supabase
-      .from('program_exercises')
-      .select('*')
-      .eq('section_id', sectionId)
-      .order('sort_order'),
-  ]);
+      .eq('id', sectionId)
+      .single();
+    if (error || !section) return null;
 
-  return {
-    section,
-    contentBlocks: contentBlocks || [],
-    exercises: exercises || [],
-  };
+    const [{ data: contentBlocks }, { data: exercises }] = await Promise.all([
+      supabase
+        .from('program_content_blocks')
+        .select('*')
+        .eq('section_id', sectionId)
+        .order('sort_order'),
+      supabase
+        .from('program_exercises')
+        .select('*')
+        .eq('section_id', sectionId)
+        .order('sort_order'),
+    ]);
+
+    return {
+      section,
+      contentBlocks: contentBlocks || [],
+      exercises: exercises || [],
+    };
+  });
 }
 
 export async function getProgramAssessment(programId: string): Promise<ProgramAssessmentQuestion[]> {

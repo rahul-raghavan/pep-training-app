@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireAdmin, requireSuperAdmin } from '@/lib/auth';
+import { clearProgramCache } from '@/lib/programs';
 
 // GET - Single program
 export async function GET(request: NextRequest, { params }: { params: Promise<{ programId: string }> }) {
@@ -48,6 +49,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'Failed to update program' }, { status: 500 });
     }
 
+    clearProgramCache();
     return NextResponse.json({ program: data });
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
@@ -71,5 +73,6 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     return NextResponse.json({ error: 'Failed to delete program' }, { status: 500 });
   }
 
+  clearProgramCache();
   return NextResponse.json({ success: true });
 }

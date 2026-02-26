@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireAdmin } from '@/lib/auth';
+import { clearProgramCache } from '@/lib/programs';
 
 // GET - List sections for a program
 export async function GET(request: NextRequest, { params }: { params: Promise<{ programId: string }> }) {
@@ -64,6 +65,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: 'Failed to create section' }, { status: 500 });
     }
 
+    clearProgramCache();
     return NextResponse.json({ section: data }, { status: 201 });
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
@@ -102,6 +104,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       .eq('program_id', programId)
       .order('sort_order');
 
+    clearProgramCache();
     return NextResponse.json({ sections: data || [] });
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });

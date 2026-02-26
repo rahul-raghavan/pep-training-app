@@ -54,9 +54,50 @@ export async function GET(request: NextRequest) {
     ...profile,
     traineeId: traineeMap[profile.id] || null,
     enrollments: enrollmentMap[traineeMap[profile.id]] || [],
+    pending: false,
   }));
 
-  return NextResponse.json({ users });
+  // Also fetch pre-registered trainees (no user_id = haven't logged in yet)
+  const { data: pendingTrainees } = await supabase
+    .from('trainees')
+    .select('id, name, email, pre_assigned_role, created_at')
+    .is('user_id', null)
+    .order('created_at', { ascending: false });
+
+  // Get enrollments for pending trainees too
+  const pendingTraineeIds = (pendingTrainees || []).map((t: { id: string }) => t.id);
+  const { data: pendingEnrollments } = pendingTraineeIds.length > 0
+    ? await supabase
+        .from('trainee_programs')
+        .select('trainee_id, program_id, programs(title, slug)')
+        .in('trainee_id', pendingTraineeIds)
+    : { data: [] };
+
+  const pendingEnrollmentMap: Record<string, { program_id: string; title: string; slug: string }[]> = {};
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (pendingEnrollments || []).forEach((e: any) => {
+    if (!e.programs) return;
+    if (!pendingEnrollmentMap[e.trainee_id]) pendingEnrollmentMap[e.trainee_id] = [];
+    pendingEnrollmentMap[e.trainee_id].push({
+      program_id: e.program_id,
+      title: e.programs.title,
+      slug: e.programs.slug,
+    });
+  });
+
+  const pendingUsers = (pendingTrainees || []).map((t: { id: string; name: string; email: string; pre_assigned_role: string | null; created_at: string }) => ({
+    id: `pending_${t.id}`,
+    traineeId: t.id,
+    email: t.email,
+    name: t.name,
+    role: t.pre_assigned_role || 'user',
+    is_active: true,
+    created_at: t.created_at,
+    enrollments: pendingEnrollmentMap[t.id] || [],
+    pending: true,
+  }));
+
+  return NextResponse.json({ users: [...(users || []), ...pendingUsers] });
 }
 
 // POST - Pre-register a new user (super_admin only)

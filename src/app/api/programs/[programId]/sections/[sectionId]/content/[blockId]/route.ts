@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireAdmin } from '@/lib/auth';
+import { clearProgramCache } from '@/lib/programs';
 
 type Params = { params: Promise<{ programId: string; sectionId: string; blockId: string }> };
 
@@ -27,6 +28,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
       return NextResponse.json({ error: 'Failed to update content block' }, { status: 500 });
     }
 
+    clearProgramCache();
     return NextResponse.json({ block: data });
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
@@ -51,5 +53,6 @@ export async function DELETE(request: NextRequest, { params }: Params) {
     return NextResponse.json({ error: 'Failed to delete content block' }, { status: 500 });
   }
 
+  clearProgramCache();
   return NextResponse.json({ success: true });
 }

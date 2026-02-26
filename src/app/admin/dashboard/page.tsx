@@ -19,23 +19,11 @@ interface TraineeSummary {
   programs: { title: string; slug: string }[];
 }
 
-interface ProgramInfo {
-  id: string;
-  title: string;
-  slug: string;
-}
-
 export default function AdminDashboard() {
   const { user, loading: authLoading, logout } = useAuth('admin');
   const [trainees, setTrainees] = useState<TraineeSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showAddUserModal, setShowAddUserModal] = useState(false);
-  const [newUserName, setNewUserName] = useState('');
-  const [newUserEmail, setNewUserEmail] = useState('');
-  const [selectedProgramId, setSelectedProgramId] = useState('');
-  const [programs, setPrograms] = useState<ProgramInfo[]>([]);
-  const [creating, setCreating] = useState(false);
   const [filterProgram, setFilterProgram] = useState<string>('all');
 
   const fetchTrainees = async () => {
@@ -51,58 +39,11 @@ export default function AdminDashboard() {
     }
   };
 
-  const fetchPrograms = async () => {
-    try {
-      const res = await fetch('/api/programs');
-      if (res.ok) {
-        const data = await res.json();
-        setPrograms(data.programs || []);
-      }
-    } catch {
-      // ignore
-    }
-  };
-
   useEffect(() => {
     if (!authLoading && user) {
       fetchTrainees();
-      fetchPrograms();
     }
   }, [authLoading, user]);
-
-  const createUser = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setCreating(true);
-
-    try {
-      // Create trainee record
-      const res = await fetch('/api/trainee', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: newUserName,
-          email: newUserEmail,
-          program_id: selectedProgramId || undefined,
-        }),
-      });
-
-      if (!res.ok) throw new Error('Failed to create');
-
-      closeModal();
-      fetchTrainees();
-    } catch {
-      alert('Failed to create user');
-    } finally {
-      setCreating(false);
-    }
-  };
-
-  const closeModal = () => {
-    setShowAddUserModal(false);
-    setNewUserName('');
-    setNewUserEmail('');
-    setSelectedProgramId('');
-  };
 
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return 'Never';
@@ -166,15 +107,6 @@ export default function AdminDashboard() {
               </svg>
               Programs
             </Link>
-            <button
-              onClick={() => setShowAddUserModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Add User
-            </button>
             <button
               onClick={logout}
               className="px-3 py-2 text-sm text-slate-500 hover:text-slate-700"
@@ -253,7 +185,7 @@ export default function AdminDashboard() {
           {filteredTrainees.length === 0 ? (
             <div className="p-8 text-center text-slate-500">
               {trainees.length === 0
-                ? 'No trainees yet. Click "Add User" to create one.'
+                ? 'No trainees yet. Go to Users to add one.'
                 : 'No trainees in this program.'}
             </div>
           ) : (
@@ -327,70 +259,6 @@ export default function AdminDashboard() {
         </div>
       </main>
 
-      {/* Add User Modal */}
-      {showAddUserModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg w-full max-w-md">
-            <div className="p-6">
-              <h2 className="text-xl font-semibold text-slate-900 mb-4">Add User</h2>
-
-              <form onSubmit={createUser}>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Name *</label>
-                  <input
-                    type="text"
-                    value={newUserName}
-                    onChange={(e) => setNewUserName(e.target.value)}
-                    className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900"
-                    placeholder="Enter name"
-                    required
-                  />
-                </div>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Email *</label>
-                  <input
-                    type="email"
-                    value={newUserEmail}
-                    onChange={(e) => setNewUserEmail(e.target.value)}
-                    className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900"
-                    placeholder="user@school.com"
-                    required
-                  />
-                </div>
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Enroll in Program</label>
-                  <select
-                    value={selectedProgramId}
-                    onChange={(e) => setSelectedProgramId(e.target.value)}
-                    className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900"
-                  >
-                    <option value="">No program</option>
-                    {programs.map(p => (
-                      <option key={p.id} value={p.id}>{p.title}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="flex gap-3">
-                  <button
-                    type="button"
-                    onClick={closeModal}
-                    className="flex-1 py-2 border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={creating || !newUserName || !newUserEmail}
-                    className="flex-1 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 disabled:opacity-50 transition-colors"
-                  >
-                    {creating ? 'Creating...' : 'Add User'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

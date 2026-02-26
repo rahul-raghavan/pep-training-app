@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireAdmin, requireSuperAdmin } from '@/lib/auth';
+import { clearProgramCache } from '@/lib/programs';
 
 // GET - List all programs
 export async function GET(request: NextRequest) {
@@ -60,6 +61,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to create program', details: error.message, code: error.code }, { status: 500 });
     }
 
+    clearProgramCache();
     return NextResponse.json({ program: data }, { status: 201 });
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });

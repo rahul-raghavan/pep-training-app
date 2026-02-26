@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireAdmin } from '@/lib/auth';
+import { clearProgramCache } from '@/lib/programs';
 
 type Params = { params: Promise<{ programId: string; sectionId: string }> };
 
@@ -42,6 +43,7 @@ export async function POST(request: NextRequest, { params }: Params) {
       return NextResponse.json({ error: 'Failed to create content block' }, { status: 500 });
     }
 
+    clearProgramCache();
     return NextResponse.json({ block: data }, { status: 201 });
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
@@ -80,6 +82,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
       .eq('section_id', sectionId)
       .order('sort_order');
 
+    clearProgramCache();
     return NextResponse.json({ blocks: data || [] });
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });

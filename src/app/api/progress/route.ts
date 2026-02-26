@@ -119,17 +119,26 @@ export async function PUT(request: NextRequest) {
       // If exercise not found (legacy string ID), fall back to client-provided correct boolean
     }
 
-    await supabase.from('responses').insert({
-      trainee_id: traineeId,
-      section_id: sectionId,
-      exercise_id: exerciseId,
-      exercise_type: exerciseType,
-      response_text: responseText,
-      ai_score: aiScore,
-      correct: serverCorrect,
-    });
+    const { data: createdResponse, error: insertError } = await supabase
+      .from('responses')
+      .insert({
+        trainee_id: traineeId,
+        section_id: sectionId,
+        exercise_id: exerciseId,
+        exercise_type: exerciseType,
+        response_text: responseText,
+        ai_score: aiScore,
+        correct: serverCorrect,
+      })
+      .select()
+      .single();
 
-    return NextResponse.json({ success: true });
+    if (insertError) {
+      console.error('Error inserting response:', insertError);
+      return NextResponse.json({ error: 'Failed to store response' }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, response: createdResponse });
   } catch (error) {
     console.error('Error storing response:', error);
     return NextResponse.json({ error: 'Failed to store response' }, { status: 500 });
