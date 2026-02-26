@@ -37,16 +37,26 @@ export async function GET(request: NextRequest) {
     .select('*')
     .eq('trainee_id', trainee.id);
 
-  // Fetch responses
-  const { data: responses } = await supabase
-    .from('responses')
-    .select('*')
-    .eq('trainee_id', trainee.id);
+  // Only fetch responses if explicitly requested (saves large payload for pages that don't need them)
+  const include = request.nextUrl.searchParams.get('include') || '';
+  const wantResponses = include === 'all' || include.includes('responses');
+
+  if (wantResponses) {
+    const { data: responses } = await supabase
+      .from('responses')
+      .select('*')
+      .eq('trainee_id', trainee.id);
+
+    return NextResponse.json({
+      trainee,
+      progress: progress || [],
+      responses: responses || [],
+    });
+  }
 
   return NextResponse.json({
     trainee,
     progress: progress || [],
-    responses: responses || [],
   });
 }
 

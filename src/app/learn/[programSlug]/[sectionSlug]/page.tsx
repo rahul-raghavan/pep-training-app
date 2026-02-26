@@ -43,34 +43,23 @@ export default function ProgramSectionPage() {
 
   const fetchData = useCallback(async () => {
     try {
-      // Fetch trainee data and program content in parallel
-      const [traineeRes, contentRes] = await Promise.all([
-        fetch('/api/trainee'),
-        fetch(`/api/program-content?programSlug=${programSlug}&sectionSlug=${sectionSlug}`),
-      ]);
+      const res = await fetch(`/api/learn/section?programSlug=${programSlug}&sectionSlug=${sectionSlug}`);
+      if (!res.ok) throw new Error('Section not found');
 
-      if (!traineeRes.ok) throw new Error('Could not load your training data');
-      if (!contentRes.ok) throw new Error('Section not found');
+      const data = await res.json();
 
-      const [traineeData, contentData] = await Promise.all([
-        traineeRes.json(),
-        contentRes.json(),
-      ]);
+      setTrainee(data.trainee);
+      setProgress(data.progress);
+      setResponses(data.responses);
+      setSection(data.section);
+      setContent(data.content);
+      setExercises(data.exercises);
+      setNavigation(data.navigation);
 
-      setTrainee(traineeData.trainee);
-      setProgress(traineeData.progress);
-      setResponses(traineeData.responses);
-      setSection(contentData.section);
-      setContent(contentData.content);
-      setExercises(contentData.exercises);
-      setNavigation(contentData.navigation);
-
-      // Build set of completed exercises
+      // Build set of completed exercises from responses (already filtered to this section)
       const completed = new Set<string>();
-      traineeData.responses.forEach((r: ResponseType) => {
-        if (r.section_id === contentData.section.id) {
-          completed.add(r.exercise_id);
-        }
+      data.responses.forEach((r: ResponseType) => {
+        completed.add(r.exercise_id);
       });
       setCompletedExercises(completed);
     } catch {
@@ -105,7 +94,7 @@ export default function ProgramSectionPage() {
   const handleExerciseComplete = async (exerciseId: string, exerciseType: string, responseText: string, correct?: boolean) => {
     if (!trainee || !section) return;
 
-    await fetch('/api/progress', {
+    const res = await fetch('/api/progress', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -118,8 +107,14 @@ export default function ProgramSectionPage() {
       }),
     });
 
+    if (!res.ok) return;
+
+    // Update local state with the created response — no refetch needed
+    const { response: newResponse } = await res.json();
+    if (newResponse) {
+      setResponses(prev => [...prev, newResponse]);
+    }
     setCompletedExercises(prev => new Set([...prev, exerciseId]));
-    await fetchData();
   };
 
   const handleVoiceComplete = (exerciseId: string) => {

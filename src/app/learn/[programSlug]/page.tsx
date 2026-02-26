@@ -41,7 +41,7 @@ export default function ProgramDashboard() {
       try {
         // Fetch trainee data and program content in parallel
         const [traineeRes, programRes] = await Promise.all([
-          fetch('/api/trainee'),
+          fetch('/api/trainee?include=progress'),
           fetch(`/api/program-content?programSlug=${programSlug}`),
         ]);
 

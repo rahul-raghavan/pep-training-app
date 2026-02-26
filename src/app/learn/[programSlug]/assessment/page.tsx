@@ -54,7 +54,7 @@ export default function ProgramAssessmentPage() {
     async function fetchData() {
       try {
         // Fetch trainee data
-        const traineeRes = await fetch('/api/trainee');
+        const traineeRes = await fetch('/api/trainee?include=progress');
         if (!traineeRes.ok) throw new Error('Could not load your training data');
         const traineeData = await traineeRes.json();
         setTraineeId(traineeData.trainee.id);
