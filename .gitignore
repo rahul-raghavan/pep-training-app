@@ -39,3 +39,4 @@ next-env.d.ts
 e2e/auth/storageState.*.json
 playwright-report/
 test-results/
+update-mcqs.py
