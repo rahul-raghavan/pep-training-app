@@ -29,9 +29,9 @@ export default function MultipleChoice({ exercise, onComplete, previousAttempts 
   const isCorrect = selected === exercise.correctIndex;
 
   return (
-    <div className="bg-white border border-slate-200 rounded-lg p-6 my-6">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
+    <div className="bg-white border border-slate-200 rounded-lg p-4 sm:p-6 my-4 sm:my-6">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+        <div className="flex flex-wrap items-center gap-2">
           <div className="bg-slate-100 text-slate-600 text-xs font-medium px-2 py-1 rounded">
             Knowledge Check
           </div>
@@ -73,7 +73,7 @@ export default function MultipleChoice({ exercise, onComplete, previousAttempts 
               key={index}
               onClick={() => !submitted && setSelected(index)}
               disabled={submitted}
-              className={`w-full text-left p-4 rounded-lg border-2 transition-colors ${optionClass} ${
+              className={`w-full text-left p-3 sm:p-4 rounded-lg border-2 transition-colors ${optionClass} ${
                 submitted ? 'cursor-default' : 'cursor-pointer'
               }`}
             >
@@ -92,7 +92,7 @@ export default function MultipleChoice({ exercise, onComplete, previousAttempts 
                     </svg>
                   )}
                 </div>
-                <span className="text-slate-700">{option}</span>
+                <span className="text-slate-700 break-words">{option}</span>
               </div>
             </button>
           );

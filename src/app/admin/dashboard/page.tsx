@@ -14,6 +14,7 @@ interface TraineeSummary {
   totalSections: number;
   progressPercent: number;
   avgScore: number | null;
+  scoreType: 'voice' | 'mcq' | null;
   status: 'not_started' | 'in_progress' | 'completed';
   exerciseCount: number;
   programs: { title: string; slug: string }[];
@@ -83,36 +84,38 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-slate-50">
       <header className="bg-white border-b border-slate-200">
-        <div className="max-w-6xl mx-auto px-4 py-6 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold text-slate-900">Training Dashboard</h1>
-            <p className="text-slate-600">Manage and monitor trainee progress</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <Link
-              href="/admin/users"
-              className="flex items-center gap-2 px-4 py-2 border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
-              Users
-            </Link>
-            <Link
-              href="/admin/programs"
-              className="flex items-center gap-2 px-4 py-2 border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-              </svg>
-              Programs
-            </Link>
-            <button
-              onClick={logout}
-              className="px-3 py-2 text-sm text-slate-500 hover:text-slate-700"
-            >
-              Sign out
-            </button>
+        <div className="max-w-6xl mx-auto px-4 py-4 sm:py-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h1 className="text-xl sm:text-2xl font-semibold text-slate-900">Training Dashboard</h1>
+              <p className="text-sm sm:text-base text-slate-600">Manage and monitor trainee progress</p>
+            </div>
+            <div className="flex items-center gap-2 sm:gap-3">
+              <Link
+                href="/admin/users"
+                className="flex items-center gap-2 px-3 sm:px-4 py-2 border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-sm"
+              >
+                <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+                Users
+              </Link>
+              <Link
+                href="/admin/programs"
+                className="flex items-center gap-2 px-3 sm:px-4 py-2 border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-sm"
+              >
+                <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+                <span className="hidden sm:inline">Programs</span>
+              </Link>
+              <button
+                onClick={logout}
+                className="px-3 py-2 text-sm text-slate-500 hover:text-slate-700"
+              >
+                Sign out
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -241,9 +244,13 @@ export default function AdminDashboard() {
                       <div className="text-right w-16">
                         <div className="text-sm text-slate-500">Avg Score</div>
                         <div className={`font-medium ${
-                          trainee.avgScore >= 4 ? 'text-green-600' : trainee.avgScore >= 3 ? 'text-amber-600' : 'text-red-600'
+                          trainee.scoreType === 'mcq' ? (
+                            trainee.avgScore >= 80 ? 'text-green-600' : trainee.avgScore >= 60 ? 'text-amber-600' : 'text-red-600'
+                          ) : (
+                            trainee.avgScore >= 4 ? 'text-green-600' : trainee.avgScore >= 3 ? 'text-amber-600' : 'text-red-600'
+                          )
                         }`}>
-                          {trainee.avgScore}/5
+                          {trainee.scoreType === 'mcq' ? `${trainee.avgScore}%` : `${trainee.avgScore}/5`}
                         </div>
                       </div>
                     )}

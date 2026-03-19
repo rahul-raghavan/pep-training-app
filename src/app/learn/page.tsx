@@ -131,8 +131,8 @@ export default function LearnPage() {
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-1">
-                        <h2 className="text-lg font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">
+                      <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-1">
+                        <h2 className="text-base sm:text-lg font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">
                           {program.title}
                         </h2>
                         <StatusBadge status={program.status} />

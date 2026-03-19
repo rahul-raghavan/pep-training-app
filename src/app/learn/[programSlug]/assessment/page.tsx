@@ -215,8 +215,8 @@ export default function ProgramAssessmentPage() {
         </header>
 
         <main className="max-w-3xl mx-auto px-4 py-8">
-          <div className={`rounded-lg p-8 mb-8 text-center ${results.passed ? 'bg-green-50 border border-green-200' : 'bg-amber-50 border border-amber-200'}`}>
-            <div className={`text-6xl font-bold mb-2 ${results.passed ? 'text-green-600' : 'text-amber-600'}`}>
+          <div className={`rounded-lg p-6 sm:p-8 mb-8 text-center ${results.passed ? 'bg-green-50 border border-green-200' : 'bg-amber-50 border border-amber-200'}`}>
+            <div className={`text-4xl sm:text-6xl font-bold mb-2 ${results.passed ? 'text-green-600' : 'text-amber-600'}`}>
               {results.score}/{results.total}
             </div>
             <div className={`text-lg font-medium mb-4 ${results.passed ? 'text-green-800' : 'text-amber-800'}`}>
@@ -287,7 +287,7 @@ export default function ProgramAssessmentPage() {
             </div>
           </div>
 
-          <div className="mt-8 flex gap-4 justify-center">
+          <div className="mt-8 flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
             <Link
               href={`/learn/${programSlug}`}
               className="px-6 py-3 border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
@@ -325,7 +325,7 @@ export default function ProgramAssessmentPage() {
         </header>
 
         <main className="max-w-3xl mx-auto px-4 py-8">
-          <div className="bg-white rounded-lg border border-slate-200 p-8">
+          <div className="bg-white rounded-lg border border-slate-200 p-5 sm:p-8">
             <div className="text-center mb-8">
               <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -367,7 +367,7 @@ export default function ProgramAssessmentPage() {
                 <h3 className="font-medium text-slate-900 mb-3">Previous Attempts</h3>
                 <div className="space-y-2">
                   {previousAttempts.map((attempt, index) => (
-                    <div key={attempt.id} className="flex items-center justify-between bg-slate-50 rounded-lg px-4 py-2 text-sm">
+                    <div key={attempt.id} className="flex flex-col sm:flex-row sm:items-center justify-between bg-slate-50 rounded-lg px-3 sm:px-4 py-2 text-sm gap-1">
                       <span className="text-slate-600">
                         Attempt {previousAttempts.length - index} — {new Date(attempt.created_at).toLocaleDateString('en-US', {
                           month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
@@ -416,7 +416,7 @@ export default function ProgramAssessmentPage() {
       <main className="max-w-3xl mx-auto px-4 py-8">
         <div className="space-y-6">
           {questions.map((question, index) => (
-            <div key={question.id} className="bg-white rounded-lg border border-slate-200 p-6">
+            <div key={question.id} className="bg-white rounded-lg border border-slate-200 p-4 sm:p-6">
               <div className="flex items-center gap-2 mb-3">
                 <span className="bg-slate-100 text-slate-600 text-xs font-medium px-2 py-1 rounded">
                   Q{index + 1}
@@ -435,7 +435,7 @@ export default function ProgramAssessmentPage() {
                     <button
                       key={optIndex}
                       onClick={() => handleAnswerSelect(question.id, optIndex)}
-                      className={`w-full text-left p-4 rounded-lg border-2 transition-colors ${
+                      className={`w-full text-left p-3 sm:p-4 rounded-lg border-2 transition-colors ${
                         isSelected
                           ? 'border-blue-500 bg-blue-50'
                           : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
@@ -447,7 +447,7 @@ export default function ProgramAssessmentPage() {
                         }`}>
                           {isSelected && <div className="w-2 h-2 bg-white rounded-full" />}
                         </div>
-                        <span className="text-slate-700">{option}</span>
+                        <span className="text-slate-700 break-words">{option}</span>
                       </div>
                     </button>
                   );
