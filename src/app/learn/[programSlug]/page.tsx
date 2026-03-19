@@ -166,7 +166,7 @@ export default function ProgramDashboard() {
           <h2 className="text-lg font-medium text-slate-900 mb-4">Your Progress</h2>
           <ProgressBar sections={progressBarData} />
 
-          <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between text-sm">
+          <div className="mt-4 pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-sm">
             <span className="text-slate-600">
               Estimated time remaining: {Math.max(0, totalMinutes - completedMinutes)} minutes
             </span>
@@ -244,14 +244,14 @@ export default function ProgramDashboard() {
         {/* Completion Badge — shown when assessment is passed */}
         {assessmentPassed && bestScore && (
           <div className="mt-8 bg-green-50 border border-green-200 rounded-lg p-6">
-            <div className="flex items-center gap-5">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                <svg className="w-9 h-9 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-5">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <svg className="w-7 h-7 sm:w-9 sm:h-9 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
                 </svg>
               </div>
               <div className="flex-1">
-                <h3 className="text-lg font-semibold text-green-900 mb-1">Program Completed!</h3>
+                <h3 className="text-base sm:text-lg font-semibold text-green-900 mb-1">Program Completed!</h3>
                 <p className="text-sm text-green-700">
                   You passed the final assessment with a score of {bestScore.score}/{bestScore.total}. Great work!
                 </p>

@@ -93,11 +93,20 @@ export async function GET(request: NextRequest) {
 
     const progressPercent = totalSections > 0 ? Math.round((completedSections / totalSections) * 100) : 0;
 
-    // Calculate average score from voice exercises
+    // Calculate average score from voice exercises or MCQ accuracy
     const voiceResponses = traineeResponses.filter(r => r.exercise_type === 'voice' && r.ai_score);
-    const avgScore = voiceResponses.length > 0
-      ? Math.round(voiceResponses.reduce((sum, r) => sum + (r.ai_score || 0), 0) / voiceResponses.length * 10) / 10
-      : null;
+    const mcqResponses = traineeResponses.filter(r => r.exercise_type === 'multiple_choice' && r.correct !== null);
+
+    let avgScore: number | null = null;
+    let scoreType: 'voice' | 'mcq' | null = null;
+    if (voiceResponses.length > 0) {
+      avgScore = Math.round(voiceResponses.reduce((sum, r) => sum + (r.ai_score || 0), 0) / voiceResponses.length * 10) / 10;
+      scoreType = 'voice';
+    } else if (mcqResponses.length > 0) {
+      const correctCount = mcqResponses.filter(r => r.correct === true).length;
+      avgScore = Math.round((correctCount / mcqResponses.length) * 100);
+      scoreType = 'mcq';
+    }
 
     // Determine status
     let status = 'not_started';
@@ -115,6 +124,7 @@ export async function GET(request: NextRequest) {
       totalSections,
       progressPercent,
       avgScore,
+      scoreType,
       status,
       exerciseCount: traineeResponses.length,
       programs,

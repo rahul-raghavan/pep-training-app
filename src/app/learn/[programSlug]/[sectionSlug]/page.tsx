@@ -200,8 +200,8 @@ export default function ProgramSectionPage() {
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-4 py-8">
-        <div className="bg-white rounded-lg border border-slate-200 p-6 md:p-8">
+      <main className="max-w-3xl mx-auto px-2 sm:px-4 py-4 sm:py-8">
+        <div className="bg-white rounded-lg border border-slate-200 p-4 sm:p-6 md:p-8">
           <div className="flex items-center gap-2 text-sm text-slate-500 mb-6">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -268,7 +268,7 @@ export default function ProgramSectionPage() {
           )}
 
           {/* Navigation */}
-          <div className="mt-12 pt-8 border-t border-slate-200 flex items-center justify-between">
+          <div className="mt-8 sm:mt-12 pt-6 sm:pt-8 border-t border-slate-200 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3">
             {navigation.prev ? (
               <Link
                 href={`/learn/${programSlug}/${navigation.prev.slug}`}

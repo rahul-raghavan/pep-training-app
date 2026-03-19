@@ -90,11 +90,21 @@ export async function GET(
     const sectionExercises = programExercises?.filter(e => e.section_id === section.id) || [];
 
     const voiceResponses = sectionResponses.filter(r => r.exercise_type === 'voice' && r.ai_score);
-    const avgScore = voiceResponses.length > 0
-      ? Math.round(voiceResponses.reduce((sum, r) => sum + (r.ai_score || 0), 0) / voiceResponses.length * 10) / 10
-      : null;
+    const mcqResponses = sectionResponses.filter(r => r.exercise_type === 'multiple_choice' && r.correct !== null);
 
-    const needsAttention = avgScore !== null && avgScore < 3;
+    let avgScore: number | null = null;
+    let scoreType: 'voice' | 'mcq' | null = null;
+    if (voiceResponses.length > 0) {
+      avgScore = Math.round(voiceResponses.reduce((sum, r) => sum + (r.ai_score || 0), 0) / voiceResponses.length * 10) / 10;
+      scoreType = 'voice';
+    } else if (mcqResponses.length > 0) {
+      const correctCount = mcqResponses.filter(r => r.correct === true).length;
+      avgScore = Math.round((correctCount / mcqResponses.length) * 100);
+      scoreType = 'mcq';
+    }
+
+    const needsAttention = scoreType === 'voice' ? (avgScore !== null && avgScore < 3) :
+      scoreType === 'mcq' ? (avgScore !== null && avgScore < 60) : false;
 
     // Build exercises with their responses
     const exercises = sectionExercises.map(exercise => {
@@ -131,6 +141,7 @@ export async function GET(
       startedAt: sectionProgress?.started_at,
       completedAt: sectionProgress?.completed_at,
       avgScore,
+      scoreType,
       needsAttention,
       exercises,
       totalResponses: sectionResponses.length,
@@ -162,9 +173,19 @@ export async function GET(
   const allVoiceScores = (responses || [])
     .filter(r => r.exercise_type === 'voice' && r.ai_score)
     .map(r => r.ai_score!);
-  const overallAvgScore = allVoiceScores.length > 0
-    ? Math.round(allVoiceScores.reduce((a, b) => a + b, 0) / allVoiceScores.length * 10) / 10
-    : null;
+  const allMcqResponses = (responses || [])
+    .filter(r => r.exercise_type === 'multiple_choice' && r.correct !== null);
+
+  let overallAvgScore: number | null = null;
+  let overallScoreType: 'voice' | 'mcq' | null = null;
+  if (allVoiceScores.length > 0) {
+    overallAvgScore = Math.round(allVoiceScores.reduce((a, b) => a + b, 0) / allVoiceScores.length * 10) / 10;
+    overallScoreType = 'voice';
+  } else if (allMcqResponses.length > 0) {
+    const correctCount = allMcqResponses.filter(r => r.correct === true).length;
+    overallAvgScore = Math.round((correctCount / allMcqResponses.length) * 100);
+    overallScoreType = 'mcq';
+  }
 
   const bestAssessmentScore = assessmentAttempts && assessmentAttempts.length > 0
     ? Math.max(...assessmentAttempts.map(a => a.score))
@@ -183,6 +204,7 @@ export async function GET(
       totalSections,
       progressPercent: totalSections > 0 ? Math.round((completedSections / totalSections) * 100) : 0,
       overallAvgScore,
+      overallScoreType,
       totalResponses: (responses || []).length,
       sectionsNeedingAttention: sectionSummaries.filter(s => s.needsAttention).length,
       assessmentAttempts: assessmentAttempts?.length || 0,

@@ -36,6 +36,7 @@ interface SectionInfo {
   startedAt?: string;
   completedAt?: string;
   avgScore: number | null;
+  scoreType: 'voice' | 'mcq' | null;
   needsAttention: boolean;
   exercises: ExerciseInfo[];
   totalResponses: number;
@@ -53,6 +54,7 @@ interface StatsData {
   totalSections: number;
   progressPercent: number;
   overallAvgScore: number | null;
+  overallScoreType: 'voice' | 'mcq' | null;
   totalResponses: number;
   sectionsNeedingAttention: number;
   assessmentAttempts: number;
@@ -152,22 +154,29 @@ export default function UserDetailPage() {
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 py-8">
+      <main className="max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
-          <div className="bg-white rounded-lg border border-slate-200 p-4">
-            <div className="text-sm text-slate-500">Progress</div>
-            <div className="text-2xl font-semibold text-slate-900">{stats.progressPercent}%</div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4 mb-6 sm:mb-8">
+          <div className="bg-white rounded-lg border border-slate-200 p-3 sm:p-4">
+            <div className="text-xs sm:text-sm text-slate-500">Progress</div>
+            <div className="text-xl sm:text-2xl font-semibold text-slate-900">{stats.progressPercent}%</div>
             <div className="text-xs text-slate-500">{stats.completedSections}/{stats.totalSections} sections</div>
           </div>
           <div className="bg-white rounded-lg border border-slate-200 p-4">
             <div className="text-sm text-slate-500">Avg Score</div>
             <div className={`text-2xl font-semibold ${
               stats.overallAvgScore === null ? 'text-slate-400' :
-              stats.overallAvgScore >= 4 ? 'text-green-600' :
-              stats.overallAvgScore >= 3 ? 'text-amber-600' : 'text-red-600'
+              stats.overallScoreType === 'mcq' ? (
+                stats.overallAvgScore >= 80 ? 'text-green-600' :
+                stats.overallAvgScore >= 60 ? 'text-amber-600' : 'text-red-600'
+              ) : (
+                stats.overallAvgScore >= 4 ? 'text-green-600' :
+                stats.overallAvgScore >= 3 ? 'text-amber-600' : 'text-red-600'
+              )
             }`}>
-              {stats.overallAvgScore !== null ? `${stats.overallAvgScore}/5` : 'N/A'}
+              {stats.overallAvgScore !== null
+                ? stats.overallScoreType === 'mcq' ? `${stats.overallAvgScore}%` : `${stats.overallAvgScore}/5`
+                : 'N/A'}
             </div>
           </div>
           <div className="bg-white rounded-lg border border-slate-200 p-4">
@@ -194,8 +203,8 @@ export default function UserDetailPage() {
         </div>
 
         {/* Timeline */}
-        <div className="bg-white rounded-lg border border-slate-200 p-4 mb-8">
-          <div className="flex items-center justify-between text-sm">
+        <div className="bg-white rounded-lg border border-slate-200 p-3 sm:p-4 mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between text-sm gap-1 sm:gap-0">
             <div>
               <span className="text-slate-500">Started:</span>{' '}
               <span className="text-slate-900">{formatDate(trainee.created_at)}</span>
@@ -245,7 +254,7 @@ export default function UserDetailPage() {
                       </div>
                       <div className="text-sm text-slate-500">
                         {section.totalResponses} responses
-                        {section.avgScore !== null && ` • Avg: ${section.avgScore}/5`}
+                        {section.avgScore !== null && ` • Avg: ${section.scoreType === 'mcq' ? `${section.avgScore}%` : `${section.avgScore}/5`}`}
                       </div>
                     </div>
                   </div>
@@ -261,7 +270,7 @@ export default function UserDetailPage() {
 
                 {expandedSection === section.id && section.exercises.length > 0 && (
                   <div className="px-4 pb-4">
-                    <div className="ml-12 space-y-4">
+                    <div className="ml-0 sm:ml-12 space-y-4">
                       {section.exercises.map((exercise) => (
                         <div key={exercise.exerciseId} className="space-y-2">
                           {exercise.questionText && (
