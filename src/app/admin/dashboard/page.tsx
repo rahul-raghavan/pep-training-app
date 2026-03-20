@@ -158,7 +158,7 @@ export default function AdminDashboard() {
         )}
 
         {/* Stats overview */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-8">
           <div className="bg-white rounded-lg border border-slate-200 p-4">
             <div className="text-sm text-slate-500">Total Trainees</div>
             <div className="text-2xl font-semibold text-slate-900">{stats.total}</div>
@@ -197,10 +197,10 @@ export default function AdminDashboard() {
                 <Link
                   key={trainee.id}
                   href={`/admin/users/${trainee.id}`}
-                  className="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors"
+                  className="block p-4 hover:bg-slate-50 transition-colors"
                 >
-                  <div className="flex items-center gap-4">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                  <div className="flex items-center gap-3 sm:gap-4">
+                    <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
                       trainee.status === 'completed'
                         ? 'bg-green-100 text-green-600'
                         : trainee.status === 'in_progress'
@@ -217,47 +217,43 @@ export default function AdminDashboard() {
                         </span>
                       )}
                     </div>
-                    <div>
-                      <div className="font-medium text-slate-900">{trainee.name}</div>
-                      <div className="text-sm text-slate-500">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="font-medium text-slate-900 truncate">{trainee.name}</div>
+                        <svg className="w-5 h-5 text-slate-400 flex-shrink-0 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </div>
+                      <div className="text-sm text-slate-500 truncate">
                         {trainee.email && <>{trainee.email} &middot; </>}
-                        {filterProgram === 'all' && <>{trainee.programs.map(p => p.title).join(', ')} &middot; </>}
+                        {filterProgram === 'all' && trainee.programs.length > 0 && <>{trainee.programs.map(p => p.title).join(', ')} &middot; </>}
                         Last active: {formatDate(trainee.last_active_at)}
                       </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-6">
-                    <div className="text-right">
-                      <div className="text-sm font-medium text-slate-900">
-                        {trainee.completedSections}/{trainee.totalSections} sections
-                      </div>
-                      <div className="w-24 h-2 bg-slate-100 rounded-full overflow-hidden mt-1">
-                        <div
-                          className={`h-full ${trainee.status === 'completed' ? 'bg-green-500' : 'bg-blue-500'}`}
-                          style={{ width: `${trainee.progressPercent}%` }}
-                        />
-                      </div>
-                    </div>
-
-                    {trainee.avgScore !== null && (
-                      <div className="text-right w-16">
-                        <div className="text-sm text-slate-500">Avg Score</div>
-                        <div className={`font-medium ${
-                          trainee.scoreType === 'mcq' ? (
-                            trainee.avgScore >= 80 ? 'text-green-600' : trainee.avgScore >= 60 ? 'text-amber-600' : 'text-red-600'
-                          ) : (
-                            trainee.avgScore >= 4 ? 'text-green-600' : trainee.avgScore >= 3 ? 'text-amber-600' : 'text-red-600'
-                          )
-                        }`}>
-                          {trainee.scoreType === 'mcq' ? `${trainee.avgScore}%` : `${trainee.avgScore}/5`}
+                      <div className="flex items-center gap-4 mt-2">
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <span className="text-xs text-slate-500 whitespace-nowrap">
+                            {trainee.completedSections}/{trainee.totalSections}
+                          </span>
+                          <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden max-w-[8rem]">
+                            <div
+                              className={`h-full rounded-full ${trainee.status === 'completed' ? 'bg-green-500' : 'bg-blue-500'}`}
+                              style={{ width: `${trainee.progressPercent}%` }}
+                            />
+                          </div>
                         </div>
+                        {trainee.avgScore !== null && (
+                          <span className={`text-xs font-medium whitespace-nowrap ${
+                            trainee.scoreType === 'mcq' ? (
+                              trainee.avgScore >= 80 ? 'text-green-600' : trainee.avgScore >= 60 ? 'text-amber-600' : 'text-red-600'
+                            ) : (
+                              trainee.avgScore >= 4 ? 'text-green-600' : trainee.avgScore >= 3 ? 'text-amber-600' : 'text-red-600'
+                            )
+                          }`}>
+                            {trainee.scoreType === 'mcq' ? `${trainee.avgScore}%` : `${trainee.avgScore}/5`}
+                          </span>
+                        )}
                       </div>
-                    )}
-
-                    <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
+                    </div>
                   </div>
                 </Link>
               ))}
