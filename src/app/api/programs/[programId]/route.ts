@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireAdmin, requireSuperAdmin } from '@/lib/auth';
 import { clearProgramCache } from '@/lib/programs';
+import { isCourseInAdminScope } from '@/lib/admin-scope';
 
 // GET - Single program
 export async function GET(request: NextRequest, { params }: { params: Promise<{ programId: string }> }) {
-  const { error: authError } = await requireAdmin(request);
+  const { user, error: authError } = await requireAdmin(request);
   if (authError) return authError;
 
   const { programId } = await params;
@@ -20,13 +21,16 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   if (error || !data) {
     return NextResponse.json({ error: 'Program not found' }, { status: 404 });
   }
+  if (!(await isCourseInAdminScope(supabase, user, programId))) {
+    return NextResponse.json({ error: 'Course is not in your admin scope' }, { status: 403 });
+  }
 
   return NextResponse.json({ program: data });
 }
 
 // PUT - Update program
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ programId: string }> }) {
-  const { error: authError } = await requireAdmin(request);
+  const { error: authError } = await requireSuperAdmin(request);
   if (authError) return authError;
 
   const { programId } = await params;

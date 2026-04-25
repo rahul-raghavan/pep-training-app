@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireAdmin, requireSuperAdmin } from '@/lib/auth';
+import { isTraineeInAdminScope } from '@/lib/admin-scope';
 
 // GET - Get a specific user's profile + trainee details
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ userId: string }> }
 ) {
-  const { error: authError } = await requireAdmin(request);
+  const { user, error: authError } = await requireAdmin(request);
   if (authError) return authError;
 
   const { userId } = await params;
@@ -29,6 +30,9 @@ export async function GET(
     .select('*')
     .eq('user_id', userId)
     .single();
+  if (user.role === 'admin' && (!trainee || !(await isTraineeInAdminScope(supabase, user, trainee.id)))) {
+    return NextResponse.json({ error: 'User is not in your admin scope' }, { status: 403 });
+  }
 
   // Get enrollments if trainee exists
   let enrollments: { program_id: string; title: string; slug: string }[] = [];
@@ -76,8 +80,19 @@ export async function PUT(
         return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
       }
     } else {
-      const { error: authError } = await requireAdmin(request);
+      const { user, error: authError } = await requireAdmin(request);
       if (authError) return authError;
+      if (user.role === 'admin') {
+        const supabase = createAdminClient();
+        const { data: trainee } = await supabase
+          .from('trainees')
+          .select('id')
+          .eq('user_id', userId)
+          .single();
+        if (!trainee || !(await isTraineeInAdminScope(supabase, user, trainee.id))) {
+          return NextResponse.json({ error: 'User is not in your admin scope' }, { status: 403 });
+        }
+      }
     }
 
     const supabase = createAdminClient();

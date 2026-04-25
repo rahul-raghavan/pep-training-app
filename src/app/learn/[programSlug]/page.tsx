@@ -3,9 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import ProgressBar from '@/components/ProgressBar';
 import { useAuth } from '@/hooks/useAuth';
 import { Trainee, Progress } from '@/content/types';
+import { PageShell, TopBar, PaperCard, Ring, Stickie } from '@/components/paper';
 
 interface ProgramInfo {
   id: string;
@@ -22,6 +22,13 @@ interface SectionInfo {
   estimatedMinutes: number;
 }
 
+interface PrerequisiteInfo {
+  slug: string;
+  title: string;
+  enrolled: boolean;
+  passed: boolean;
+}
+
 export default function ProgramDashboard() {
   const params = useParams();
   const { user, loading: authLoading } = useAuth();
@@ -33,32 +40,37 @@ export default function ProgramDashboard() {
   const [sections, setSections] = useState<SectionInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lockedPrerequisite, setLockedPrerequisite] = useState<PrerequisiteInfo | null>(null);
   const [assessmentPassed, setAssessmentPassed] = useState(false);
   const [bestScore, setBestScore] = useState<{ score: number; total: number } | null>(null);
 
   useEffect(() => {
     async function fetchData() {
       try {
-        // Fetch trainee data and program content in parallel
         const [traineeRes, programRes] = await Promise.all([
           fetch('/api/trainee?include=progress'),
           fetch(`/api/program-content?programSlug=${programSlug}`),
         ]);
 
         if (!traineeRes.ok) throw new Error('Could not load your training data');
+
+        const traineeData = await traineeRes.json();
+        if (programRes.status === 423) {
+          const lockData = await programRes.json();
+          setTrainee(traineeData.trainee);
+          setProgress(traineeData.progress);
+          setLockedPrerequisite(lockData.prerequisite || null);
+          return;
+        }
         if (!programRes.ok) throw new Error('Program not found');
 
-        const [traineeData, programData] = await Promise.all([
-          traineeRes.json(),
-          programRes.json(),
-        ]);
+        const programData = await programRes.json();
 
         setTrainee(traineeData.trainee);
         setProgress(traineeData.progress);
         setProgram(programData.program);
         setSections(programData.sections);
 
-        // Fetch assessment attempts to check if passed
         const attemptsRes = await fetch(
           `/api/assessment?traineeId=${traineeData.trainee.id}&programId=${programData.program.id}`
         );
@@ -67,22 +79,17 @@ export default function ProgramDashboard() {
           const attempts = attemptsData.attempts || [];
           const passingScore = programData.program.passing_score || 80;
 
-          // Find best attempt
           let best: { score: number; total: number } | null = null;
           for (const a of attempts) {
-            if (!best || a.score > best.score) {
-              best = { score: a.score, total: a.total };
-            }
+            if (!best || a.score > best.score) best = { score: a.score, total: a.total };
           }
           if (best) {
             setBestScore(best);
-            if ((best.score / best.total) * 100 >= passingScore) {
-              setAssessmentPassed(true);
-            }
+            if ((best.score / best.total) * 100 >= passingScore) setAssessmentPassed(true);
           }
         }
       } catch {
-        setError('This program was not found or you don\'t have access.');
+        setError("This program was not found or you don't have access.");
       } finally {
         setLoading(false);
       }
@@ -92,32 +99,65 @@ export default function ProgramDashboard() {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="w-8 h-8 border-2 border-slate-300 border-t-slate-900 rounded-full animate-spin" />
-      </div>
+      <PageShell>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="w-8 h-8 border-2 border-rule border-t-ink rounded-full animate-spin" />
+        </div>
+      </PageShell>
+    );
+  }
+
+  if (lockedPrerequisite && trainee) {
+    return (
+      <PageShell maxWidth={560}>
+        <TopBar />
+        <PaperCard className="mt-8 text-center">
+          <div className="w-14 h-14 mx-auto rounded-full bg-paper-2 border border-rule flex items-center justify-center text-ink-3 mb-3">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
+          <h1 className="text-[20px] font-semibold tracking-tight">Course locked</h1>
+          <p className="text-[14px] text-ink-2 mt-2 max-w-sm mx-auto">
+            Pass <b>{lockedPrerequisite.title}</b> to unlock this course.
+          </p>
+          <div className="flex justify-center gap-2 mt-5">
+            {lockedPrerequisite.enrolled ? (
+              <Link
+                href={`/learn/${lockedPrerequisite.slug}`}
+                className="inline-flex items-center px-3 py-1.5 rounded-md bg-ink text-paper text-[13px] font-medium hover:opacity-90"
+              >
+                Go to prerequisite →
+              </Link>
+            ) : (
+              <Link
+                href="/learn"
+                className="inline-flex items-center px-3 py-1.5 rounded-md border border-rule text-[13px] hover:bg-paper-2"
+              >
+                Back to my training
+              </Link>
+            )}
+          </div>
+        </PaperCard>
+      </PageShell>
     );
   }
 
   if (error || !trainee || !program) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-        <div className="max-w-md text-center">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-          </div>
-          <h1 className="text-xl font-semibold text-slate-900 mb-2">Not Found</h1>
-          <p className="text-slate-600 mb-4">{error}</p>
-          <Link href="/learn" className="text-blue-600 hover:text-blue-800">
-            Back to My Training
+      <PageShell maxWidth={560}>
+        <TopBar />
+        <PaperCard className="mt-8 text-center">
+          <h1 className="text-[20px] font-semibold tracking-tight">Not found</h1>
+          <p className="text-ink-2 mt-2 text-[14px]">{error}</p>
+          <Link href="/learn" className="text-accent underline mt-3 inline-block text-[14px]">
+            Back to my training
           </Link>
-        </div>
-      </div>
+        </PaperCard>
+      </PageShell>
     );
   }
 
-  // Build section progress data
   const sectionProgress = sections.map(section => {
     const prog = progress.find(p => p.section_id === section.id);
     return {
@@ -129,202 +169,199 @@ export default function ProgramDashboard() {
     };
   });
 
-  const nextSection = sectionProgress.find(s => s.status !== 'completed');
-  const allComplete = !nextSection;
-
+  const completedCount = sectionProgress.filter(s => s.status === 'completed').length;
+  const overallPct = sections.length > 0 ? Math.round((completedCount / sections.length) * 100) : 0;
   const totalMinutes = sections.reduce((sum, s) => sum + s.estimatedMinutes, 0);
   const completedMinutes = sectionProgress
     .filter(s => s.status === 'completed')
     .reduce((sum, s) => sum + s.estimatedMinutes, 0);
+  const remainingMinutes = Math.max(0, totalMinutes - completedMinutes);
 
-  // Build data for ProgressBar component
-  const progressBarData = sectionProgress.map(s => ({
-    id: s.id,
-    title: s.title,
-    status: s.status,
-    estimatedMinutes: s.estimatedMinutes,
-  }));
+  const nextSection = sectionProgress.find(s => s.status !== 'completed');
+  const allComplete = !nextSection;
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="bg-white border-b border-slate-200">
-        <div className="max-w-4xl mx-auto px-4 py-6">
-          <Link href="/learn" className="text-sm text-slate-500 hover:text-slate-700 flex items-center gap-1 mb-2">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            My Training
-          </Link>
-          <div className="text-sm text-slate-500 mb-1">{program.title}</div>
-          <h1 className="text-2xl font-semibold text-slate-900">Welcome, {trainee.name}</h1>
-        </div>
-      </header>
+    <PageShell maxWidth={1080}>
+      <TopBar right={<span>{user?.email ?? ''}</span>} />
 
-      <main className="max-w-4xl mx-auto px-4 py-8">
-        {/* Progress overview */}
-        <div className="bg-white rounded-lg border border-slate-200 p-6 mb-8">
-          <h2 className="text-lg font-medium text-slate-900 mb-4">Your Progress</h2>
-          <ProgressBar sections={progressBarData} />
+      {/* breadcrumbs + title */}
+      <div className="flex items-baseline gap-2.5 flex-wrap mt-2 mb-2">
+        <Link href="/learn" className="text-[13px] text-ink-2 hover:text-ink">
+          ← Your courses
+        </Link>
+        <span className="text-ink-3">/</span>
+        <h1 className="text-[22px] font-semibold tracking-tight">{program.title}</h1>
+        <span className="ml-auto text-[12px] text-ink-3">
+          {sections.length} sections · {totalMinutes} min total
+        </span>
+      </div>
 
-          <div className="mt-4 pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-sm">
-            <span className="text-slate-600">
-              Estimated time remaining: {Math.max(0, totalMinutes - completedMinutes)} minutes
-            </span>
+      {program.description && (
+        <p className="text-[14px] text-ink-2 leading-relaxed mb-5 max-w-2xl">
+          {program.description}
+        </p>
+      )}
+
+      {/* Hero stats */}
+      <div className="grid sm:grid-cols-[1.4fr_1fr_1fr] gap-3 mb-6">
+        <div
+          className="border border-rule rounded-lg p-5 shadow-sm flex items-center gap-4"
+          style={{ background: 'var(--accent-soft)' }}
+        >
+          <Ring pct={overallPct} size={56} />
+          <div className="flex-1 min-w-0">
+            <div className="text-[18px] font-semibold tracking-tight">
+              {allComplete ? (assessmentPassed ? 'Done!' : 'Ready for the final') : `${overallPct}% done`}
+            </div>
+            <div className="text-[12px] text-ink-2 mt-0.5">
+              {completedCount} of {sections.length} sections complete
+            </div>
             {!allComplete && nextSection && (
               <Link
                 href={`/learn/${programSlug}/${nextSection.slug}`}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors"
+                className="inline-flex items-center px-3 py-1.5 rounded-md bg-ink text-paper text-[13px] font-medium hover:opacity-90 mt-2.5"
               >
-                {nextSection.status === 'in_progress' ? 'Continue' : 'Start'} Training
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
+                {nextSection.status === 'in_progress' ? 'Continue' : 'Start'} →
+              </Link>
+            )}
+            {allComplete && !assessmentPassed && (
+              <Link
+                href={`/learn/${programSlug}/assessment`}
+                className="inline-flex items-center px-3 py-1.5 rounded-md bg-ink text-paper text-[13px] font-medium hover:opacity-90 mt-2.5"
+              >
+                Take final assessment →
               </Link>
             )}
           </div>
         </div>
 
-        {/* Section list */}
-        <div className="bg-white rounded-lg border border-slate-200">
-          <div className="p-4 border-b border-slate-200">
-            <h2 className="font-medium text-slate-900">All Sections</h2>
+        <div className="border border-rule rounded-lg p-5 shadow-sm bg-paper flex flex-col justify-center">
+          <div className="text-[11px] uppercase tracking-wide text-ink-2 font-medium">Time left</div>
+          <div className="text-[28px] font-semibold tracking-tight mt-1 leading-none">
+            {remainingMinutes}
+            <span className="text-[14px] font-normal text-ink-2 ml-1">min</span>
           </div>
-          <div className="divide-y divide-slate-100">
-            {sectionProgress.map((section, index) => {
-              const isAccessible = index === 0 || sectionProgress[index - 1].status === 'completed' || section.status !== 'not_started';
-
-              return (
-                <div key={section.id} className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                      section.status === 'completed'
-                        ? 'bg-green-100 text-green-600'
-                        : section.status === 'in_progress'
-                        ? 'bg-blue-100 text-blue-600'
-                        : 'bg-slate-100 text-slate-400'
-                    }`}>
-                      {section.status === 'completed' ? (
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      ) : (
-                        <span className="text-sm font-medium">{index + 1}</span>
-                      )}
-                    </div>
-                    <div>
-                      <div className={`font-medium ${section.status === 'completed' ? 'text-slate-500' : 'text-slate-900'}`}>
-                        {section.title}
-                      </div>
-                      <div className="text-sm text-slate-500">
-                        {section.estimatedMinutes} minutes
-                      </div>
-                    </div>
-                  </div>
-
-                  {isAccessible ? (
-                    <Link
-                      href={`/learn/${programSlug}/${section.slug}`}
-                      className={`text-sm font-medium ${
-                        section.status === 'completed'
-                          ? 'text-slate-500 hover:text-slate-700'
-                          : 'text-blue-600 hover:text-blue-800'
-                      }`}
-                    >
-                      {section.status === 'completed' ? 'Review' : section.status === 'in_progress' ? 'Continue' : 'Start'}
-                    </Link>
-                  ) : (
-                    <span className="text-sm text-slate-400">Locked</span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+          <div className="text-[12px] text-ink-2 mt-1">estimated</div>
         </div>
 
-        {/* Completion Badge — shown when assessment is passed */}
-        {assessmentPassed && bestScore && (
-          <div className="mt-8 bg-green-50 border border-green-200 rounded-lg p-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-5">
-              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                <svg className="w-7 h-7 sm:w-9 sm:h-9 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-                </svg>
+        <div className="border border-rule rounded-lg p-5 shadow-sm bg-paper flex flex-col justify-center">
+          <div className="text-[11px] uppercase tracking-wide text-ink-2 font-medium">
+            Final assessment
+          </div>
+          {assessmentPassed && bestScore ? (
+            <>
+              <div className="text-[24px] font-semibold tracking-tight mt-1 leading-none text-good">
+                {bestScore.score}/{bestScore.total}
               </div>
-              <div className="flex-1">
-                <h3 className="text-base sm:text-lg font-semibold text-green-900 mb-1">Program Completed!</h3>
-                <p className="text-sm text-green-700">
-                  You passed the final assessment with a score of {bestScore.score}/{bestScore.total}. Great work!
-                </p>
+              <div className="text-[12px] text-good mt-1">passed ✓</div>
+            </>
+          ) : (
+            <>
+              <div className="text-[20px] font-semibold tracking-tight mt-1 leading-none text-ink-2">
+                {allComplete ? 'Ready' : 'Locked'}
               </div>
-              <Link
-                href={`/learn/${programSlug}/assessment`}
-                className="text-sm text-green-700 hover:text-green-900 whitespace-nowrap"
+              <div className="text-[12px] text-ink-2 mt-1">
+                pass at {program.passing_score}%
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Section list */}
+      <div className="flex items-baseline gap-3 mb-3">
+        <h2 className="text-[16px] font-semibold tracking-tight">Sections</h2>
+        <span className="text-[12px] text-ink-3">
+          {completedCount} of {sections.length} done
+        </span>
+      </div>
+
+      <div className="border border-rule rounded-lg bg-paper overflow-hidden divide-y divide-rule">
+        {sectionProgress.map((s, i) => {
+          const accessible =
+            i === 0 || sectionProgress[i - 1].status === 'completed' || s.status !== 'not_started';
+          const inner = (
+            <div
+              className="px-4 py-3 flex items-center gap-3 transition-colors"
+              style={{
+                background: s.status === 'in_progress' ? 'var(--accent-soft)' : 'transparent',
+              }}
+            >
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-semibold flex-shrink-0 ${
+                  s.status === 'completed'
+                    ? 'bg-good-soft text-good'
+                    : s.status === 'in_progress'
+                    ? 'bg-accent-soft text-[color:var(--accent)]'
+                    : 'bg-paper-2 text-ink-3'
+                }`}
               >
-                View Results
-              </Link>
-            </div>
-          </div>
-        )}
-
-        {/* Final Assessment Card — shown when not yet passed */}
-        {!assessmentPassed && (
-          <div className={`mt-8 rounded-lg border p-6 ${
-            allComplete ? 'bg-blue-50 border-blue-200' : 'bg-slate-50 border-slate-200'
-          }`}>
-            <div className="flex items-start gap-4">
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
-                allComplete ? 'bg-blue-100' : 'bg-slate-200'
-              }`}>
-                <svg className={`w-6 h-6 ${allComplete ? 'text-blue-600' : 'text-slate-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+                {s.status === 'completed' ? '✓' : i + 1}
               </div>
-              <div className="flex-1">
-                <h3 className={`text-lg font-semibold mb-1 ${allComplete ? 'text-blue-900' : 'text-slate-400'}`}>
-                  Final Assessment
-                </h3>
-                <p className={`text-sm mb-4 ${allComplete ? 'text-blue-700' : 'text-slate-400'}`}>
-                  {allComplete
-                    ? 'You\'ve completed all modules! Take the final assessment to test your knowledge.'
-                    : 'Complete all training modules to unlock the final assessment.'}
-                </p>
-                {allComplete ? (
-                  <Link
-                    href={`/learn/${programSlug}/assessment`}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    Take Assessment
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </Link>
-                ) : (
-                  <span className="inline-flex items-center gap-2 px-4 py-2 bg-slate-200 text-slate-400 rounded-lg cursor-not-allowed">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                    </svg>
-                    Locked
-                  </span>
-                )}
+              <div className="flex-1 min-w-0">
+                <div
+                  className={`text-[15px] font-medium leading-snug truncate ${
+                    !accessible ? 'text-ink-3' : 'text-ink'
+                  }`}
+                >
+                  {s.title}
+                </div>
+                <div className="text-[12px] text-ink-2 mt-0.5">{s.estimatedMinutes} min</div>
               </div>
+              {accessible ? (
+                <span
+                  className={`text-[13px] font-medium ${
+                    s.status === 'completed' ? 'text-ink-2' : 'text-accent'
+                  }`}
+                >
+                  {s.status === 'completed' ? 'Review' : s.status === 'in_progress' ? 'Continue' : 'Start'}
+                </span>
+              ) : (
+                <span className="text-[12px] text-ink-3">Locked</span>
+              )}
             </div>
-          </div>
-        )}
+          );
 
-        {allComplete && !assessmentPassed && (
-          <div className="mt-6 bg-green-50 border border-green-200 rounded-lg p-6 text-center">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <h3 className="text-xl font-semibold text-green-900 mb-2">All Modules Complete!</h3>
-            <p className="text-green-800">
-              Great work! Don&apos;t forget to take the final assessment above.
-            </p>
+          if (!accessible) return <div key={s.id}>{inner}</div>;
+          return (
+            <Link key={s.id} href={`/learn/${programSlug}/${s.slug}`} className="block hover:bg-paper-2/40">
+              {inner}
+            </Link>
+          );
+        })}
+      </div>
+
+      {assessmentPassed && bestScore && (
+        <div
+          className="mt-6 border rounded-lg p-5 flex items-center gap-4 shadow-sm"
+          style={{ borderColor: '#86efac', background: 'var(--good-soft)' }}
+        >
+          <div className="w-14 h-14 border border-rule rounded-full bg-paper flex flex-col items-center justify-center flex-shrink-0">
+            <span className="text-[20px] font-semibold leading-none text-good">{bestScore.score}</span>
+            <span className="text-[10px] text-ink-2 mt-0.5">of {bestScore.total}</span>
           </div>
-        )}
-      </main>
-    </div>
+          <div className="flex-1">
+            <div className="text-[18px] font-semibold tracking-tight">Program complete</div>
+            <div className="text-[13px] text-ink-2 mt-1">
+              You passed the final assessment. Sections stay open if you want to revisit anytime.
+            </div>
+          </div>
+          <Link
+            href={`/learn/${programSlug}/assessment`}
+            className="inline-flex items-center px-3 py-1.5 rounded-md border border-rule bg-paper text-[13px] hover:bg-paper-2"
+          >
+            View results
+          </Link>
+        </div>
+      )}
+
+      {allComplete && !assessmentPassed && (
+        <div className="mt-6">
+          <Stickie>
+            All sections done — final assessment is unlocked above.
+          </Stickie>
+        </div>
+      )}
+    </PageShell>
   );
 }

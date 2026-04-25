@@ -1,18 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireAdmin } from '@/lib/auth';
+import { getScopedTraineeIds } from '@/lib/admin-scope';
 // GET - Fetch all trainees with their progress
 export async function GET(request: NextRequest) {
-  const { error: authError } = await requireAdmin(request);
+  const { user, error: authError } = await requireAdmin(request);
   if (authError) return authError;
 
   const supabase = createAdminClient();
+  const scopedTraineeIds = await getScopedTraineeIds(supabase, user);
 
-  // Fetch all trainees
-  const { data: trainees, error: traineeError } = await supabase
-    .from('trainees')
-    .select('*')
-    .order('created_at', { ascending: false });
+  // Fetch all trainees (excluding test accounts so stats stay clean).
+  // Falls back transparently if is_test_account column doesn't exist yet.
+  let trainees: { id: string; name: string; email: string | null; created_at: string; last_active_at: string | null; access_token: string }[] = [];
+  let traineeError: { code?: string; message: string } | null = null;
+  {
+    const full = await supabase
+      .from('trainees')
+      .select('*')
+      .eq('is_test_account', false)
+      .order('created_at', { ascending: false });
+    if (full.error?.code === '42703') {
+      const fallback = await supabase
+        .from('trainees')
+        .select('*')
+        .order('created_at', { ascending: false });
+      trainees = (fallback.data ?? []) as typeof trainees;
+      traineeError = fallback.error;
+    } else {
+      trainees = (full.data ?? []) as typeof trainees;
+      traineeError = full.error;
+    }
+  }
 
   if (traineeError) {
     return NextResponse.json({ error: 'Failed to fetch trainees' }, { status: 500 });
@@ -60,6 +79,10 @@ export async function GET(request: NextRequest) {
   });
 
   // When ?all=true, return all trainees (for enroll modal). Otherwise only enrolled ones.
+  if (scopedTraineeIds) {
+    trainees = trainees.filter(t => scopedTraineeIds.has(t.id));
+  }
+
   const showAll = request.nextUrl.searchParams.get('all') === 'true';
   const enrolledTrainees = showAll
     ? (trainees || [])

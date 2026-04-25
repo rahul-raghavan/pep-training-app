@@ -2,13 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireAdmin } from '@/lib/auth';
 import { getProgramSections } from '@/lib/programs';
+import { isCourseInAdminScope, isTraineeInAdminScope } from '@/lib/admin-scope';
 
 // GET - List enrollments for a user
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ userId: string }> }
 ) {
-  const { error: authError } = await requireAdmin(request);
+  const { user, error: authError } = await requireAdmin(request);
   if (authError) return authError;
 
   const { userId } = await params;
@@ -24,6 +25,9 @@ export async function GET(
   if (!trainee) {
     return NextResponse.json({ enrollments: [] });
   }
+  if (!(await isTraineeInAdminScope(supabase, user, trainee.id))) {
+    return NextResponse.json({ error: 'User is not in your admin scope' }, { status: 403 });
+  }
 
   const { data: enrollments, error } = await supabase
     .from('trainee_programs')
@@ -35,7 +39,14 @@ export async function GET(
     return NextResponse.json({ error: 'Failed to fetch enrollments' }, { status: 500 });
   }
 
-  return NextResponse.json({ enrollments: enrollments || [] });
+  const visibleEnrollments = [];
+  for (const enrollment of enrollments || []) {
+    if (await isCourseInAdminScope(supabase, user, enrollment.program_id)) {
+      visibleEnrollments.push(enrollment);
+    }
+  }
+
+  return NextResponse.json({ enrollments: visibleEnrollments });
 }
 
 // POST - Enroll user in a program
@@ -43,7 +54,7 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ userId: string }> }
 ) {
-  const { error: authError } = await requireAdmin(request);
+  const { user, error: authError } = await requireAdmin(request);
   if (authError) return authError;
 
   const { userId } = await params;
@@ -67,6 +78,12 @@ export async function POST(
 
     if (!trainee) {
       return NextResponse.json({ error: 'No trainee record for this user' }, { status: 404 });
+    }
+    if (
+      !(await isTraineeInAdminScope(supabase, user, trainee.id)) ||
+      !(await isCourseInAdminScope(supabase, user, programId))
+    ) {
+      return NextResponse.json({ error: 'Enrollment is not in your admin scope' }, { status: 403 });
     }
 
     // Check if already enrolled
@@ -115,7 +132,7 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ userId: string }> }
 ) {
-  const { error: authError } = await requireAdmin(request);
+  const { user, error: authError } = await requireAdmin(request);
   if (authError) return authError;
 
   const { userId } = await params;
@@ -136,6 +153,12 @@ export async function DELETE(
 
   if (!trainee) {
     return NextResponse.json({ error: 'No trainee record for this user' }, { status: 404 });
+  }
+  if (
+    !(await isTraineeInAdminScope(supabase, user, trainee.id)) ||
+    !(await isCourseInAdminScope(supabase, user, programId))
+  ) {
+    return NextResponse.json({ error: 'Enrollment is not in your admin scope' }, { status: 403 });
   }
 
   const { error } = await supabase

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { getProgramBySlug, getProgramAssessment, isTraineeEnrolled } from '@/lib/programs';
+import { getProgramAccessStatus, prerequisiteLockedResponse } from '@/lib/program-prerequisites';
 
 // GET - Fetch assessment questions for a program (trainee-facing)
 // ?programSlug=X
@@ -23,6 +24,11 @@ export async function GET(request: NextRequest) {
   // Enrollment check
   if (!user.traineeId || !(await isTraineeEnrolled(user.traineeId, program.id))) {
     return NextResponse.json({ error: 'Not enrolled in this program' }, { status: 403 });
+  }
+
+  const accessStatus = await getProgramAccessStatus(user.traineeId, program);
+  if (accessStatus.locked) {
+    return NextResponse.json(prerequisiteLockedResponse(accessStatus), { status: 423 });
   }
 
   const questions = await getProgramAssessment(program.id);

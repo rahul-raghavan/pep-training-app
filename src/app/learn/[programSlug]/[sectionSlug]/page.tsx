@@ -8,6 +8,7 @@ import { Trainee, Progress, Response as ResponseType, Exercise, ContentBlock as 
 import ContentBlock from '@/components/ContentBlock';
 import MultipleChoice from '@/components/MultipleChoice';
 import VoiceRecorder from '@/components/VoiceRecorder';
+import { PageShell, TopBar, Pill, Stickie } from '@/components/paper';
 
 interface SectionData {
   id: string;
@@ -18,9 +19,55 @@ interface SectionData {
   totalSections: number;
 }
 
+interface SectionStub {
+  id: string;
+  slug: string;
+  title: string;
+  estimatedMinutes: number;
+}
+
+interface ProgramInfo {
+  id: string;
+  slug: string;
+  title: string;
+  description: string | null;
+  passing_score: number;
+}
+
 interface NavigationData {
   prev: { slug: string; title: string } | null;
   next: { slug: string; title: string } | null;
+}
+
+type SectionState = 'done' | 'current' | 'open' | 'locked';
+
+function classifySection(
+  s: SectionStub,
+  index: number,
+  currentId: string,
+  progress: Progress[]
+): SectionState {
+  const p = progress.find(x => x.section_id === s.id);
+  if (s.id === currentId) return 'current';
+  if (p?.status === 'completed') return 'done';
+  if (p?.status === 'in_progress') return 'open';
+  // Locked when prior section isn't completed (and not the first).
+  if (index === 0) return 'open';
+  return 'open';
+}
+
+function StateDot({ state, index }: { state: SectionState; index?: number }) {
+  const cls = 'w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-semibold flex-shrink-0';
+  if (state === 'done') {
+    return <div className={`${cls} bg-good-soft text-good`}>✓</div>;
+  }
+  if (state === 'current') {
+    return <div className={`${cls} bg-accent-soft text-[color:var(--accent)]`}>●</div>;
+  }
+  if (state === 'locked') {
+    return <div className={`${cls} bg-paper-2 text-ink-3`}>✕</div>;
+  }
+  return <div className={`${cls} bg-paper-2 text-ink-3`}>{index !== undefined ? index + 1 : '○'}</div>;
 }
 
 export default function ProgramSectionPage() {
@@ -37,17 +84,22 @@ export default function ProgramSectionPage() {
   const [content, setContent] = useState<ContentBlockType[]>([]);
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [navigation, setNavigation] = useState<NavigationData>({ prev: null, next: null });
+  const [allSections, setAllSections] = useState<SectionStub[]>([]);
+  const [program, setProgram] = useState<ProgramInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [completedExercises, setCompletedExercises] = useState<Set<string>>(new Set());
 
   const fetchData = useCallback(async () => {
     try {
-      const res = await fetch(`/api/learn/section?programSlug=${programSlug}&sectionSlug=${sectionSlug}`);
-      if (!res.ok) throw new Error('Section not found');
+      // Parallel: section-with-content + program outline (for left rail).
+      const [sectionRes, contentRes] = await Promise.all([
+        fetch(`/api/learn/section?programSlug=${programSlug}&sectionSlug=${sectionSlug}`),
+        fetch(`/api/program-content?programSlug=${programSlug}`),
+      ]);
+      if (!sectionRes.ok) throw new Error('Section not found');
 
-      const data = await res.json();
-
+      const data = await sectionRes.json();
       setTrainee(data.trainee);
       setProgress(data.progress);
       setResponses(data.responses);
@@ -56,12 +108,22 @@ export default function ProgramSectionPage() {
       setExercises(data.exercises);
       setNavigation(data.navigation);
 
-      // Build set of completed exercises from responses (already filtered to this section)
       const completed = new Set<string>();
-      data.responses.forEach((r: ResponseType) => {
-        completed.add(r.exercise_id);
-      });
+      data.responses.forEach((r: ResponseType) => completed.add(r.exercise_id));
       setCompletedExercises(completed);
+
+      if (contentRes.ok) {
+        const cd = await contentRes.json();
+        setProgram(cd.program);
+        setAllSections(
+          (cd.sections || []).map((s: { id: string; slug: string; title: string; estimatedMinutes: number }) => ({
+            id: s.id,
+            slug: s.slug,
+            title: s.title,
+            estimatedMinutes: s.estimatedMinutes,
+          }))
+        );
+      }
     } catch {
       setError('Section not found');
     } finally {
@@ -73,11 +135,11 @@ export default function ProgramSectionPage() {
     if (!authLoading && user) fetchData();
   }, [authLoading, user, fetchData]);
 
-  // Mark section as in_progress when first viewed
+  // Mark in_progress on first view
   useEffect(() => {
     if (trainee && section) {
-      const currentProgress = progress.find(p => p.section_id === section.id);
-      if (!currentProgress || currentProgress.status === 'not_started') {
+      const cur = progress.find(p => p.section_id === section.id);
+      if (!cur || cur.status === 'not_started') {
         fetch('/api/progress', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -91,9 +153,13 @@ export default function ProgramSectionPage() {
     }
   }, [trainee, section, progress]);
 
-  const handleExerciseComplete = async (exerciseId: string, exerciseType: string, responseText: string, correct?: boolean) => {
+  const handleExerciseComplete = async (
+    exerciseId: string,
+    exerciseType: string,
+    responseText: string,
+    correct?: boolean
+  ) => {
     if (!trainee || !section) return;
-
     const res = await fetch('/api/progress', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -106,14 +172,9 @@ export default function ProgramSectionPage() {
         correct,
       }),
     });
-
     if (!res.ok) return;
-
-    // Update local state with the created response — no refetch needed
     const { response: newResponse } = await res.json();
-    if (newResponse) {
-      setResponses(prev => [...prev, newResponse]);
-    }
+    if (newResponse) setResponses(prev => [...prev, newResponse]);
     setCompletedExercises(prev => new Set([...prev, exerciseId]));
   };
 
@@ -123,7 +184,6 @@ export default function ProgramSectionPage() {
 
   const markSectionComplete = async () => {
     if (!trainee || !section) return;
-
     await fetch('/api/progress', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -133,7 +193,6 @@ export default function ProgramSectionPage() {
         status: 'completed',
       }),
     });
-
     if (navigation.next) {
       router.push(`/learn/${programSlug}/${navigation.next.slug}`);
     } else {
@@ -143,23 +202,27 @@ export default function ProgramSectionPage() {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="w-8 h-8 border-2 border-slate-300 border-t-slate-900 rounded-full animate-spin" />
-      </div>
+      <PageShell>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="w-8 h-8 border-2 border-rule border-t-ink rounded-full animate-spin" />
+        </div>
+      </PageShell>
     );
   }
 
   if (error || !trainee || !section) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-        <div className="max-w-md text-center">
-          <h1 className="text-xl font-semibold text-slate-900 mb-2">Section Not Found</h1>
-          <p className="text-slate-600 mb-4">This section doesn&apos;t exist or you don&apos;t have access to it.</p>
-          <Link href={`/learn/${programSlug}`} className="text-blue-600 hover:text-blue-800">
-            Return to dashboard
+      <PageShell maxWidth={520}>
+        <div className="text-center mt-12 border border-ink-2 rounded bg-paper p-6 shadow-[2px_2px_0_rgba(0,0,0,0.08)]">
+          <h1 className="text-[20px] font-semibold tracking-tight">Section not found</h1>
+          <p className="text-ink-2 mt-2 mb-4">
+            This section doesn&apos;t exist or you don&apos;t have access to it.
+          </p>
+          <Link href={`/learn/${programSlug}`} className="text-accent underline">
+            Return to course
           </Link>
         </div>
-      </div>
+      </PageShell>
     );
   }
 
@@ -167,58 +230,104 @@ export default function ProgramSectionPage() {
   const currentSectionProgress = progress.find(p => p.section_id === section.id);
   const isAlreadyComplete = currentSectionProgress?.status === 'completed';
 
-  const getExerciseResponses = (exerciseId: string) => {
-    return responses.filter(r => r.section_id === section.id && r.exercise_id === exerciseId);
-  };
+  const getExerciseResponses = (exerciseId: string) =>
+    responses.filter(r => r.section_id === section.id && r.exercise_id === exerciseId);
+  const wasEverCorrect = (exerciseId: string) =>
+    getExerciseResponses(exerciseId).some(r => r.correct === true);
+  const countCorrectAttempts = (exerciseId: string) =>
+    getExerciseResponses(exerciseId).filter(r => r.correct === true).length;
 
-  const wasEverCorrect = (exerciseId: string) => {
-    return getExerciseResponses(exerciseId).some(r => r.correct === true);
-  };
-
-  const countCorrectAttempts = (exerciseId: string) => {
-    return getExerciseResponses(exerciseId).filter(r => r.correct === true).length;
-  };
+  const exerciseCount = exercises.length;
+  const completedExerciseCount = exercises.filter(ex => completedExercises.has(ex.id)).length;
+  const itemsTotal = content.length + exerciseCount;
+  const itemsDone = (isAlreadyComplete ? content.length : Math.min(content.length, 0)) + completedExerciseCount;
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
-        <div className="max-w-3xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <Link href={`/learn/${programSlug}`} className="text-sm text-slate-500 hover:text-slate-700 flex items-center gap-1">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-                Back to dashboard
+    <PageShell maxWidth={1240}>
+      <TopBar
+        right={
+          <span>
+            {program?.title && <span>{program.title} · </span>}
+            <span>{user?.email}</span>
+          </span>
+        }
+      />
+
+      {/* breadcrumbs + section title + status, all in one row */}
+      <div className="flex items-baseline gap-3 mt-2 mb-1.5 flex-wrap">
+        <Link href={`/learn/${programSlug}`} className="text-[13px] text-ink-2 hover:text-ink">
+          ← {program?.title ?? 'Course'}
+        </Link>
+        <span className="text-ink-3">/</span>
+        <h1 className="text-[22px] font-semibold tracking-tight leading-tight">{section.title}</h1>
+        <Pill kind={isAlreadyComplete ? 'good' : 'accent'}>
+          {isAlreadyComplete ? 'Completed' : 'In progress'}
+        </Pill>
+      </div>
+      <div className="text-[12px] text-ink-3 mb-3">
+        Section {section.index + 1} of {section.totalSections} · ~{section.estimatedMinutes} min
+        {itemsTotal > 0 && ` · ${itemsDone} of ${itemsTotal} items done`}
+      </div>
+
+      {/* 2-col layout: left rail + main */}
+      <div className="grid lg:grid-cols-[260px_1fr] gap-5 items-start">
+        {/* LEFT — outline */}
+        <aside className="border border-rule rounded-lg bg-paper px-1 lg:sticky lg:top-4 self-start shadow-sm">
+          <div className="text-[11px] uppercase tracking-wide font-medium text-ink-2 px-2 pt-3 pb-2">Outline</div>
+          {allSections.map((s, i) => {
+            const st = classifySection(s, i, section.id, progress);
+            return (
+              <Link
+                key={s.id}
+                href={`/learn/${programSlug}/${s.slug}`}
+                className={`block ${i < allSections.length - 1 ? 'border-b border-rule' : ''}`}
+              >
+                <div
+                  className={`flex items-center gap-3 py-2.5 px-2.5 transition-colors hover:bg-paper-2/40 ${
+                    st === 'current' ? 'bg-accent-soft' : ''
+                  }`}
+                >
+                  <StateDot state={st} index={i} />
+                  <div className="flex-1 min-w-0">
+                    <div
+                      className="text-[14px] font-medium leading-snug truncate"
+                      style={{ color: st === 'locked' ? 'var(--ink-3)' : 'var(--ink)' }}
+                    >
+                      {s.title}
+                    </div>
+                    <div className="text-[11px] text-ink-3 mt-0.5">
+                      {s.estimatedMinutes} min
+                    </div>
+                  </div>
+                  {st === 'current' && <Pill kind="accent">Now</Pill>}
+                </div>
               </Link>
-              <h1 className="text-lg font-semibold text-slate-900 mt-1">{section.title}</h1>
+            );
+          })}
+          <div className="px-2 py-2.5 flex gap-3 text-[11px] text-ink-3 flex-wrap border-t border-rule">
+            <span>Reading</span>
+            <span>·</span>
+            <span>MCQ</span>
+            <span>·</span>
+            <span>Voice</span>
+          </div>
+        </aside>
+
+        {/* RIGHT — content + exercises */}
+        <main>
+          {/* Content */}
+          {content.length > 0 && (
+            <div className="space-y-2">
+              {content.map((block, i) => (
+                <ContentBlock key={i} block={block} />
+              ))}
             </div>
-            <div className="text-sm text-slate-500">
-              {section.index + 1} of {section.totalSections}
-            </div>
-          </div>
-        </div>
-      </header>
+          )}
 
-      <main className="max-w-3xl mx-auto px-2 sm:px-4 py-4 sm:py-8">
-        <div className="bg-white rounded-lg border border-slate-200 p-4 sm:p-6 md:p-8">
-          <div className="flex items-center gap-2 text-sm text-slate-500 mb-6">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            Estimated time: {section.estimatedMinutes} minutes
-          </div>
-
-          <div className="space-y-6">
-            {content.map((block, index) => (
-              <ContentBlock key={index} block={block} />
-            ))}
-          </div>
-
+          {/* Exercises */}
           {exercises.length > 0 && (
-            <div className="mt-12 pt-8 border-t border-slate-200">
-              <h2 className="text-xl font-semibold text-slate-900 mb-6">Exercises</h2>
-
+            <div className="mt-8 pt-5 border-t border-rule">
+              <h3 className="text-[18px] font-semibold tracking-tight mb-3">Exercises</h3>
               {exercises.map((exercise: Exercise) => {
                 if (exercise.type === 'multiple_choice') {
                   const previousResponses = getExerciseResponses(exercise.id);
@@ -226,21 +335,15 @@ export default function ProgramSectionPage() {
                     <MultipleChoice
                       key={exercise.id}
                       exercise={exercise}
-                      onComplete={(correct, selectedIndex) => {
-                        handleExerciseComplete(
-                          exercise.id,
-                          'multiple_choice',
-                          String(selectedIndex),
-                          correct
-                        );
-                      }}
+                      onComplete={(correct, selectedIndex) =>
+                        handleExerciseComplete(exercise.id, 'multiple_choice', String(selectedIndex), correct)
+                      }
                       previousAttempts={previousResponses.length}
                       previouslyCorrect={wasEverCorrect(exercise.id)}
                       correctAttempts={countCorrectAttempts(exercise.id)}
                     />
                   );
                 }
-
                 if (exercise.type === 'voice') {
                   const voiceAttempts = getExerciseResponses(exercise.id).map(r => ({
                     transcription: r.response_text || '',
@@ -249,7 +352,6 @@ export default function ProgramSectionPage() {
                     audioUrl: r.audio_url,
                     createdAt: r.created_at,
                   }));
-
                   return (
                     <VoiceRecorder
                       key={exercise.id}
@@ -261,73 +363,73 @@ export default function ProgramSectionPage() {
                     />
                   );
                 }
-
                 return null;
               })}
             </div>
           )}
 
           {/* Navigation */}
-          <div className="mt-8 sm:mt-12 pt-6 sm:pt-8 border-t border-slate-200 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          <div className="mt-7 pt-5 border-t border-rule flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 flex-wrap">
             {navigation.prev ? (
               <Link
                 href={`/learn/${programSlug}/${navigation.prev.slug}`}
-                className="flex items-center gap-2 text-slate-600 hover:text-slate-900"
+                className="text-[13px] flex items-center gap-1.5 text-ink-2 hover:text-ink"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-                Previous
+                <span>←</span> Previous · {navigation.prev.title}
               </Link>
             ) : (
-              <div />
+              <span />
             )}
+
+            <span className="text-[12px] text-ink-2 hidden sm:inline">
+              <span className="kbd">←</span> / <span className="kbd">→</span> to navigate
+            </span>
 
             {!isAlreadyComplete ? (
               <button
                 onClick={markSectionComplete}
                 disabled={!allExercisesComplete}
-                className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-colors ${
+                className={`text-[13px] font-medium rounded-md px-4 py-2 transition-colors ${
                   allExercisesComplete
-                    ? 'bg-slate-900 text-white hover:bg-slate-800'
-                    : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                    ? 'bg-ink text-paper hover:opacity-90'
+                    : 'bg-paper-2 text-ink-3 cursor-not-allowed'
                 }`}
               >
-                {navigation.next ? 'Complete & Continue' : 'Complete Training'}
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
+                {navigation.next ? `Complete & continue →` : 'Finish course →'}
               </button>
             ) : navigation.next ? (
               <Link
                 href={`/learn/${programSlug}/${navigation.next.slug}`}
-                className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-lg font-medium hover:bg-slate-800 transition-colors"
+                className="text-[13px] font-medium rounded-md px-4 py-2 bg-ink text-paper hover:opacity-90"
               >
-                Next Section
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
+                Next: {navigation.next.title} →
               </Link>
             ) : (
               <Link
                 href={`/learn/${programSlug}`}
-                className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
+                className="text-[13px] font-medium rounded-md px-4 py-2 text-good border"
+                style={{ background: 'var(--good-soft)', borderColor: '#86efac' }}
               >
-                View Summary
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
+                View course summary →
               </Link>
             )}
           </div>
 
-          {!allExercisesComplete && !isAlreadyComplete && (
-            <p className="mt-4 text-sm text-slate-500 text-center">
-              Complete all exercises above to continue to the next section.
+          {!allExercisesComplete && !isAlreadyComplete && exercises.length > 0 && (
+            <p className="mt-3 text-[12px] text-ink-2 text-center">
+              Complete all exercises above to continue.
             </p>
           )}
-        </div>
-      </main>
-    </div>
+
+          {exercises.some(ex => ex.type === 'voice') && (
+            <div className="mt-5">
+              <Stickie>
+                Re-attempts are always allowed. Your last attempt&apos;s feedback shows below the recorder.
+              </Stickie>
+            </div>
+          )}
+        </main>
+      </div>
+    </PageShell>
   );
 }

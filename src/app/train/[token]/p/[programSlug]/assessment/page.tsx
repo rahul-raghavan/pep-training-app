@@ -8,8 +8,8 @@ interface AssessmentQuestion {
   id: string;
   question: string;
   options: string[];
-  correctIndex: number;
-  explanation: string;
+  correctIndex?: number;
+  explanation?: string;
   module: string | null;
 }
 
@@ -82,7 +82,9 @@ export default function ProgramAssessmentPage() {
         setPassingScore(assessmentData.passingScore);
 
         // Fetch previous assessment attempts
-        const attemptsRes = await fetch(`/api/assessment?traineeId=${traineeData.trainee.id}`);
+        const attemptsRes = await fetch(
+          `/api/assessment?traineeId=${traineeData.trainee.id}&programId=${assessmentData.program.id}`
+        );
         if (attemptsRes.ok) {
           const attemptsData = await attemptsRes.json();
           setPreviousAttempts(attemptsData.attempts || []);
@@ -112,33 +114,43 @@ export default function ProgramAssessmentPage() {
 
     setSubmitting(true);
 
-    const details = questions.map(q => ({
-      questionId: q.id,
-      correct: answers[q.id] === q.correctIndex,
-      selectedIndex: answers[q.id],
-      correctIndex: q.correctIndex,
-    }));
-
-    const score = details.filter(d => d.correct).length;
-    const passed = score >= passingScore;
-
     try {
-      await fetch('/api/assessment', {
+      const res = await fetch('/api/program-assessment/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          traineeId,
-          score,
-          total: totalQuestions,
-          answers,
-        }),
+        body: JSON.stringify({ programSlug, answers }),
       });
+
+      if (!res.ok) {
+        throw new Error('Failed to submit assessment');
+      }
+
+      const data = await res.json();
+
+      setQuestions(prev => prev.map(q => {
+        const detail = data.details.find((d: { questionId: string }) => d.questionId === q.id);
+        if (detail) {
+          return { ...q, correctIndex: detail.correctIndex, explanation: detail.explanation };
+        }
+        return q;
+      }));
+
+      setResults({
+        score: data.score,
+        total: data.total,
+        passed: data.passed,
+        details: data.details.map((d: { questionId: string; correct: boolean; selectedIndex: number; correctIndex: number }) => ({
+          questionId: d.questionId,
+          correct: d.correct,
+          selectedIndex: d.selectedIndex,
+          correctIndex: d.correctIndex,
+        })),
+      });
+      setSubmitted(true);
     } catch (error) {
       console.error('Failed to save assessment:', error);
+      alert('Failed to submit assessment. Please try again.');
     }
-
-    setResults({ score, total: totalQuestions, passed, details });
-    setSubmitted(true);
     setSubmitting(false);
   };
 
@@ -256,7 +268,7 @@ export default function ProgramAssessmentPage() {
                               Your answer: {question.options[detail?.selectedIndex ?? 0]}
                             </p>
                             <p className="text-green-600">
-                              Correct answer: {question.options[question.correctIndex]}
+                              Correct answer: {question.correctIndex !== undefined ? question.options[question.correctIndex] : ''}
                             </p>
                           </div>
                         )}

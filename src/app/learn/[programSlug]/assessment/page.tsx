@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
+import { PageShell, TopBar, PaperCard, Pill, Stickie } from '@/components/paper';
 
 interface AssessmentQuestion {
   id: string;
@@ -22,6 +23,13 @@ interface AssessmentAttempt {
   created_at: string;
 }
 
+interface ResultDetail {
+  questionId: string;
+  correct: boolean;
+  selectedIndex: number;
+  correctIndex: number;
+}
+
 export default function ProgramAssessmentPage() {
   const params = useParams();
   const router = useRouter();
@@ -38,35 +46,32 @@ export default function ProgramAssessmentPage() {
   const [passingScore, setPassingScore] = useState(0);
   const [sectionCount, setSectionCount] = useState(0);
 
-  // Assessment state
   const [started, setStarted] = useState(false);
   const [answers, setAnswers] = useState<Record<string, number>>({});
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [results, setResults] = useState<{
     score: number;
     total: number;
     passed: boolean;
-    details: { questionId: string; correct: boolean; selectedIndex: number; correctIndex: number }[];
+    details: ResultDetail[];
   } | null>(null);
 
   useEffect(() => {
     async function fetchData() {
       try {
-        // Fetch trainee data
         const traineeRes = await fetch('/api/trainee?include=progress');
         if (!traineeRes.ok) throw new Error('Could not load your training data');
         const traineeData = await traineeRes.json();
         setTraineeId(traineeData.trainee.id);
 
-        // Fetch program content to check section completion
         const programRes = await fetch(`/api/program-content?programSlug=${programSlug}`);
         if (!programRes.ok) throw new Error('Program not found');
         const programData = await programRes.json();
         setProgramTitle(programData.program.title);
         setSectionCount(programData.sections.length);
 
-        // Check if all sections are complete
         const sectionIds = programData.sections.map((s: { id: string }) => s.id);
         const completedSections = traineeData.progress.filter(
           (p: { section_id: string; status: string }) =>
@@ -74,7 +79,6 @@ export default function ProgramAssessmentPage() {
         ).length;
         setAllSectionsComplete(completedSections >= programData.sections.length);
 
-        // Fetch assessment questions
         const assessmentRes = await fetch(`/api/program-assessment?programSlug=${programSlug}`);
         if (!assessmentRes.ok) throw new Error('Assessment not found');
         const assessmentData = await assessmentRes.json();
@@ -82,7 +86,6 @@ export default function ProgramAssessmentPage() {
         setTotalQuestions(assessmentData.totalQuestions);
         setPassingScore(assessmentData.passingScore);
 
-        // Fetch previous assessment attempts
         const attemptsRes = await fetch(`/api/assessment?traineeId=${traineeData.trainee.id}`);
         if (attemptsRes.ok) {
           const attemptsData = await attemptsRes.json();
@@ -104,54 +107,39 @@ export default function ProgramAssessmentPage() {
 
   const handleSubmit = async () => {
     if (!traineeId) return;
-
     const unanswered = questions.filter(q => answers[q.id] === undefined);
     if (unanswered.length > 0) {
-      alert(`Please answer all questions. ${unanswered.length} question(s) remaining.`);
+      alert(`Please answer all questions. ${unanswered.length} remaining.`);
       return;
     }
-
     setSubmitting(true);
-
     try {
       const res = await fetch('/api/program-assessment/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ programSlug, answers }),
       });
-
-      if (!res.ok) {
-        throw new Error('Failed to submit assessment');
-      }
-
+      if (!res.ok) throw new Error('Failed to submit assessment');
       const data = await res.json();
-
-      // Update questions with server-provided correct answers for review screen
-      setQuestions(prev => prev.map(q => {
-        const detail = data.details.find((d: { questionId: string }) => d.questionId === q.id);
-        if (detail) {
-          return { ...q, correctIndex: detail.correctIndex, explanation: detail.explanation };
-        }
-        return q;
-      }));
-
+      setQuestions(prev =>
+        prev.map(q => {
+          const detail = data.details.find((d: { questionId: string }) => d.questionId === q.id);
+          if (detail) return { ...q, correctIndex: detail.correctIndex, explanation: detail.explanation };
+          return q;
+        })
+      );
       setResults({
         score: data.score,
         total: data.total,
         passed: data.passed,
-        details: data.details.map((d: { questionId: string; correct: boolean; selectedIndex: number; correctIndex: number }) => ({
-          questionId: d.questionId,
-          correct: d.correct,
-          selectedIndex: d.selectedIndex,
-          correctIndex: d.correctIndex,
-        })),
+        details: data.details,
       });
       setSubmitted(true);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (error) {
       console.error('Failed to submit assessment:', error);
       alert('Failed to submit assessment. Please try again.');
     }
-
     setSubmitting(false);
   };
 
@@ -159,318 +147,441 @@ export default function ProgramAssessmentPage() {
     setAnswers({});
     setSubmitted(false);
     setResults(null);
+    setCurrentIndex(0);
     setStarted(true);
     window.scrollTo(0, 0);
   };
 
   const answeredCount = Object.keys(answers).length;
-  const progressPercent = totalQuestions > 0 ? (answeredCount / totalQuestions) * 100 : 0;
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="w-8 h-8 border-2 border-slate-300 border-t-slate-900 rounded-full animate-spin" />
-      </div>
+      <PageShell>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="w-8 h-8 border-2 border-rule border-t-ink rounded-full animate-spin" />
+        </div>
+      </PageShell>
     );
   }
 
   if (!allSectionsComplete) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <div className="max-w-md text-center">
-          <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+      <PageShell maxWidth={520}>
+        <TopBar />
+        <PaperCard className="mt-8 text-center">
+          <div className="w-14 h-14 mx-auto rounded-full bg-warn-soft flex items-center justify-center text-warn-ink mb-3">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
           </div>
-          <h1 className="text-xl font-semibold text-slate-900 mb-2">Complete All Modules First</h1>
-          <p className="text-slate-600 mb-6">
-            You need to complete all {sectionCount} training modules before taking the final assessment.
+          <h1 className="text-[20px] font-semibold tracking-tight">Finish all modules first</h1>
+          <p className="text-[14px] text-ink-2 mt-2 max-w-sm mx-auto">
+            You need to complete all {sectionCount} sections before taking the final assessment.
           </p>
           <Link
             href={`/learn/${programSlug}`}
-            className="inline-block px-6 py-3 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors"
+            className="inline-flex items-center px-4 py-2 rounded-md bg-ink text-paper text-[13px] font-medium hover:opacity-90 mt-5"
           >
-            Return to Training
+            Return to course →
           </Link>
-        </div>
-      </div>
+        </PaperCard>
+      </PageShell>
     );
   }
 
-  // Show results
   if (submitted && results) {
-    return (
-      <div className="min-h-screen bg-slate-50">
-        <header className="bg-white border-b border-slate-200">
-          <div className="max-w-3xl mx-auto px-4 py-6">
-            <Link href={`/learn/${programSlug}`} className="text-sm text-slate-500 hover:text-slate-700 flex items-center gap-1 mb-2">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              Back to Training
-            </Link>
-            <h1 className="text-2xl font-semibold text-slate-900">Assessment Results</h1>
-          </div>
-        </header>
-
-        <main className="max-w-3xl mx-auto px-4 py-8">
-          <div className={`rounded-lg p-6 sm:p-8 mb-8 text-center ${results.passed ? 'bg-green-50 border border-green-200' : 'bg-amber-50 border border-amber-200'}`}>
-            <div className={`text-4xl sm:text-6xl font-bold mb-2 ${results.passed ? 'text-green-600' : 'text-amber-600'}`}>
-              {results.score}/{results.total}
-            </div>
-            <div className={`text-lg font-medium mb-4 ${results.passed ? 'text-green-800' : 'text-amber-800'}`}>
-              {results.passed ? 'Congratulations! You passed!' : 'Not quite there yet'}
-            </div>
-            <p className={`text-sm ${results.passed ? 'text-green-700' : 'text-amber-700'}`}>
-              {results.passed
-                ? `You've demonstrated a strong understanding of ${programTitle}.`
-                : `You need ${passingScore} correct answers to pass. Review the modules and try again.`}
-            </p>
-          </div>
-
-          <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
-            <div className="p-4 border-b border-slate-200">
-              <h2 className="font-medium text-slate-900">Question Review</h2>
-            </div>
-            <div className="divide-y divide-slate-100">
-              {questions.map((question, index) => {
-                const detail = results.details.find(d => d.questionId === question.id);
-                const isCorrect = detail?.correct;
-
-                return (
-                  <div key={question.id} className="p-4">
-                    <div className="flex items-start gap-3">
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
-                        isCorrect ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
-                      }`}>
-                        {isCorrect ? (
-                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                          </svg>
-                        ) : (
-                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                          </svg>
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-xs text-slate-400">Q{index + 1}</span>
-                          {question.module && (
-                            <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded">{question.module}</span>
-                          )}
-                        </div>
-                        <p className="text-sm font-medium text-slate-900 mb-2">{question.question}</p>
-
-                        {!isCorrect && (
-                          <div className="text-sm space-y-1 mb-2">
-                            <p className="text-red-600">
-                              Your answer: {question.options[detail?.selectedIndex ?? 0]}
-                            </p>
-                            <p className="text-green-600">
-                              Correct answer: {question.correctIndex !== undefined ? question.options[question.correctIndex] : ''}
-                            </p>
-                          </div>
-                        )}
-
-                        {question.explanation && (
-                          <p className="text-xs text-slate-500 bg-slate-50 p-2 rounded">
-                            {question.explanation}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="mt-8 flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
-            <Link
-              href={`/learn/${programSlug}`}
-              className="px-6 py-3 border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
-            >
-              Back to Training
-            </Link>
-            {!results.passed && (
-              <button
-                onClick={handleRetake}
-                className="px-6 py-3 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors"
-              >
-                Retake Assessment
-              </button>
-            )}
-          </div>
-        </main>
-      </div>
-    );
+    return <ResultsView
+      results={results}
+      questions={questions}
+      programSlug={programSlug}
+      programTitle={programTitle}
+      passingScore={passingScore}
+      onRetake={handleRetake}
+      userEmail={user?.email}
+    />;
   }
 
-  // Start screen
+  // ============================================================
+  // START SCREEN
+  // ============================================================
   if (!started) {
     return (
-      <div className="min-h-screen bg-slate-50">
-        <header className="bg-white border-b border-slate-200">
-          <div className="max-w-3xl mx-auto px-4 py-6">
-            <Link href={`/learn/${programSlug}`} className="text-sm text-slate-500 hover:text-slate-700 flex items-center gap-1 mb-2">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              Back to Training
-            </Link>
-            <h1 className="text-2xl font-semibold text-slate-900">Final Assessment</h1>
+      <PageShell maxWidth={760}>
+        <TopBar right={<span>{user?.email}</span>} />
+        <div className="flex items-baseline gap-2.5 mt-2 mb-3 flex-wrap">
+          <Link href={`/learn/${programSlug}`} className="text-[13px] text-ink-2 hover:text-ink">
+            ← {programTitle}
+          </Link>
+          <span className="text-ink-3">/</span>
+          <h1 className="text-[22px] font-semibold tracking-tight">Final assessment</h1>
+        </div>
+
+        <PaperCard className="mt-2">
+          <div className="flex items-center gap-2 mb-3 flex-wrap">
+            <span className="text-[11px] uppercase tracking-wide font-medium text-ink-2">
+              {totalQuestions} questions · pass at {passingScore}/{totalQuestions}
+            </span>
+            <Pill kind="warn">no instant feedback</Pill>
           </div>
-        </header>
+          <h2 className="text-[22px] font-semibold tracking-tight">Ready to test what stuck?</h2>
+          <p className="text-[14px] text-ink-2 mt-2 leading-relaxed max-w-xl">
+            Answer everything before submitting — you&apos;ll get one full results screen at the end.
+            You can re-take if you don&apos;t pass.
+          </p>
 
-        <main className="max-w-3xl mx-auto px-4 py-8">
-          <div className="bg-white rounded-lg border border-slate-200 p-5 sm:p-8">
-            <div className="text-center mb-8">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+          <div className="mt-4 grid sm:grid-cols-3 gap-3">
+            <div className="border border-rule rounded-md p-3 bg-paper-2">
+              <div className="text-[11px] uppercase tracking-wide font-medium text-ink-2">Questions</div>
+              <div className="text-[24px] font-semibold leading-none mt-1.5">{totalQuestions}</div>
+            </div>
+            <div className="border border-rule rounded-md p-3 bg-paper-2">
+              <div className="text-[11px] uppercase tracking-wide font-medium text-ink-2">Pass at</div>
+              <div className="text-[24px] font-semibold leading-none mt-1.5 text-good">
+                {passingScore}/{totalQuestions}
               </div>
-              <h2 className="text-xl font-semibold text-slate-900 mb-2">Ready to Test Your Knowledge?</h2>
-              <p className="text-slate-600">
-                This assessment covers all {sectionCount} training modules.
-              </p>
             </div>
-
-            <div className="bg-slate-50 rounded-lg p-4 mb-6">
-              <h3 className="font-medium text-slate-900 mb-3">Assessment Details</h3>
-              <ul className="space-y-2 text-sm text-slate-600">
-                <li className="flex items-center gap-2">
-                  <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                  </svg>
-                  {totalQuestions} multiple choice questions
-                </li>
-                <li className="flex items-center gap-2">
-                  <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  Passing score: {passingScore}/{totalQuestions}
-                </li>
-                <li className="flex items-center gap-2">
-                  <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                  You can retake the assessment if needed
-                </li>
-              </ul>
+            <div className="border border-rule rounded-md p-3 bg-paper-2">
+              <div className="text-[11px] uppercase tracking-wide font-medium text-ink-2">Re-takes</div>
+              <div className="text-[24px] font-semibold leading-none mt-1.5">unlimited</div>
             </div>
+          </div>
 
-            {previousAttempts.length > 0 && (
-              <div className="mb-6">
-                <h3 className="font-medium text-slate-900 mb-3">Previous Attempts</h3>
-                <div className="space-y-2">
-                  {previousAttempts.map((attempt, index) => (
-                    <div key={attempt.id} className="flex flex-col sm:flex-row sm:items-center justify-between bg-slate-50 rounded-lg px-3 sm:px-4 py-2 text-sm gap-1">
-                      <span className="text-slate-600">
-                        Attempt {previousAttempts.length - index} — {new Date(attempt.created_at).toLocaleDateString('en-US', {
-                          month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+          {previousAttempts.length > 0 && (
+            <div className="mt-5">
+              <div className="text-[11px] uppercase tracking-wide font-medium text-ink-2 mb-2">
+                Your attempts
+              </div>
+              <div className="flex flex-col gap-2">
+                {previousAttempts.map((attempt, index) => {
+                  const passed = attempt.score >= passingScore;
+                  return (
+                    <div
+                      key={attempt.id}
+                      className="flex items-center justify-between border border-rule rounded-md px-3 py-2 text-[13px]"
+                      style={{ background: passed ? 'var(--good-soft)' : 'var(--warn-soft)' }}
+                    >
+                      <span className="text-ink-2">
+                        Attempt {previousAttempts.length - index} ·{' '}
+                        {new Date(attempt.created_at).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
                         })}
                       </span>
-                      <span className={`font-medium ${attempt.score >= passingScore ? 'text-green-600' : 'text-amber-600'}`}>
+                      <Pill kind={passed ? 'good' : 'warn'}>
                         {attempt.score}/{attempt.total}
-                        {attempt.score >= passingScore && ' \u2713'}
-                      </span>
+                        {passed && ' ✓'}
+                      </Pill>
                     </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <button
-              onClick={() => setStarted(true)}
-              className="w-full py-3 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors font-medium"
-            >
-              Start Assessment
-            </button>
-          </div>
-        </main>
-      </div>
-    );
-  }
-
-  // Assessment in progress
-  return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
-        <div className="max-w-3xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between mb-2">
-            <h1 className="text-lg font-semibold text-slate-900">Final Assessment</h1>
-            <span className="text-sm text-slate-500">{answeredCount}/{totalQuestions} answered</span>
-          </div>
-          <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-blue-500 transition-all duration-300"
-              style={{ width: `${progressPercent}%` }}
-            />
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-3xl mx-auto px-4 py-8">
-        <div className="space-y-6">
-          {questions.map((question, index) => (
-            <div key={question.id} className="bg-white rounded-lg border border-slate-200 p-4 sm:p-6">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="bg-slate-100 text-slate-600 text-xs font-medium px-2 py-1 rounded">
-                  Q{index + 1}
-                </span>
-                {question.module && (
-                  <span className="text-xs text-slate-400">{question.module}</span>
-                )}
-              </div>
-
-              <h3 className="text-slate-900 font-medium mb-4">{question.question}</h3>
-
-              <div className="space-y-2">
-                {question.options.map((option, optIndex) => {
-                  const isSelected = answers[question.id] === optIndex;
-                  return (
-                    <button
-                      key={optIndex}
-                      onClick={() => handleAnswerSelect(question.id, optIndex)}
-                      className={`w-full text-left p-3 sm:p-4 rounded-lg border-2 transition-colors ${
-                        isSelected
-                          ? 'border-blue-500 bg-blue-50'
-                          : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${
-                          isSelected ? 'border-blue-500 bg-blue-500' : 'border-slate-300'
-                        }`}>
-                          {isSelected && <div className="w-2 h-2 bg-white rounded-full" />}
-                        </div>
-                        <span className="text-slate-700 break-words">{option}</span>
-                      </div>
-                    </button>
                   );
                 })}
               </div>
             </div>
-          ))}
-        </div>
+          )}
 
-        <div className="mt-8 sticky bottom-4">
-          <button
-            onClick={handleSubmit}
-            disabled={submitting || answeredCount < totalQuestions}
-            className={`w-full py-4 rounded-lg font-medium transition-colors ${
-              answeredCount === totalQuestions
-                ? 'bg-slate-900 text-white hover:bg-slate-800'
-                : 'bg-slate-200 text-slate-500 cursor-not-allowed'
-            }`}
-          >
-            {submitting ? 'Submitting...' : answeredCount === totalQuestions ? 'Submit Assessment' : `Answer all questions (${totalQuestions - answeredCount} remaining)`}
-          </button>
+          <div className="mt-6 flex justify-end">
+            <button
+              onClick={() => setStarted(true)}
+              className="text-[14px] font-medium rounded-md px-5 py-2 bg-ink text-paper hover:opacity-90 transition-opacity"
+            >
+              Start assessment →
+            </button>
+          </div>
+        </PaperCard>
+
+        <div className="mt-5">
+          <Stickie>Take your time. There&apos;s no clock — just one careful pass through the questions.</Stickie>
         </div>
-      </main>
-    </div>
+      </PageShell>
+    );
+  }
+
+  // ============================================================
+  // TAKING IT — single-question with progress dots header
+  // ============================================================
+  const currentQuestion = questions[currentIndex];
+  const remaining = totalQuestions - answeredCount;
+
+  return (
+    <PageShell maxWidth={780}>
+      <TopBar right={<span>{user?.email}</span>} />
+
+      <div className="flex items-baseline gap-3 mt-2 mb-3 flex-wrap">
+        <h1 className="text-[20px] font-semibold tracking-tight">Final assessment</h1>
+        <span className="text-[12px] text-ink-3">
+          pass at {passingScore}/{totalQuestions}
+        </span>
+        <span className="ml-auto text-[12px] text-ink-2">
+          {answeredCount} of {totalQuestions} answered
+        </span>
+      </div>
+
+      {/* progress dots */}
+      <div className="border border-rule rounded-lg p-3 flex flex-wrap gap-1.5 items-center mb-5 bg-paper">
+        {questions.map((q, i) => {
+          const answered = answers[q.id] !== undefined;
+          const current = i === currentIndex;
+          return (
+            <button
+              key={q.id}
+              onClick={() => setCurrentIndex(i)}
+              className="flex items-center justify-center text-[11px] font-medium transition-colors"
+              style={{
+                width: 26,
+                height: 26,
+                borderRadius: 4,
+                border: current ? '2px solid var(--accent)' : '1px solid var(--rule)',
+                background: answered ? 'var(--ink)' : 'var(--paper)',
+                color: answered ? 'var(--paper)' : 'var(--ink-3)',
+              }}
+            >
+              {i + 1}
+            </button>
+          );
+        })}
+        <span className="ml-auto text-[11px] text-ink-3">jump to any</span>
+      </div>
+
+      {/* current question */}
+      {currentQuestion && (
+        <div className="border border-rule rounded-lg bg-paper p-5 shadow-sm mb-4">
+          <div className="flex items-baseline gap-3 mb-2 flex-wrap">
+            <span className="text-[11px] uppercase tracking-wide font-medium text-ink-2">
+              Question {currentIndex + 1} of {totalQuestions}
+            </span>
+            {currentQuestion.module && (
+              <span className="text-[12px] text-ink-3">module: {currentQuestion.module}</span>
+            )}
+          </div>
+          <h2 className="text-[18px] font-semibold tracking-tight leading-snug mb-4">
+            {currentQuestion.question}
+          </h2>
+          <div className="flex flex-col gap-2.5">
+            {currentQuestion.options.map((option, i) => {
+              const isSelected = answers[currentQuestion.id] === i;
+              return (
+                <button
+                  key={i}
+                  onClick={() => handleAnswerSelect(currentQuestion.id, i)}
+                  className={`text-left p-3 rounded-md flex items-start gap-3 transition-colors ${
+                    isSelected ? 'border-2' : 'border border-rule hover:border-slate-300'
+                  }`}
+                  style={{
+                    borderColor: isSelected ? 'var(--accent)' : undefined,
+                    background: isSelected ? 'var(--accent-soft)' : 'var(--paper)',
+                  }}
+                >
+                  <div
+                    className="w-6 h-6 rounded-full border flex items-center justify-center flex-shrink-0 text-[11px] font-semibold"
+                    style={{
+                      borderColor: isSelected ? 'var(--accent)' : 'var(--ink-3)',
+                      color: isSelected ? 'var(--accent)' : 'var(--ink-3)',
+                    }}
+                  >
+                    {isSelected ? '●' : String.fromCharCode(65 + i)}
+                  </div>
+                  <span className="text-[14px] leading-snug">{option}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* sticky footer */}
+      <div className="sticky bottom-3 z-10 border border-rule rounded-lg bg-paper p-3 flex items-center gap-2 flex-wrap shadow-md">
+        <button
+          onClick={() => setCurrentIndex(i => Math.max(0, i - 1))}
+          disabled={currentIndex === 0}
+          className="text-[13px] font-medium border border-rule rounded-md px-3 py-1.5 disabled:opacity-40 hover:bg-paper-2 transition-colors"
+        >
+          ← Previous
+        </button>
+        <button
+          onClick={() => setCurrentIndex(i => Math.min(totalQuestions - 1, i + 1))}
+          disabled={currentIndex === totalQuestions - 1}
+          className="text-[13px] font-medium border border-rule rounded-md px-3 py-1.5 disabled:opacity-40 hover:bg-paper-2 transition-colors"
+        >
+          Next →
+        </button>
+        <span className="ml-auto text-[12px] text-ink-2 hidden sm:inline">
+          {remaining > 0
+            ? `Submit once all ${totalQuestions} are answered`
+            : 'All answered — submit when ready'}
+        </span>
+        <button
+          onClick={handleSubmit}
+          disabled={submitting || remaining > 0}
+          className={`text-[13px] font-medium rounded-md px-4 py-1.5 transition-colors ${
+            remaining === 0
+              ? 'bg-ink text-paper hover:opacity-90'
+              : 'bg-paper-2 text-ink-3 cursor-not-allowed'
+          }`}
+        >
+          {submitting ? 'Submitting…' : remaining === 0 ? 'Submit assessment' : `Submit (${remaining} left)`}
+        </button>
+      </div>
+    </PageShell>
+  );
+}
+
+// ============================================================
+// Results view
+// ============================================================
+function ResultsView({
+  results,
+  questions,
+  programSlug,
+  programTitle,
+  passingScore,
+  onRetake,
+  userEmail,
+}: {
+  results: { score: number; total: number; passed: boolean; details: ResultDetail[] };
+  questions: AssessmentQuestion[];
+  programSlug: string;
+  programTitle: string;
+  passingScore: number;
+  onRetake: () => void;
+  userEmail?: string;
+}) {
+  const moduleStats = new Map<string, { got: number; of: number; missed: AssessmentQuestion[] }>();
+  for (const q of questions) {
+    const mod = q.module || 'Other';
+    const detail = results.details.find(d => d.questionId === q.id);
+    const cur = moduleStats.get(mod) ?? { got: 0, of: 0, missed: [] };
+    cur.of += 1;
+    if (detail?.correct) cur.got += 1;
+    else cur.missed.push(q);
+    moduleStats.set(mod, cur);
+  }
+
+  const missed = questions.filter(q => {
+    const d = results.details.find(x => x.questionId === q.id);
+    return d && !d.correct;
+  });
+
+  return (
+    <PageShell maxWidth={920}>
+      <TopBar right={<span>{userEmail}</span>} />
+
+      <div className="flex items-baseline gap-2.5 mt-2 mb-3 flex-wrap">
+        <Link href={`/learn/${programSlug}`} className="text-[13px] text-ink-2 hover:text-ink">
+          ← {programTitle}
+        </Link>
+        <span className="text-ink-3">/</span>
+        <h1 className="text-[20px] font-semibold tracking-tight">Final assessment · result</h1>
+      </div>
+
+      {/* big result band */}
+      <div
+        className="p-5 border rounded-lg flex items-center gap-5 mb-5 shadow-sm"
+        style={{
+          borderColor: results.passed ? '#86efac' : '#fde68a',
+          background: results.passed ? 'var(--good-soft)' : 'var(--warn-soft)',
+        }}
+      >
+        <div className="w-16 h-16 border border-rule rounded-full bg-paper flex flex-col items-center justify-center flex-shrink-0">
+          <span
+            className="text-[24px] font-semibold leading-none"
+            style={{ color: results.passed ? 'var(--good)' : 'var(--warn-ink)' }}
+          >
+            {results.score}
+          </span>
+          <span className="text-[10px] text-ink-2 mt-0.5">of {results.total}</span>
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-[22px] font-semibold tracking-tight">
+            {results.passed ? 'You passed.' : 'Almost there.'}
+          </div>
+          <div className="text-[14px] mt-1.5 text-ink-2 leading-relaxed">
+            {results.passed
+              ? `Strong work on ${programTitle}. You can revisit any section anytime — your progress stays saved.`
+              : `You need ${passingScore}/${results.total} to pass. The modules below need a quick revisit before retaking.`}
+          </div>
+        </div>
+      </div>
+
+      {/* By-module breakdown */}
+      <div className="text-[11px] uppercase tracking-wide font-medium text-ink-2 mb-2">
+        By module
+      </div>
+      <div className="flex flex-col gap-2 mb-5">
+        {[...moduleStats.entries()].map(([mod, s]) => {
+          const ok = s.got === s.of;
+          return (
+            <div
+              key={mod}
+              className="flex items-center gap-3 px-3 py-2 border border-rule rounded-md text-[13px]"
+              style={{ background: ok ? 'var(--paper)' : 'var(--warn-soft)' }}
+            >
+              <span className="flex-1 truncate">{mod}</span>
+              <span
+                className="text-[12px] font-semibold"
+                style={{ color: ok ? 'var(--good)' : 'var(--warn-ink)' }}
+              >
+                {s.got}/{s.of}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* What you missed */}
+      {missed.length > 0 && (
+        <div
+          className="p-4 border rounded-lg mb-5"
+          style={{ borderColor: '#fde68a', background: 'var(--warn-soft)' }}
+        >
+          <div className="text-[16px] font-semibold tracking-tight" style={{ color: 'var(--warn-ink)' }}>
+            {results.passed
+              ? `The ${missed.length === 1 ? 'one' : missed.length} you missed`
+              : "What to brush up on"}
+          </div>
+          <ol className="text-[13px] list-decimal pl-5 mt-3 space-y-3 leading-relaxed">
+            {missed.map((q) => {
+              const d = results.details.find(x => x.questionId === q.id);
+              const correctText = q.correctIndex !== undefined ? q.options[q.correctIndex] : '';
+              const yourText = d ? q.options[d.selectedIndex] : '';
+              return (
+                <li key={q.id}>
+                  <span className="font-semibold">Q{questions.indexOf(q) + 1} · {q.module ?? 'Module'}.</span>{' '}
+                  {q.question}
+                  <div className="mt-1 text-ink-2">
+                    Your answer: <span className="text-bad">&ldquo;{yourText}&rdquo;</span>
+                    {' · '}
+                    Correct: <span className="text-good">&ldquo;{correctText}&rdquo;</span>
+                  </div>
+                  {q.explanation && (
+                    <div className="mt-1 text-ink-2 italic">{q.explanation}</div>
+                  )}
+                </li>
+              );
+            })}
+          </ol>
+        </div>
+      )}
+
+      {/* Retake / back actions */}
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-rule">
+        <Link
+          href={`/learn/${programSlug}`}
+          className="text-[14px] font-medium border border-rule rounded-md px-4 py-2 hover:bg-paper-2"
+        >
+          ← Back to course
+        </Link>
+        <button
+          onClick={onRetake}
+          className={`text-[14px] font-medium rounded-md px-4 py-2 ${
+            results.passed
+              ? 'border border-rule hover:bg-paper-2'
+              : 'bg-ink text-paper hover:opacity-90'
+          }`}
+        >
+          {results.passed ? 'Re-take to improve score' : 'Re-take assessment'}
+        </button>
+      </div>
+    </PageShell>
   );
 }

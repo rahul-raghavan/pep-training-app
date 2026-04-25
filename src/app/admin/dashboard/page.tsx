@@ -1,267 +1,379 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
+import { PageShell, TopBar, PaperCard, AdminNav, Stickie } from '@/components/paper';
 
-interface TraineeSummary {
-  id: string;
-  name: string;
-  email?: string;
-  created_at: string;
-  last_active_at?: string;
-  completedSections: number;
-  totalSections: number;
-  progressPercent: number;
-  avgScore: number | null;
-  scoreType: 'voice' | 'mcq' | null;
-  status: 'not_started' | 'in_progress' | 'completed';
-  exerciseCount: number;
-  programs: { title: string; slug: string }[];
+interface DashboardPayload {
+  scope: {
+    role: 'super_admin' | 'admin' | 'user';
+    centerName: string | null;
+    centerId: string | null;
+    centers: { id: string; slug: string; name: string }[];
+    trackNames: string[];
+    scopeLocked: boolean;
+    isAllCenters: boolean;
+  };
+  attention: {
+    stalledCount: number;
+    belowThresholdCount: number;
+    unmappedCoursesCount: number;
+    pendingScopeUsersCount: number;
+  };
+  stats: {
+    teachers: number;
+    courses: number;
+    avgProgress: number | null;
+    voiceAttempts: number;
+  };
+  migrationApplied: boolean;
+}
+
+interface AttentionItem {
+  count: number;
+  label: string;
+  href: string;
+  tone: 'bad' | 'warn' | 'default';
+  hint: string;
+}
+
+function progressColor(pct: number | null): string {
+  if (pct === null) return 'var(--ink-3)';
+  if (pct >= 70) return 'var(--good)';
+  if (pct >= 40) return 'var(--warn-ink)';
+  return 'var(--bad)';
 }
 
 export default function AdminDashboard() {
   const { user, loading: authLoading, logout } = useAuth('admin');
-  const [trainees, setTrainees] = useState<TraineeSummary[]>([]);
+  const [data, setData] = useState<DashboardPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filterProgram, setFilterProgram] = useState<string>('all');
 
-  const fetchTrainees = async () => {
+  const load = useCallback(async (centerId: string | null) => {
+    setLoading(true);
+    setError(null);
     try {
-      const res = await fetch('/api/manager');
-      if (!res.ok) throw new Error('Failed to fetch');
-      const data = await res.json();
-      setTrainees(data.trainees);
+      // null / "" → omit the param so the backend uses its default ("all" for super_admin).
+      const url = centerId
+        ? `/api/admin/dashboard?centerId=${centerId}`
+        : '/api/admin/dashboard';
+      const res = await fetch(url);
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        setError(e.error || 'Failed to load');
+        return;
+      }
+      setData(await res.json());
     } catch {
-      setError('Failed to load trainees');
+      setError('Network error');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    if (!authLoading && user) {
-      fetchTrainees();
-    }
-  }, [authLoading, user]);
+    if (!authLoading && user) load(null);
+  }, [authLoading, user, load]);
 
-  const formatDate = (dateStr?: string) => {
-    if (!dateStr) return 'Never';
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
-  // Build list of unique program names for filtering
-  const allProgramNames = Array.from(
-    new Set(trainees.flatMap(t => t.programs.map(p => p.title)))
-  ).sort();
-
-  // Filter trainees
-  const filteredTrainees = filterProgram === 'all'
-    ? trainees
-    : trainees.filter(t => t.programs.some(p => p.title === filterProgram));
-
-  const stats = {
-    total: filteredTrainees.length,
-    inProgress: filteredTrainees.filter(t => t.status === 'in_progress').length,
-    completed: filteredTrainees.filter(t => t.status === 'completed').length,
-    notStarted: filteredTrainees.filter(t => t.status === 'not_started').length,
-  };
-
-  if (authLoading || loading) {
+  if (authLoading || loading || !data) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="w-8 h-8 border-2 border-slate-300 border-t-slate-900 rounded-full animate-spin" />
-      </div>
+      <PageShell>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="w-8 h-8 border-2 border-rule border-t-ink rounded-full animate-spin" />
+        </div>
+      </PageShell>
     );
   }
 
+  const firstName = (user?.name ?? user?.email ?? '').split(/[ @]/)[0] || 'there';
+
+  const scopeLine =
+    data.scope.role === 'super_admin'
+      ? data.scope.isAllCenters
+        ? 'Super admin · all centers'
+        : `Super admin · ${data.scope.centerName ?? 'no center'}`
+      : data.scope.centerName
+      ? `Admin of ${data.scope.centerName}${
+          data.scope.trackNames.length > 0 ? ` · ${data.scope.trackNames.join(', ')}` : ''
+        }`
+      : 'Admin';
+
+  // Build the attention items
+  const attentionItems: AttentionItem[] = [];
+  if (data.attention.stalledCount > 0) {
+    attentionItems.push({
+      count: data.attention.stalledCount,
+      label: `teacher${data.attention.stalledCount === 1 ? '' : 's'} stalled`,
+      hint: 'no progress, inactive 14+ days',
+      href: '/admin/cohort',
+      tone: 'bad',
+    });
+  }
+  if (data.attention.belowThresholdCount > 0) {
+    attentionItems.push({
+      count: data.attention.belowThresholdCount,
+      label: `below voice threshold`,
+      hint: 'avg < 3/5 over recent attempts',
+      href: '/admin/voice-perf',
+      tone: 'warn',
+    });
+  }
+  if (data.attention.unmappedCoursesCount > 0 && data.scope.role === 'super_admin') {
+    attentionItems.push({
+      count: data.attention.unmappedCoursesCount,
+      label: `course${data.attention.unmappedCoursesCount === 1 ? '' : 's'} not mapped to a track`,
+      hint: 'won\u2019t appear in cohort or assignments',
+      href: '/admin/programs',
+      tone: 'warn',
+    });
+  }
+  if (data.attention.pendingScopeUsersCount > 0 && data.scope.role === 'super_admin') {
+    attentionItems.push({
+      count: data.attention.pendingScopeUsersCount,
+      label: `teacher${data.attention.pendingScopeUsersCount === 1 ? '' : 's'} missing a track`,
+      hint: 'in your center but no program track set',
+      href: '/admin/users',
+      tone: 'warn',
+    });
+  }
+
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="bg-white border-b border-slate-200">
-        <div className="max-w-6xl mx-auto px-4 py-4 sm:py-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <h1 className="text-xl sm:text-2xl font-semibold text-slate-900">Training Dashboard</h1>
-              <p className="text-sm sm:text-base text-slate-600">Manage and monitor trainee progress</p>
-            </div>
-            <div className="flex items-center gap-2 sm:gap-3">
-              <Link
-                href="/admin/users"
-                className="flex items-center gap-2 px-3 sm:px-4 py-2 border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-sm"
-              >
-                <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
-                Users
-              </Link>
-              <Link
-                href="/admin/programs"
-                className="flex items-center gap-2 px-3 sm:px-4 py-2 border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-sm"
-              >
-                <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                </svg>
-                <span className="hidden sm:inline">Programs</span>
-              </Link>
-              <button
-                onClick={logout}
-                className="px-3 py-2 text-sm text-slate-500 hover:text-slate-700"
-              >
-                Sign out
-              </button>
-            </div>
-          </div>
+    <PageShell maxWidth={1200}>
+      <TopBar
+        right={
+          <span className="flex items-center gap-3">
+            <span>{user?.email ?? ''}</span>
+            <button onClick={logout} className="hover:text-ink underline underline-offset-2">
+              Sign out
+            </button>
+          </span>
+        }
+      />
+
+      <AdminNav
+        rightSlot={
+          data.scope.role === 'super_admin' && data.scope.centers.length > 0 ? (
+            <CenterPicker
+              centers={data.scope.centers}
+              activeId={data.scope.isAllCenters ? null : data.scope.centerId}
+              onPick={id => load(id)}
+            />
+          ) : null
+        }
+      />
+
+      {/* Greeting */}
+      <div className="flex items-baseline gap-3 mt-1 mb-5 flex-wrap">
+        <h1 className="text-[24px] font-semibold tracking-tight">
+          Hi {firstName}
+        </h1>
+        <span className="text-[13px] text-ink-3">· {scopeLine}</span>
+      </div>
+
+      {!data.migrationApplied && (
+        <div className="mb-5">
+          <Stickie>
+            Centers + program tracks haven&apos;t been seeded yet. Apply the schema migration
+            first.
+          </Stickie>
         </div>
-      </header>
+      )}
 
-      <main className="max-w-6xl mx-auto px-4 py-8">
-        {error && (
-          <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-lg">{error}</div>
-        )}
-
-        {/* Program filter */}
-        {allProgramNames.length > 1 && (
-          <div className="mb-6 flex items-center gap-2">
-            <span className="text-sm text-slate-500">Filter by program:</span>
-            <div className="flex gap-2 flex-wrap">
-              <button
-                onClick={() => setFilterProgram('all')}
-                className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
-                  filterProgram === 'all'
-                    ? 'bg-slate-900 text-white'
-                    : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
-                }`}
-              >
-                All Programs
-              </button>
-              {allProgramNames.map(name => (
-                <button
-                  key={name}
-                  onClick={() => setFilterProgram(name)}
-                  className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
-                    filterProgram === name
-                      ? 'bg-slate-900 text-white'
-                      : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
-                  }`}
-                >
-                  {name}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Stats overview */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-8">
-          <div className="bg-white rounded-lg border border-slate-200 p-4">
-            <div className="text-sm text-slate-500">Total Trainees</div>
-            <div className="text-2xl font-semibold text-slate-900">{stats.total}</div>
-          </div>
-          <div className="bg-white rounded-lg border border-slate-200 p-4">
-            <div className="text-sm text-slate-500">In Progress</div>
-            <div className="text-2xl font-semibold text-blue-600">{stats.inProgress}</div>
-          </div>
-          <div className="bg-white rounded-lg border border-slate-200 p-4">
-            <div className="text-sm text-slate-500">Completed</div>
-            <div className="text-2xl font-semibold text-green-600">{stats.completed}</div>
-          </div>
-          <div className="bg-white rounded-lg border border-slate-200 p-4">
-            <div className="text-sm text-slate-500">Not Started</div>
-            <div className="text-2xl font-semibold text-slate-400">{stats.notStarted}</div>
-          </div>
+      {error && (
+        <div
+          className="mb-5 p-3 border rounded-md text-[13px]"
+          style={{ borderColor: '#fecaca', background: 'var(--bad-soft)', color: 'var(--bad)' }}
+        >
+          {error}
         </div>
+      )}
 
-        {/* Trainee list */}
-        <div className="bg-white rounded-lg border border-slate-200">
-          <div className="p-4 border-b border-slate-200">
-            <h2 className="font-medium text-slate-900">
-              {filterProgram === 'all' ? 'All Trainees' : filterProgram}
-            </h2>
+      {/* Attention */}
+      <PaperCard className="mb-5" framed>
+        <div className="flex items-baseline gap-3 mb-3 pb-2 border-b border-rule">
+          <h2 className="text-[15px] font-semibold tracking-tight">⚡️ Needs your attention</h2>
+          <span className="text-[12px] text-ink-3">
+            {attentionItems.length === 0 ? 'all clear' : `${attentionItems.length} item${attentionItems.length === 1 ? '' : 's'}`}
+          </span>
+        </div>
+        {attentionItems.length === 0 ? (
+          <div className="text-[14px] text-ink-2 py-2">
+            Nothing flagged. Cohort is on track.
           </div>
-
-          {filteredTrainees.length === 0 ? (
-            <div className="p-8 text-center text-slate-500">
-              {trainees.length === 0
-                ? 'No trainees yet. Go to Users to add one.'
-                : 'No trainees in this program.'}
-            </div>
-          ) : (
-            <div className="divide-y divide-slate-100">
-              {filteredTrainees.map(trainee => (
+        ) : (
+          <ul className="space-y-2">
+            {attentionItems.map((it, i) => (
+              <li key={i}>
                 <Link
-                  key={trainee.id}
-                  href={`/admin/users/${trainee.id}`}
-                  className="block p-4 hover:bg-slate-50 transition-colors"
+                  href={it.href}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-md border transition-colors hover:opacity-90"
+                  style={{
+                    borderColor:
+                      it.tone === 'bad' ? '#fecaca' : it.tone === 'warn' ? '#fde68a' : 'var(--rule)',
+                    background:
+                      it.tone === 'bad'
+                        ? 'var(--bad-soft)'
+                        : it.tone === 'warn'
+                        ? 'var(--warn-soft)'
+                        : 'var(--paper-2)',
+                  }}
                 >
-                  <div className="flex items-center gap-3 sm:gap-4">
-                    <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-                      trainee.status === 'completed'
-                        ? 'bg-green-100 text-green-600'
-                        : trainee.status === 'in_progress'
-                        ? 'bg-blue-100 text-blue-600'
-                        : 'bg-slate-100 text-slate-400'
-                    }`}>
-                      {trainee.status === 'completed' ? (
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      ) : (
-                        <span className="text-sm font-medium">
-                          {trainee.name.charAt(0).toUpperCase()}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="font-medium text-slate-900 truncate">{trainee.name}</div>
-                        <svg className="w-5 h-5 text-slate-400 flex-shrink-0 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      </div>
-                      <div className="text-sm text-slate-500 truncate">
-                        {trainee.email && <>{trainee.email} &middot; </>}
-                        {filterProgram === 'all' && trainee.programs.length > 0 && <>{trainee.programs.map(p => p.title).join(', ')} &middot; </>}
-                        Last active: {formatDate(trainee.last_active_at)}
-                      </div>
-                      <div className="flex items-center gap-4 mt-2">
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                          <span className="text-xs text-slate-500 whitespace-nowrap">
-                            {trainee.completedSections}/{trainee.totalSections}
-                          </span>
-                          <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden max-w-[8rem]">
-                            <div
-                              className={`h-full rounded-full ${trainee.status === 'completed' ? 'bg-green-500' : 'bg-blue-500'}`}
-                              style={{ width: `${trainee.progressPercent}%` }}
-                            />
-                          </div>
-                        </div>
-                        {trainee.avgScore !== null && (
-                          <span className={`text-xs font-medium whitespace-nowrap ${
-                            trainee.scoreType === 'mcq' ? (
-                              trainee.avgScore >= 80 ? 'text-green-600' : trainee.avgScore >= 60 ? 'text-amber-600' : 'text-red-600'
-                            ) : (
-                              trainee.avgScore >= 4 ? 'text-green-600' : trainee.avgScore >= 3 ? 'text-amber-600' : 'text-red-600'
-                            )
-                          }`}>
-                            {trainee.scoreType === 'mcq' ? `${trainee.avgScore}%` : `${trainee.avgScore}/5`}
-                          </span>
-                        )}
-                      </div>
-                    </div>
+                  <span
+                    className="text-[20px] font-semibold leading-none"
+                    style={{
+                      color:
+                        it.tone === 'bad'
+                          ? 'var(--bad)'
+                          : it.tone === 'warn'
+                          ? 'var(--warn-ink)'
+                          : 'var(--ink-2)',
+                      minWidth: 36,
+                    }}
+                  >
+                    {it.count}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[14px] font-medium text-ink">{it.label}</div>
+                    <div className="text-[11px] text-ink-3 mt-0.5">{it.hint}</div>
                   </div>
+                  <span className="text-[12px] text-accent">review →</span>
                 </Link>
-              ))}
-            </div>
-          )}
-        </div>
-      </main>
+              </li>
+            ))}
+          </ul>
+        )}
+      </PaperCard>
 
+      {/* Quick stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+        <Tile label="Teachers" value={String(data.stats.teachers)} sub="in your scope" />
+        <Tile label="Courses" value={String(data.stats.courses)} sub="active" />
+        <Tile
+          label="Avg progress"
+          value={data.stats.avgProgress === null ? '—' : `${data.stats.avgProgress}%`}
+          color={progressColor(data.stats.avgProgress)}
+          sub="across all enrollments"
+        />
+        <Tile
+          label="Voice attempts"
+          value={String(data.stats.voiceAttempts)}
+          sub="last 30 days"
+        />
+      </div>
+
+      {/* Shortcuts */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <Shortcut
+          href="/admin/cohort"
+          title="Cohort"
+          blurb="Heatmap of progress by program track"
+        />
+        <Shortcut
+          href="/admin/voice-perf"
+          title="Voice performance"
+          blurb="Cohort-wide voice score rollup, sparklines & triage"
+        />
+        <Shortcut
+          href="/admin/users/new"
+          title="Add a teacher"
+          blurb="Pre-register a user with center + program scope"
+        />
+        <Shortcut
+          href="/admin/programs"
+          title="Courses"
+          blurb="Edit content, sections, tracks & rosters"
+        />
+      </div>
+    </PageShell>
+  );
+}
+
+function Tile({
+  label,
+  value,
+  sub,
+  color,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  color?: string;
+}) {
+  return (
+    <div className="border border-rule rounded-lg bg-paper p-3 shadow-sm">
+      <div className="text-[11px] uppercase tracking-wide font-medium text-ink-2">{label}</div>
+      <div
+        className="text-[28px] font-semibold leading-none mt-1"
+        style={{ color: color ?? 'var(--ink)' }}
+      >
+        {value}
+      </div>
+      {sub && <div className="text-[11px] text-ink-3 mt-1">{sub}</div>}
     </div>
+  );
+}
+
+function Shortcut({
+  href,
+  title,
+  blurb,
+  accent = false,
+}: {
+  href: string;
+  title: string;
+  blurb: string;
+  accent?: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      className={`block border rounded-lg p-4 hover:shadow-md transition-shadow ${
+        accent
+          ? 'bg-ink text-paper border-ink hover:opacity-90'
+          : 'bg-paper border-rule hover:border-slate-300'
+      }`}
+    >
+      <div
+        className={`text-[14px] font-semibold tracking-tight ${
+          accent ? 'text-paper' : 'text-ink'
+        }`}
+      >
+        {title} →
+      </div>
+      <div
+        className={`text-[12px] mt-1 leading-snug ${accent ? 'text-paper/80' : 'text-ink-3'}`}
+      >
+        {blurb}
+      </div>
+    </Link>
+  );
+}
+
+function CenterPicker({
+  centers,
+  activeId,
+  onPick,
+}: {
+  centers: { id: string; name: string }[];
+  /** null when "All centers" is selected. */
+  activeId: string | null;
+  /** Receives null for "All", or the center id otherwise. */
+  onPick: (id: string | null) => void;
+}) {
+  return (
+    <select
+      value={activeId ?? ''}
+      onChange={e => onPick(e.target.value === '' ? null : e.target.value)}
+      className="text-[12px] border border-rule rounded-md bg-paper px-2 py-1 cursor-pointer"
+    >
+      <option value="">All centers</option>
+      {centers.map(c => (
+        <option key={c.id} value={c.id}>
+          {c.name}
+        </option>
+      ))}
+    </select>
   );
 }

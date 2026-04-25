@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireAuth } from '@/lib/auth';
+import { getProgram, getProgramIdForSection, isTraineeEnrolled } from '@/lib/programs';
+import { getProgramAccessStatus, prerequisiteLockedResponse } from '@/lib/program-prerequisites';
 
 // Allow up to 60 seconds for AI feedback generation
 export const maxDuration = 60;
@@ -24,6 +26,20 @@ export async function POST(request: NextRequest) {
 
     if (traineeId !== user.traineeId) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const programId = await getProgramIdForSection(sectionId);
+    if (programId) {
+      if (!(await isTraineeEnrolled(traineeId, programId))) {
+        return NextResponse.json({ error: 'Not enrolled in this program' }, { status: 403 });
+      }
+      const program = await getProgram(programId);
+      if (program) {
+        const accessStatus = await getProgramAccessStatus(traineeId, program);
+        if (accessStatus.locked) {
+          return NextResponse.json(prerequisiteLockedResponse(accessStatus), { status: 423 });
+        }
+      }
     }
 
     // Build the prompt for Claude

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireAuth } from '@/lib/auth';
-import { getProgramIdForSection, isTraineeEnrolled, getExerciseById } from '@/lib/programs';
+import { getProgram, getProgramIdForSection, isTraineeEnrolled, getExerciseById } from '@/lib/programs';
+import { getProgramAccessStatus, prerequisiteLockedResponse } from '@/lib/program-prerequisites';
 
 // Helper: check enrollment for a section. Returns null if OK, or a 403 response.
 // Skips check for legacy string IDs (non-UUID).
@@ -10,6 +11,13 @@ async function checkSectionEnrollment(traineeId: string, sectionId: string): Pro
   if (!programId) return null; // Legacy string ID — skip enrollment check
   if (!(await isTraineeEnrolled(traineeId, programId))) {
     return NextResponse.json({ error: 'Not enrolled in this program' }, { status: 403 });
+  }
+  const program = await getProgram(programId);
+  if (program) {
+    const accessStatus = await getProgramAccessStatus(traineeId, program);
+    if (accessStatus.locked) {
+      return NextResponse.json(prerequisiteLockedResponse(accessStatus), { status: 423 });
+    }
   }
   return null;
 }

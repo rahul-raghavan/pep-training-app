@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireAuth } from '@/lib/auth';
 import { getProgramBySlug, getProgramAssessment, isTraineeEnrolled } from '@/lib/programs';
+import { getProgramAccessStatus, prerequisiteLockedResponse } from '@/lib/program-prerequisites';
 
 // POST - Submit assessment answers for server-side grading
 export async function POST(request: NextRequest) {
@@ -31,6 +32,11 @@ export async function POST(request: NextRequest) {
     // Enrollment check
     if (!(await isTraineeEnrolled(user.traineeId, program.id))) {
       return NextResponse.json({ error: 'Not enrolled in this program' }, { status: 403 });
+    }
+
+    const accessStatus = await getProgramAccessStatus(user.traineeId, program);
+    if (accessStatus.locked) {
+      return NextResponse.json(prerequisiteLockedResponse(accessStatus), { status: 423 });
     }
 
     // Fetch correct answers server-side

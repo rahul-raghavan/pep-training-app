@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { VoiceExercise } from '@/content/types';
 import FeedbackDisplay from './FeedbackDisplay';
+import Pill from '@/components/paper/Pill';
 
 interface PreviousAttempt {
   transcription: string;
@@ -22,6 +23,46 @@ interface Props {
 
 type RecordingState = 'idle' | 'recording' | 'recorded' | 'transcribing' | 'getting-feedback' | 'complete';
 
+const WAVE = [3, 7, 4, 9, 12, 6, 10, 14, 8, 5, 11, 7, 4, 9, 13, 8, 5, 3, 6, 9, 12, 7, 4, 8, 11, 6, 9, 5, 3, 7, 10, 5, 8, 4, 9, 6, 3, 8];
+
+function FakeWaveform({ animated = false }: { animated?: boolean }) {
+  return (
+    <div className="flex items-end gap-[2px] h-[18px]">
+      {WAVE.map((h, i) => (
+        <div
+          key={i}
+          style={{
+            width: 3,
+            height: h,
+            background: animated ? 'var(--accent)' : 'var(--ink-3)',
+            animation: animated ? `wave 1.2s ease-in-out infinite ${(i % 8) * 0.08}s` : undefined,
+          }}
+        />
+      ))}
+      {animated && (
+        <style jsx>{`
+          @keyframes wave {
+            0%, 100% { transform: scaleY(0.5); }
+            50%      { transform: scaleY(1.2); }
+          }
+        `}</style>
+      )}
+    </div>
+  );
+}
+
+function formatTime(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+function isAudioAvailable(createdAt: string): boolean {
+  const created = new Date(createdAt);
+  const days = (Date.now() - created.getTime()) / (1000 * 60 * 60 * 24);
+  return days <= 30;
+}
+
 export default function VoiceRecorder({ exercise, traineeId, sectionId, onComplete, previousAttempts = [] }: Props) {
   const [state, setState] = useState<RecordingState>('idle');
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
@@ -35,29 +76,16 @@ export default function VoiceRecorder({ exercise, traineeId, sectionId, onComple
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Get the best previous score
   const bestPreviousScore = previousAttempts.length > 0
     ? Math.max(...previousAttempts.map(a => a.score))
     : null;
 
-  // Check if audio is still available (within 30 days)
-  const isAudioAvailable = (createdAt: string) => {
-    const created = new Date(createdAt);
-    const now = new Date();
-    const daysDiff = (now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24);
-    return daysDiff <= 30;
-  };
-
   useEffect(() => {
     return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
-      if (audioUrl) {
-        URL.revokeObjectURL(audioUrl);
-      }
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (audioUrl) URL.revokeObjectURL(audioUrl);
     };
   }, [audioUrl]);
 
@@ -66,30 +94,23 @@ export default function VoiceRecorder({ exercise, traineeId, sectionId, onComple
       setError(null);
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
 
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) {
-          chunksRef.current.push(e.data);
-        }
+      mediaRecorder.ondataavailable = e => {
+        if (e.data.size > 0) chunksRef.current.push(e.data);
       };
-
       mediaRecorder.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
         setAudioBlob(blob);
         setAudioUrl(URL.createObjectURL(blob));
-        stream.getTracks().forEach(track => track.stop());
+        stream.getTracks().forEach(t => t.stop());
       };
 
       mediaRecorder.start();
       setState('recording');
       setRecordingTime(0);
-
-      timerRef.current = setInterval(() => {
-        setRecordingTime(t => t + 1);
-      }, 1000);
+      timerRef.current = setInterval(() => setRecordingTime(t => t + 1), 1000);
     } catch (err) {
       setError('Could not access microphone. Please ensure you have granted permission.');
       console.error('Error accessing microphone:', err);
@@ -99,17 +120,13 @@ export default function VoiceRecorder({ exercise, traineeId, sectionId, onComple
   const stopRecording = () => {
     if (mediaRecorderRef.current && state === 'recording') {
       mediaRecorderRef.current.stop();
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
+      if (timerRef.current) clearInterval(timerRef.current);
       setState('recorded');
     }
   };
 
   const resetRecording = () => {
-    if (audioUrl) {
-      URL.revokeObjectURL(audioUrl);
-    }
+    if (audioUrl) URL.revokeObjectURL(audioUrl);
     setAudioUrl(null);
     setAudioBlob(null);
     setTranscription('');
@@ -121,20 +138,14 @@ export default function VoiceRecorder({ exercise, traineeId, sectionId, onComple
 
   const submitRecording = async () => {
     if (!audioBlob) return;
-
     try {
       setError(null);
       setState('transcribing');
 
-      // Upload audio and get transcription
       const formData = new FormData();
       formData.append('audio', audioBlob, 'recording.webm');
 
-      const transcribeRes = await fetch('/api/transcribe', {
-        method: 'POST',
-        body: formData,
-      });
-
+      const transcribeRes = await fetch('/api/transcribe', { method: 'POST', body: formData });
       if (!transcribeRes.ok) {
         const errorData = await transcribeRes.json().catch(() => ({}));
         throw new Error(errorData.error || 'Failed to transcribe audio');
@@ -142,11 +153,8 @@ export default function VoiceRecorder({ exercise, traineeId, sectionId, onComple
 
       const { transcription: text, audioUrl: uploadedUrl } = await transcribeRes.json();
       setTranscription(text);
-      if (uploadedUrl) {
-        setAudioUrl(uploadedUrl);
-      }
+      if (uploadedUrl) setAudioUrl(uploadedUrl);
 
-      // Get AI feedback
       setState('getting-feedback');
 
       const feedbackRes = await fetch('/api/feedback', {
@@ -163,7 +171,6 @@ export default function VoiceRecorder({ exercise, traineeId, sectionId, onComple
           audioUrl: uploadedUrl,
         }),
       });
-
       if (!feedbackRes.ok) {
         const errorData = await feedbackRes.json().catch(() => ({}));
         throw new Error(errorData.error || 'Failed to get feedback');
@@ -177,7 +184,7 @@ export default function VoiceRecorder({ exercise, traineeId, sectionId, onComple
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Something went wrong';
       if (message.includes('transcribe')) {
-        setError('Could not transcribe your recording. Your recording may be too long — try keeping it under 2 minutes.');
+        setError('Could not transcribe your recording. Try keeping it under 2 minutes.');
       } else if (message.includes('feedback')) {
         setError('Could not generate feedback. Please try submitting again.');
       } else {
@@ -188,199 +195,240 @@ export default function VoiceRecorder({ exercise, traineeId, sectionId, onComple
     }
   };
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
   return (
-    <div className="bg-white border border-slate-200 rounded-lg p-6 my-6">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <div className="bg-blue-100 text-blue-700 text-xs font-medium px-2 py-1 rounded">
-            Voice Exercise
-          </div>
-          {previousAttempts.length > 0 && (
-            <div className={`text-xs px-2 py-1 rounded ${
-              bestPreviousScore && bestPreviousScore >= 4
-                ? 'bg-green-100 text-green-700'
-                : 'bg-amber-100 text-amber-700'
-            }`}>
-              {previousAttempts.length} previous attempt{previousAttempts.length > 1 ? 's' : ''}
-              {bestPreviousScore && ` (best: ${bestPreviousScore}/5)`}
-            </div>
-          )}
+    <div className="border border-rule rounded-lg bg-paper p-4 sm:p-5 my-5 shadow-sm">
+      {/* Eyebrow */}
+      <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+        <div className="text-[11px] uppercase tracking-wide font-medium text-ink-2">
+          Voice exercise
         </div>
         {previousAttempts.length > 0 && (
-          <button
-            onClick={() => setShowPreviousAttempts(!showPreviousAttempts)}
-            className="text-xs text-slate-500 hover:text-slate-700 underline"
-          >
-            {showPreviousAttempts ? 'Hide' : 'Show'} previous attempts
-          </button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Pill kind={bestPreviousScore && bestPreviousScore >= 4 ? 'good' : 'warn'}>
+              {previousAttempts.length} attempt{previousAttempts.length > 1 ? 's' : ''}
+              {bestPreviousScore && ` · best ${bestPreviousScore}/5`}
+            </Pill>
+            <button
+              onClick={() => setShowPreviousAttempts(!showPreviousAttempts)}
+              className="text-[12px] text-ink-2 hover:text-ink underline underline-offset-2"
+            >
+              {showPreviousAttempts ? 'Hide' : 'Show'} previous
+            </button>
+          </div>
         )}
       </div>
 
-      {/* Previous attempts */}
+      {/* Scenario card */}
+      <div className="text-[15px] leading-relaxed border border-rule rounded-md p-4 mb-4 bg-paper-2">
+        <span className="font-semibold">Scenario.</span> {exercise.scenario}
+        <div className="mt-2 italic text-ink-2 text-[13px]">
+          Record your response. Pretend you&apos;re really there.
+        </div>
+      </div>
+
+      {/* Optional guidance */}
+      {exercise.guidance && (
+        <details className="mb-4">
+          <summary className="text-[13px] text-ink-2 cursor-pointer hover:text-ink">
+            Show guidance (what a strong response includes)
+          </summary>
+          <div className="mt-2 p-3 text-[13px] leading-relaxed whitespace-pre-wrap rounded-md bg-paper-2">
+            {exercise.guidance}
+          </div>
+        </details>
+      )}
+
+      {/* Previous attempts (collapsible) */}
       {showPreviousAttempts && previousAttempts.length > 0 && (
-        <div className="mb-6 space-y-3">
-          {previousAttempts.map((attempt, idx) => (
-            <div key={idx} className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-slate-700">
-                  Attempt {idx + 1}
-                </span>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-slate-400">
-                    {new Date(attempt.createdAt).toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
-                  </span>
-                  <span className={`text-xs font-medium px-2 py-0.5 rounded ${
-                    attempt.score >= 4 ? 'bg-green-100 text-green-700' :
-                    attempt.score >= 3 ? 'bg-amber-100 text-amber-700' :
-                    'bg-red-100 text-red-700'
-                  }`}>
-                    {attempt.score}/5
-                  </span>
+        <div className="mb-5">
+          <div className="text-[11px] uppercase tracking-wide font-medium text-ink-2 mb-2">
+            Previous attempts ({previousAttempts.length})
+          </div>
+          <div className="flex flex-col gap-2.5">
+            {previousAttempts.map((attempt, idx) => (
+              <div key={idx} className="p-3 border border-rule rounded-md bg-paper">
+                <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
+                  <span className="text-[14px] font-semibold">Attempt {idx + 1}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-ink-3">
+                      {new Date(attempt.createdAt).toLocaleString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </span>
+                    <Pill kind={attempt.score >= 4 ? 'good' : attempt.score >= 3 ? 'warn' : 'bad'}>
+                      {attempt.score}/5
+                    </Pill>
+                  </div>
                 </div>
+                {attempt.audioUrl && isAudioAvailable(attempt.createdAt) ? (
+                  <audio src={attempt.audioUrl} controls className="w-full h-8 mb-2" />
+                ) : attempt.audioUrl ? (
+                  <p className="text-[11px] italic text-ink-3 mb-2">Audio expired (kept 30 days)</p>
+                ) : null}
+                <p className="text-[13px] text-ink mb-2 leading-relaxed">
+                  {attempt.transcription}
+                </p>
+                <details className="text-[12px]">
+                  <summary className="text-ink-2 cursor-pointer hover:text-ink underline underline-offset-2">
+                    View feedback
+                  </summary>
+                  <div className="mt-2">
+                    <FeedbackDisplay feedback={attempt.feedback} score={attempt.score} compact />
+                  </div>
+                </details>
               </div>
-              {attempt.audioUrl && isAudioAvailable(attempt.createdAt) ? (
-                <audio src={attempt.audioUrl} controls className="w-full h-8 mb-2" />
-              ) : attempt.audioUrl ? (
-                <p className="text-xs text-slate-400 italic mb-2">Audio recording expired</p>
-              ) : null}
-              <p className="text-sm text-slate-600 mb-2">{attempt.transcription}</p>
-              <details className="text-xs">
-                <summary className="text-slate-500 cursor-pointer hover:text-slate-700">View feedback</summary>
-                <div className="mt-2">
-                  <FeedbackDisplay feedback={attempt.feedback} score={attempt.score} compact />
-                </div>
-              </details>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
 
-      {/* Scenario */}
-      <div className="mb-6">
-        <h4 className="text-sm font-medium text-slate-500 mb-2">Scenario</h4>
-        <p className="text-lg text-slate-900 italic">&ldquo;{exercise.scenario}&rdquo;</p>
-      </div>
-
-      {/* Guidance (collapsible hint) */}
-      <details className="mb-6">
-        <summary className="text-sm text-slate-600 cursor-pointer hover:text-slate-800">
-          Show guidance (what a good response includes)
-        </summary>
-        <div className="mt-2 p-3 bg-slate-50 rounded text-sm text-slate-700 whitespace-pre-wrap">
-          {exercise.guidance}
-        </div>
-      </details>
-
-      {/* Recording controls */}
+      {/* Error */}
       {error && (
-        <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm">
+        <div
+          className="mb-4 p-3 border rounded-md text-[13px]"
+          style={{ borderColor: '#fecaca', background: 'var(--bad-soft)', color: 'var(--bad)' }}
+        >
           {error}
         </div>
       )}
 
-      <div className="flex flex-col items-center gap-4">
-        {/* Recording button */}
-        {state === 'idle' && (
-          <button
-            onClick={startRecording}
-            className="flex items-center gap-2 px-6 py-3 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
-          >
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd" />
-            </svg>
-            Start Recording
-          </button>
-        )}
-
-        {state === 'recording' && (
-          <div className="flex flex-col items-center gap-3">
-            <div className="flex items-center gap-3">
-              <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
-              <span className="text-lg font-mono">{formatTime(recordingTime)}</span>
-            </div>
-            <button
-              onClick={stopRecording}
-              className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-full hover:bg-slate-800 transition-colors"
-            >
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clipRule="evenodd" />
-              </svg>
-              Stop Recording
-            </button>
-          </div>
-        )}
-
-        {state === 'recorded' && audioUrl && (
-          <div className="flex flex-col items-center gap-4 w-full">
-            <audio src={audioUrl} controls className="w-full max-w-md" />
-            <div className="flex gap-3">
+      {/* Recording panel */}
+      {(state === 'idle' || state === 'recording' || state === 'recorded') && (
+        <div className="border border-rule rounded-lg p-4 bg-paper-2">
+          <div className="flex items-center gap-4">
+            {/* Big circular record button */}
+            {state === 'idle' && (
               <button
-                onClick={resetRecording}
-                className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
+                onClick={startRecording}
+                aria-label="Start recording"
+                className="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0 hover:opacity-90 transition-opacity shadow-sm"
+                style={{ background: 'var(--accent)', color: '#fff' }}
               >
-                Re-record
+                <span className="text-[28px] leading-none">●</span>
               </button>
+            )}
+
+            {state === 'recording' && (
               <button
-                onClick={submitRecording}
-                className="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors"
+                onClick={stopRecording}
+                aria-label="Stop recording"
+                className="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0 hover:opacity-90 transition-opacity shadow-sm"
+                style={{ background: 'var(--ink)', color: '#fff' }}
               >
-                Submit for Feedback
+                <span className="text-[20px] leading-none">■</span>
               </button>
+            )}
+
+            {state === 'recorded' && (
+              <div className="w-16 h-16 rounded-full border border-rule bg-paper flex items-center justify-center flex-shrink-0 text-good">
+                <span className="text-[24px] leading-none">✓</span>
+              </div>
+            )}
+
+            <div className="flex-1 min-w-0">
+              <div className="text-[16px] font-semibold tracking-tight">
+                {state === 'idle' && 'Tap to record'}
+                {state === 'recording' && (
+                  <span className="flex items-center gap-2">
+                    <span
+                      className="w-2.5 h-2.5 rounded-full inline-block animate-pulse"
+                      style={{ background: 'var(--bad)' }}
+                    />
+                    Recording · {formatTime(recordingTime)}
+                  </span>
+                )}
+                {state === 'recorded' && 'Listen back'}
+              </div>
+              <div className="text-[13px] text-ink-2 mt-1">
+                {state === 'idle' && "Aim for 30–60 sec. You'll see a transcript + AI feedback after."}
+                {state === 'recording' && 'Stop when you\'re done — re-record anytime.'}
+                {state === 'recorded' && 'Re-record or submit for feedback.'}
+              </div>
+              <div className="mt-2.5">
+                <FakeWaveform animated={state === 'recording'} />
+              </div>
             </div>
           </div>
-        )}
 
-        {(state === 'transcribing' || state === 'getting-feedback') && (
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-8 h-8 border-2 border-slate-300 border-t-slate-900 rounded-full animate-spin" />
-            <p className="text-slate-600">
-              {state === 'transcribing' ? 'Transcribing your response...' : 'Getting feedback...'}
-            </p>
-          </div>
-        )}
+          {state === 'recorded' && audioUrl && (
+            <div className="mt-4 flex flex-col gap-3">
+              <audio src={audioUrl} controls className="w-full" />
+              <div className="flex gap-2 justify-end flex-wrap">
+                <button
+                  onClick={resetRecording}
+                  className="text-[13px] font-medium border border-rule rounded-md px-3 py-1.5 hover:bg-paper-2 transition-colors"
+                >
+                  Re-record
+                </button>
+                <button
+                  onClick={submitRecording}
+                  className="text-[13px] font-medium rounded-md px-3 py-1.5 bg-ink text-paper hover:opacity-90 transition-opacity"
+                >
+                  Submit for feedback
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
-        {state === 'complete' && (
-          <div className="w-full space-y-4">
-            {/* Audio playback */}
+      {/* Working state */}
+      {(state === 'transcribing' || state === 'getting-feedback') && (
+        <div className="flex flex-col items-center gap-3 py-10">
+          <div className="w-8 h-8 border-2 border-rule border-t-ink rounded-full animate-spin" />
+          <p className="text-[14px] text-ink-2">
+            {state === 'transcribing' ? 'Transcribing your response…' : 'Getting feedback…'}
+          </p>
+        </div>
+      )}
+
+      {/* Complete state — show full feedback */}
+      {state === 'complete' && (
+        <div className="flex flex-col gap-4">
+          {/* Recording playback + transcript */}
+          <div className="grid sm:grid-cols-2 gap-3.5">
             {audioUrl && (
-              <div>
-                <h5 className="text-sm font-medium text-slate-500 mb-2">Your Recording</h5>
-                <audio src={audioUrl} controls className="w-full max-w-md" />
+              <div className="border border-rule rounded-md p-3 bg-paper">
+                <div className="text-[11px] uppercase tracking-wide font-medium text-ink-2 mb-2">
+                  Your recording
+                </div>
+                <audio src={audioUrl} controls className="w-full mb-2" />
+                <FakeWaveform />
+                <div className="text-[11px] text-ink-2 mt-2">
+                  Audio kept for 30 days. After that only the transcript stays.
+                </div>
               </div>
             )}
-
-            {/* Transcription */}
             {transcription && (
-              <div>
-                <h5 className="text-sm font-medium text-slate-500 mb-2">Transcription</h5>
-                <p className="text-slate-700 bg-slate-50 p-3 rounded">{transcription}</p>
+              <div className="border border-rule rounded-md p-3 bg-paper">
+                <div className="text-[11px] uppercase tracking-wide font-medium text-ink-2 mb-2">
+                  Transcript
+                </div>
+                <p className="text-[13px] leading-relaxed text-ink">
+                  &ldquo;{transcription}&rdquo;
+                </p>
               </div>
             )}
+          </div>
 
-            {/* Feedback */}
-            <FeedbackDisplay feedback={feedback} score={score} />
+          {/* Score band + parsed feedback */}
+          <FeedbackDisplay feedback={feedback} score={score} />
 
-            {/* Re-record option - always available */}
+          {/* Try again */}
+          <div className="flex justify-between items-center pt-3 border-t border-rule flex-wrap gap-2">
+            <span className="text-[12px] text-ink-2">Re-attempts always allowed.</span>
             <button
               onClick={resetRecording}
-              className="text-sm text-slate-600 hover:text-slate-800 underline"
+              className="text-[13px] font-medium border border-rule rounded-md px-3 py-1.5 hover:bg-paper-2 transition-colors"
             >
-              Try again with a new recording
+              Try again
             </button>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

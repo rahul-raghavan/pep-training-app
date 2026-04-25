@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
+import { PageShell, TopBar, AdminNav } from '@/components/paper';
 
 interface ProgramSummary {
   id: string;
@@ -98,34 +99,29 @@ export default function ProgramsListPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="bg-white border-b border-slate-200">
-        <div className="max-w-6xl mx-auto px-4 py-6 flex items-center justify-between">
-          <div>
-            <Link href="/admin/dashboard" className="text-sm text-slate-500 hover:text-slate-700 flex items-center gap-1 mb-1">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              Back to Dashboard
-            </Link>
-            <h1 className="text-2xl font-semibold text-slate-900">Training Programs</h1>
-            <p className="text-slate-600">Create and manage training programs</p>
-          </div>
-          {user?.role === 'super_admin' && (
+    <PageShell maxWidth={1200}>
+      <TopBar right={<span>{user?.email ?? ''}</span>} />
+      <AdminNav
+        rightSlot={
+          user?.role === 'super_admin' ? (
             <button
               onClick={() => setShowCreate(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors"
+              className="inline-flex items-center px-3 py-1.5 rounded-md bg-ink text-paper text-[13px] font-medium hover:opacity-90"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              New Program
+              + New course
             </button>
-          )}
-        </div>
-      </header>
+          ) : null
+        }
+      />
 
-      <main className="max-w-6xl mx-auto px-4 py-8">
+      <div className="flex items-baseline gap-3 mb-4 flex-wrap">
+        <h1 className="text-[20px] font-semibold tracking-tight">All courses</h1>
+        <span className="text-[12px] text-ink-3">
+          {programs.length} course{programs.length === 1 ? '' : 's'}
+        </span>
+      </div>
+
+      <main>
         {programs.length === 0 ? (
           <div className="bg-white rounded-lg border border-slate-200 p-8 text-center">
             <p className="text-slate-500 mb-4">
@@ -237,6 +233,6 @@ export default function ProgramsListPage() {
           </div>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }
