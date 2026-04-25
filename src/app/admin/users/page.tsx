@@ -3,6 +3,13 @@
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
+import { PageShell, TopBar, AdminNav, AdminSubNav } from '@/components/paper';
+
+const TEACHERS_TABS = [
+  { label: 'All teachers', href: '/admin/users' },
+  { label: 'Cohort', href: '/admin/cohort' },
+  { label: 'Voice perf', href: '/admin/voice-perf' },
+];
 
 interface UserProfile {
   id: string;
@@ -215,42 +222,31 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="bg-white border-b border-slate-200">
-        <div className="max-w-6xl mx-auto px-4 py-6 flex items-center justify-between">
-          <div>
-            <Link href="/admin/dashboard" className="text-sm text-slate-500 hover:text-slate-700 flex items-center gap-1 mb-1">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              Dashboard
-            </Link>
-            <h1 className="text-2xl font-semibold text-slate-900">User Management</h1>
-            <p className="text-slate-600">Manage users and their roles</p>
-          </div>
-          <div className="flex items-center gap-3">
-            {isSuperAdmin && (
-              <button
-                onClick={() => setShowCreate(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                Create User
-              </button>
-            )}
-            <button
-              onClick={logout}
-              className="px-3 py-2 text-sm text-slate-500 hover:text-slate-700"
-            >
+    <PageShell maxWidth={1200}>
+      <TopBar
+        right={
+          <span className="flex items-center gap-3">
+            <span>{authUser?.email ?? ''}</span>
+            <button onClick={logout} className="hover:text-ink underline underline-offset-2">
               Sign out
             </button>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-6xl mx-auto px-4 py-8">
+          </span>
+        }
+      />
+      <AdminNav
+        rightSlot={
+          isSuperAdmin ? (
+            <Link
+              href="/admin/users/new"
+              className="inline-flex items-center px-3 py-1.5 rounded-md bg-ink text-paper text-[13px] font-medium hover:opacity-90"
+            >
+              + Create user
+            </Link>
+          ) : null
+        }
+      />
+      <AdminSubNav items={TEACHERS_TABS} />
+      <main>
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-white rounded-lg border border-slate-200 p-4">
@@ -554,6 +550,6 @@ export default function UsersPage() {
           </div>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
+import OpenAI, { toFile } from 'openai';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireAuth } from '@/lib/auth';
 
@@ -47,10 +47,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Transcribe with Whisper
-    const file = new File([audioBuffer], 'audio.webm', { type: 'audio/webm' });
-
     const transcription = await openai.audio.transcriptions.create({
-      file: file,
+      file: await toFile(audioBuffer, 'audio.webm', { type: 'audio/webm' }),
       model: 'whisper-1',
       language: 'en',
     });

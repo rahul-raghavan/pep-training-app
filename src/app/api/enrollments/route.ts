@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireAdmin } from '@/lib/auth';
 import { getProgramSections } from '@/lib/programs';
+import { isCourseInAdminScope, isTraineeInAdminScope } from '@/lib/admin-scope';
 
 // POST - Enroll a trainee in a program (works for both active and pending users)
 export async function POST(request: NextRequest) {
-  const { error: authError } = await requireAdmin(request);
+  const { user, error: authError } = await requireAdmin(request);
   if (authError) return authError;
 
   try {
@@ -26,6 +27,12 @@ export async function POST(request: NextRequest) {
 
     if (!trainee) {
       return NextResponse.json({ error: 'Trainee not found' }, { status: 404 });
+    }
+    if (
+      !(await isTraineeInAdminScope(supabase, user, traineeId)) ||
+      !(await isCourseInAdminScope(supabase, user, programId))
+    ) {
+      return NextResponse.json({ error: 'Enrollment is not in your admin scope' }, { status: 403 });
     }
 
     // Enroll
@@ -61,7 +68,7 @@ export async function POST(request: NextRequest) {
 
 // DELETE - Unenroll a trainee from a program
 export async function DELETE(request: NextRequest) {
-  const { error: authError } = await requireAdmin(request);
+  const { user, error: authError } = await requireAdmin(request);
   if (authError) return authError;
 
   const traineeId = request.nextUrl.searchParams.get('traineeId');
@@ -72,6 +79,12 @@ export async function DELETE(request: NextRequest) {
   }
 
   const supabase = createAdminClient();
+  if (
+    !(await isTraineeInAdminScope(supabase, user, traineeId)) ||
+    !(await isCourseInAdminScope(supabase, user, programId))
+  ) {
+    return NextResponse.json({ error: 'Enrollment is not in your admin scope' }, { status: 403 });
+  }
 
   const { error } = await supabase
     .from('trainee_programs')

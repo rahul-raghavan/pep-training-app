@@ -84,58 +84,122 @@ export async function GET(request: Request) {
     // First login — create profile
     const name = user.user_metadata?.full_name || user.user_metadata?.name || email.split('@')[0];
 
-    // Determine role: hardcoded super_admins first, then check pre_assigned_role, else default to 'user'
+    // Determine role + read any pre-assigned admin scope from the trainee row.
+    // Admin scope columns may not exist yet (migration pending) — handle gracefully.
+    let preAssignedAdminScope: string[] = [];
+    let preRegisteredTraineeId: string | null = null;
+
     if (SUPER_ADMIN_EMAILS.includes(email)) {
       role = 'super_admin';
-    } else {
-      // Check if a super_admin pre-registered this user with a specific role
+      // Still pick up any prior trainee row to link.
       const { data: preRegistered } = await admin
         .from('trainees')
-        .select('id, pre_assigned_role')
+        .select('id')
+        .eq('email', email)
+        .is('user_id', null)
+        .single();
+      preRegisteredTraineeId = preRegistered?.id ?? null;
+    } else {
+      // Try to read both pre_assigned_role and pre_assigned_admin_scope_track_ids.
+      // Older DBs without the migration won't have the latter column — fall back.
+      let preRegistered: {
+        id: string;
+        pre_assigned_role: string | null;
+        pre_assigned_admin_scope_track_ids: string[] | null;
+      } | null = null;
+
+      const full = await admin
+        .from('trainees')
+        .select('id, pre_assigned_role, pre_assigned_admin_scope_track_ids')
         .eq('email', email)
         .not('pre_assigned_role', 'is', null)
         .single();
+      if (full.data) {
+        preRegistered = full.data;
+      } else if (full.error?.code === '42703') {
+        // Column missing → retry without it.
+        const fallback = await admin
+          .from('trainees')
+          .select('id, pre_assigned_role')
+          .eq('email', email)
+          .not('pre_assigned_role', 'is', null)
+          .single();
+        if (fallback.data) {
+          preRegistered = {
+            id: fallback.data.id,
+            pre_assigned_role: fallback.data.pre_assigned_role,
+            pre_assigned_admin_scope_track_ids: null,
+          };
+        }
+      }
 
       if (preRegistered?.pre_assigned_role) {
         role = preRegistered.pre_assigned_role;
-        // Clear pre_assigned_role — it's a one-time use
-        await admin
-          .from('trainees')
-          .update({ pre_assigned_role: null })
-          .eq('id', preRegistered.id);
+        preAssignedAdminScope = preRegistered.pre_assigned_admin_scope_track_ids ?? [];
+        preRegisteredTraineeId = preRegistered.id;
       } else {
         role = 'user';
       }
     }
 
-    const { error: profileError } = await admin.from('profiles').insert({
+    // Resolve admin scope center from teacher_centers (if migration applied
+    // and the trainee has a center mapping). Best-effort.
+    let adminScopeCenterId: string | null = null;
+    if (role === 'admin' && preRegisteredTraineeId) {
+      const { data: tc, error: tcError } = await admin
+        .from('teacher_centers')
+        .select('center_id')
+        .eq('trainee_id', preRegisteredTraineeId)
+        .single();
+      if (!tcError && tc) {
+        adminScopeCenterId = tc.center_id;
+      }
+    }
+
+    // Build the profile insert. Try with the new admin scope columns first;
+    // if profile schema is older, fall back to the basic insert.
+    const profileBase: Record<string, unknown> = {
       id: user.id,
       email,
       name,
       role,
-    });
+    };
+    const profileWithScope: Record<string, unknown> = {
+      ...profileBase,
+      admin_scope_center_id: role === 'admin' ? adminScopeCenterId : null,
+      admin_scope_track_ids: role === 'admin' ? preAssignedAdminScope : [],
+    };
+
+    let { error: profileError } = await admin.from('profiles').insert(profileWithScope);
+    if (profileError?.code === '42703') {
+      const retry = await admin.from('profiles').insert(profileBase);
+      profileError = retry.error;
+    }
 
     if (profileError) {
       console.error('Failed to create profile:', profileError);
       return NextResponse.redirect(`${origin}/login?error=profile_creation_failed`);
     }
 
-    // Link to existing trainee by email, or create a new one
-    const { data: existingTrainee } = await admin
-      .from('trainees')
-      .select('id')
-      .eq('email', email)
-      .is('user_id', null)
-      .single();
-
-    if (existingTrainee) {
-      // Link existing trainee record to this auth user
-      await admin
+    // Clear pre_assigned_role + pre_assigned_admin_scope_track_ids on the trainee
+    // (one-time use). If the column doesn't exist, only clear pre_assigned_role.
+    if (preRegisteredTraineeId) {
+      const clearWithScope = await admin
         .from('trainees')
-        .update({ user_id: user.id })
-        .eq('id', existingTrainee.id);
+        .update({
+          pre_assigned_role: null,
+          pre_assigned_admin_scope_track_ids: [],
+          user_id: user.id,
+        })
+        .eq('id', preRegisteredTraineeId);
+      if (clearWithScope.error?.code === '42703') {
+        await admin
+          .from('trainees')
+          .update({ pre_assigned_role: null, user_id: user.id })
+          .eq('id', preRegisteredTraineeId);
+      }
     } else {
-      // Create a new trainee record linked to this auth user
+      // No pre-registration row — create a fresh trainee linked to this user.
       await admin.from('trainees').insert({
         name,
         email,

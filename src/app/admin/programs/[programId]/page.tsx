@@ -4,6 +4,17 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
+import { PageShell, TopBar, AdminNav, AdminSubNav } from '@/components/paper';
+import TracksEditor from './TracksEditor';
+
+function courseTabs(programId: string) {
+  return [
+    { label: 'Settings', href: `/admin/programs/${programId}` },
+    { label: 'Roster', href: `/admin/programs/${programId}/roster` },
+    { label: 'Assessment', href: `/admin/programs/${programId}/assessment` },
+    { label: 'Preview', href: `/admin/programs/${programId}/preview` },
+  ];
+}
 
 interface Program {
   id: string;
@@ -157,60 +168,46 @@ export default function ProgramEditorPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="bg-white border-b border-slate-200">
-        <div className="max-w-6xl mx-auto px-4 py-6">
-          <Link href="/admin/programs" className="text-sm text-slate-500 hover:text-slate-700 flex items-center gap-1 mb-1">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            All Programs
-          </Link>
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-semibold text-slate-900">{program.title}</h1>
-              <div className="flex items-center gap-3 mt-1">
-                <span className={`text-xs px-2 py-0.5 rounded-full ${
-                  program.is_active ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'
-                }`}>
-                  {program.is_active ? 'Active' : 'Inactive'}
-                </span>
-                <span className="text-sm text-slate-500">/{program.slug}</span>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Link
-                href={`/admin/programs/${programId}/preview`}
-                className="px-4 py-2 border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50"
-              >
-                Preview
-              </Link>
-              <Link
-                href={`/admin/programs/${programId}/trainees`}
-                className="px-4 py-2 border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50"
-              >
-                Trainees
-              </Link>
-              <Link
-                href={`/admin/programs/${programId}/assessment`}
-                className="px-4 py-2 border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50"
-              >
-                Assessment
-              </Link>
-            </div>
-          </div>
-        </div>
-      </header>
+    <PageShell maxWidth={1200}>
+      <TopBar right={<span>{user?.email ?? ''}</span>} />
+      <AdminNav />
 
-      <main className="max-w-6xl mx-auto px-4 py-8">
+      <div className="flex items-baseline gap-3 mb-2 flex-wrap">
+        <Link href="/admin/programs" className="text-[13px] text-ink-2 hover:text-ink">
+          ← All courses
+        </Link>
+        <span className="text-ink-3">/</span>
+        <h1 className="text-[20px] font-semibold tracking-tight">{program.title}</h1>
+        <span
+          className="text-[11px] px-2 py-0.5 rounded-full"
+          style={{
+            background: program.is_active ? 'var(--good-soft)' : 'var(--paper-2)',
+            color: program.is_active ? 'var(--good)' : 'var(--ink-3)',
+          }}
+        >
+          {program.is_active ? 'Active' : 'Inactive'}
+        </span>
+        <span className="text-[12px] text-ink-3 font-mono">/{program.slug}</span>
+      </div>
+
+      <AdminSubNav items={courseTabs(programId)} />
+
+      <main>
+        {/* Tracks (program scope) */}
+        <TracksEditor programId={programId} canEdit={user?.role === 'super_admin'} />
+
         {/* Program Settings */}
         <div className="bg-white rounded-lg border border-slate-200 p-6 mb-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-medium text-slate-900">Program Settings</h2>
             {!editing ? (
-              <button onClick={() => setEditing(true)} className="text-sm text-blue-600 hover:text-blue-800">
-                Edit
-              </button>
+              user?.role === 'super_admin' ? (
+                <button onClick={() => setEditing(true)} className="text-sm text-blue-600 hover:text-blue-800">
+                  Edit
+                </button>
+              ) : (
+                <span className="text-sm text-slate-400">Super admin only</span>
+              )
             ) : (
               <div className="flex gap-2">
                 <button onClick={() => setEditing(false)} className="text-sm text-slate-500 hover:text-slate-700">Cancel</button>
@@ -398,6 +395,6 @@ export default function ProgramEditorPage() {
           </div>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

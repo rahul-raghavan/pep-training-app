@@ -9,6 +9,10 @@ export type AuthUser = {
   name: string | null;
   traineeId: string | null;
   isActive: boolean;
+  /** Admin scope: which center this admin manages. NULL for super_admin/user. */
+  adminScopeCenterId: string | null;
+  /** Admin scope: which program tracks this admin manages within their center. */
+  adminScopeTrackIds: string[];
 };
 
 type AuthResult = { user: AuthUser; error: null } | { user: null; error: NextResponse };
@@ -40,12 +44,30 @@ export async function getAuthUser(request: NextRequest): Promise<AuthResult> {
 
   const admin = createAdminClient();
 
-  // Fetch profile
-  const { data: profile } = await admin
+  // Fetch profile (with admin scope columns when available — fall back if migration pending)
+  let profile: {
+    role: string;
+    name: string | null;
+    is_active: boolean;
+    admin_scope_center_id?: string | null;
+    admin_scope_track_ids?: string[] | null;
+  } | null = null;
+
+  const full = await admin
     .from('profiles')
-    .select('role, name, is_active')
+    .select('role, name, is_active, admin_scope_center_id, admin_scope_track_ids')
     .eq('id', user.id)
     .single();
+  if (full.data) {
+    profile = full.data;
+  } else if (full.error?.code === '42703') {
+    const fallback = await admin
+      .from('profiles')
+      .select('role, name, is_active')
+      .eq('id', user.id)
+      .single();
+    profile = fallback.data;
+  }
 
   if (!profile) {
     return { user: null, error: NextResponse.json({ error: 'Profile not found' }, { status: 401 }) };
@@ -66,10 +88,12 @@ export async function getAuthUser(request: NextRequest): Promise<AuthResult> {
     user: {
       id: user.id,
       email: user.email!,
-      role: profile.role,
+      role: profile.role as AuthUser['role'],
       name: profile.name,
       traineeId: trainee?.id ?? null,
       isActive: profile.is_active,
+      adminScopeCenterId: profile.admin_scope_center_id ?? null,
+      adminScopeTrackIds: profile.admin_scope_track_ids ?? [],
     },
     error: null,
   };

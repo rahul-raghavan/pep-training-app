@@ -1,0 +1,1404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920">
+<title>Learning Science Workshop — PEP School</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Newsreader:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --parchment: #f5f4ed;
+    --ivory: #faf9f5;
+    --sand: #e8e6dc;
+    --ink-blue: #1B365D;
+    --near-black: #141413;
+    --gray-700: #3d3d3a;
+    --gray-600: #4d4c48;
+    --gray-500: #5e5d59;
+    --gray-400: #87867f;
+    --serif: 'Newsreader', Georgia, serif;
+    --sans: 'Inter', system-ui, sans-serif;
+  }
+
+  html { scroll-snap-type: y mandatory; scroll-behavior: smooth; }
+
+  body {
+    background: #141413;
+    font-family: var(--serif);
+    font-weight: 400;
+    color: var(--near-black);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .slide {
+    width: 1920px;
+    height: 1080px;
+    background: var(--parchment);
+    position: relative;
+    scroll-snap-align: start;
+    overflow: hidden;
+    padding: 76px 80px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    margin: 0 auto;
+  }
+
+  /* Slide number */
+  .slide-number {
+    position: absolute;
+    bottom: 28px;
+    right: 40px;
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--gray-400);
+    letter-spacing: 0.02em;
+  }
+
+  /* Corner icon logo */
+  .corner-logo {
+    position: absolute;
+    bottom: 24px;
+    left: 40px;
+    height: 36px;
+    opacity: 0.35;
+  }
+
+  /* --- SLIDE TYPES --- */
+
+  /* Title slide */
+  .slide.title-slide {
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+  }
+  .slide.title-slide .wide-logo {
+    width: 360px;
+    margin-bottom: 64px;
+  }
+  .slide.title-slide h1 {
+    font-family: var(--serif);
+    font-size: 88px;
+    font-weight: 500;
+    line-height: 1.1;
+    color: var(--near-black);
+    margin-bottom: 24px;
+  }
+  .slide.title-slide .subtitle {
+    font-family: var(--serif);
+    font-size: 36px;
+    font-weight: 400;
+    color: var(--gray-600);
+    line-height: 1.4;
+  }
+
+  /* Session divider */
+  .slide.divider {
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+  }
+  .slide.divider .divider-label {
+    font-family: var(--sans);
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-blue);
+    margin-bottom: 20px;
+  }
+  .slide.divider h2 {
+    font-family: var(--serif);
+    font-size: 76px;
+    font-weight: 500;
+    line-height: 1.1;
+    color: var(--near-black);
+  }
+  .slide.divider .divider-bar {
+    width: 80px;
+    height: 3px;
+    background: var(--ink-blue);
+    margin: 32px auto 0;
+  }
+
+  /* How-this-works / format slide */
+  .slide.format-slide h2 {
+    font-family: var(--serif);
+    font-size: 56px;
+    font-weight: 500;
+    line-height: 1.1;
+    color: var(--near-black);
+    margin-bottom: 56px;
+  }
+  .slide.format-slide .step-list {
+    list-style: none;
+    counter-reset: steps;
+  }
+  .slide.format-slide .step-list li {
+    counter-increment: steps;
+    font-family: var(--serif);
+    font-size: 36px;
+    font-weight: 400;
+    color: var(--gray-700);
+    line-height: 1.5;
+    margin-bottom: 28px;
+    padding-left: 56px;
+    position: relative;
+  }
+  .slide.format-slide .step-list li::before {
+    content: counter(steps);
+    position: absolute;
+    left: 0;
+    font-family: var(--sans);
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--ink-blue);
+    width: 42px;
+    height: 42px;
+    border: 2px solid var(--ink-blue);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    top: 4px;
+  }
+
+  /* Scenario slide */
+  .slide.scenario .eyebrow {
+    font-family: var(--sans);
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-blue);
+    margin-bottom: 28px;
+  }
+  .slide.scenario .scenario-card {
+    background: var(--ivory);
+    border: 1px solid #e0dfd8;
+    border-radius: 8px;
+    padding: 52px 60px;
+    box-shadow: 0 1px 3px rgba(20,20,19,0.04);
+  }
+  .slide.scenario .scenario-card p,
+  .slide.scenario .scenario-card ul {
+    font-family: var(--serif);
+    font-size: 30px;
+    font-weight: 400;
+    line-height: 1.6;
+    color: var(--gray-700);
+    margin-bottom: 16px;
+  }
+  .slide.scenario .scenario-card ul {
+    padding-left: 28px;
+    list-style: disc;
+  }
+  .slide.scenario .scenario-card ul li {
+    margin-bottom: 8px;
+  }
+  .slide.scenario .scenario-card p:last-child,
+  .slide.scenario .scenario-card ul:last-child { margin-bottom: 0; }
+  .slide.scenario .scenario-card .scenario-title {
+    font-family: var(--serif);
+    font-size: 30px;
+    font-weight: 400;
+    line-height: 1.6;
+    color: var(--gray-700);
+  }
+
+  /* Merged discussion elements inside scenario cards */
+  .scenario-card .discuss-divider {
+    height: 1px;
+    background: #e0dfd8;
+    margin: 24px 0;
+  }
+  .scenario-card .discuss-prompt {
+    font-family: var(--serif);
+    font-size: 28px;
+    font-weight: 500;
+    color: var(--ink-blue);
+    margin-bottom: 16px;
+  }
+  .scenario-card .discuss-list {
+    list-style: none;
+    counter-reset: disc-items;
+    margin: 0;
+    padding: 0;
+  }
+  .scenario-card .discuss-list li {
+    counter-increment: disc-items;
+    font-family: var(--serif);
+    font-size: 26px;
+    font-weight: 400;
+    color: var(--gray-600);
+    line-height: 1.5;
+    margin-bottom: 10px;
+    padding-left: 32px;
+    position: relative;
+  }
+  .scenario-card .discuss-list li::before {
+    content: counter(disc-items) ".";
+    position: absolute;
+    left: 0;
+    color: var(--ink-blue);
+    font-weight: 500;
+  }
+  .scenario-card .discuss-instruction {
+    font-family: var(--serif);
+    font-size: 26px;
+    font-weight: 400;
+    color: var(--gray-600);
+    line-height: 1.5;
+  }
+
+  /* Discussion slide (kept for any standalone use) */
+  .slide.discussion h2 {
+    font-family: var(--serif);
+    font-size: 56px;
+    font-weight: 500;
+    line-height: 1.1;
+    color: var(--near-black);
+    margin-bottom: 52px;
+  }
+  .slide.discussion ol {
+    list-style: none;
+    counter-reset: disc-items;
+  }
+  .slide.discussion ol li {
+    counter-increment: disc-items;
+    font-family: var(--serif);
+    font-size: 34px;
+    font-weight: 400;
+    color: var(--gray-700);
+    line-height: 1.5;
+    margin-bottom: 28px;
+    padding-left: 48px;
+    position: relative;
+  }
+  .slide.discussion ol li::before {
+    content: counter(disc-items) ".";
+    position: absolute;
+    left: 0;
+    color: var(--ink-blue);
+    font-weight: 500;
+  }
+  .slide.discussion .instruction {
+    font-family: var(--serif);
+    font-size: 32px;
+    font-weight: 400;
+    color: var(--gray-500);
+    margin-top: 12px;
+  }
+
+  /* Research reveal */
+  .slide.reveal .big-idea {
+    font-family: var(--serif);
+    font-size: 60px;
+    font-weight: 500;
+    line-height: 1.2;
+    color: var(--near-black);
+    margin-bottom: 48px;
+    padding-left: 28px;
+    border-left: 4px solid var(--ink-blue);
+  }
+  .slide.reveal .points {
+    list-style: none;
+  }
+  .slide.reveal .points li {
+    font-family: var(--serif);
+    font-size: 32px;
+    font-weight: 400;
+    color: var(--gray-600);
+    line-height: 1.5;
+    margin-bottom: 20px;
+    padding-left: 24px;
+    position: relative;
+  }
+  .slide.reveal .points li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 14px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--gray-400);
+  }
+  .slide.reveal .points-numbered {
+    list-style: none;
+    counter-reset: reveal-items;
+  }
+  .slide.reveal .points-numbered li {
+    counter-increment: reveal-items;
+    font-family: var(--serif);
+    font-size: 32px;
+    font-weight: 400;
+    color: var(--gray-600);
+    line-height: 1.5;
+    margin-bottom: 20px;
+    padding-left: 32px;
+    position: relative;
+  }
+  .slide.reveal .points-numbered li::before {
+    content: counter(reveal-items) ".";
+    position: absolute;
+    left: 0;
+    color: var(--ink-blue);
+    font-weight: 500;
+  }
+
+  /* Takeaway slide */
+  .slide.takeaway {
+    justify-content: center;
+    align-items: center;
+  }
+  .slide.takeaway .takeaway-card {
+    background: var(--ivory);
+    border: 1px solid #e0dfd8;
+    border-left: 5px solid var(--ink-blue);
+    border-radius: 4px 8px 8px 4px;
+    padding: 52px 64px;
+    max-width: 1480px;
+    box-shadow: 0 1px 3px rgba(20,20,19,0.04);
+  }
+  .slide.takeaway .takeaway-label {
+    font-family: var(--sans);
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-blue);
+    margin-bottom: 24px;
+  }
+  .slide.takeaway .takeaway-card p {
+    font-family: var(--serif);
+    font-size: 34px;
+    font-weight: 400;
+    line-height: 1.55;
+    color: var(--gray-700);
+  }
+
+  /* Recap slide */
+  .slide.recap h2 {
+    font-family: var(--serif);
+    font-size: 56px;
+    font-weight: 500;
+    line-height: 1.1;
+    color: var(--near-black);
+    margin-bottom: 52px;
+  }
+  .slide.recap ol {
+    list-style: none;
+    counter-reset: recap-items;
+  }
+  .slide.recap ol li {
+    counter-increment: recap-items;
+    font-family: var(--serif);
+    font-size: 32px;
+    font-weight: 400;
+    color: var(--gray-700);
+    line-height: 1.5;
+    margin-bottom: 22px;
+    padding-left: 48px;
+    position: relative;
+  }
+  .slide.recap ol li::before {
+    content: counter(recap-items) ".";
+    position: absolute;
+    left: 0;
+    color: var(--ink-blue);
+    font-weight: 500;
+  }
+
+  /* Reconnection / activity slide */
+  .slide.activity {
+    background: var(--sand);
+  }
+  .slide.activity h2 {
+    font-family: var(--serif);
+    font-size: 56px;
+    font-weight: 500;
+    line-height: 1.1;
+    color: var(--near-black);
+    margin-bottom: 40px;
+  }
+  .slide.activity p {
+    font-family: var(--serif);
+    font-size: 36px;
+    font-weight: 400;
+    color: var(--gray-700);
+    line-height: 1.55;
+    margin-bottom: 20px;
+  }
+  .slide.activity .aside {
+    font-family: var(--serif);
+    font-size: 28px;
+    color: var(--gray-500);
+    margin-top: 16px;
+  }
+
+  /* Full picture / summary grid */
+  .slide.full-picture h2 {
+    font-family: var(--serif);
+    font-size: 56px;
+    font-weight: 500;
+    line-height: 1.1;
+    color: var(--near-black);
+    margin-bottom: 48px;
+  }
+  .slide.full-picture .columns {
+    display: flex;
+    gap: 64px;
+  }
+  .slide.full-picture .col {
+    flex: 1;
+  }
+  .slide.full-picture .col-label {
+    font-family: var(--sans);
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-blue);
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--ink-blue);
+  }
+  .slide.full-picture .col ol {
+    list-style: none;
+    counter-reset: fp-items;
+  }
+  .slide.full-picture .col ol li {
+    font-family: var(--serif);
+    font-size: 26px;
+    font-weight: 400;
+    color: var(--gray-700);
+    line-height: 1.45;
+    margin-bottom: 14px;
+    padding-left: 0;
+  }
+  .slide.full-picture .col ol li .num {
+    font-family: var(--sans);
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--ink-blue);
+    margin-right: 8px;
+  }
+
+  /* Bridge / course slide */
+  .slide.bridge h2 {
+    font-family: var(--serif);
+    font-size: 56px;
+    font-weight: 500;
+    line-height: 1.1;
+    color: var(--near-black);
+    margin-bottom: 40px;
+  }
+  .slide.bridge p {
+    font-family: var(--serif);
+    font-size: 34px;
+    font-weight: 400;
+    color: var(--gray-700);
+    line-height: 1.55;
+    margin-bottom: 20px;
+  }
+  .slide.bridge .course-list {
+    font-family: var(--serif);
+    font-size: 30px;
+    color: var(--gray-600);
+    line-height: 1.6;
+    margin-top: 8px;
+    padding-left: 24px;
+    list-style: disc;
+  }
+  .slide.bridge .course-list li { margin-bottom: 8px; }
+
+  /* Final / reflection slide */
+  .slide.reflection {
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+  }
+  .slide.reflection h2 {
+    font-family: var(--serif);
+    font-size: 56px;
+    font-weight: 500;
+    line-height: 1.1;
+    color: var(--near-black);
+    margin-bottom: 40px;
+  }
+  .slide.reflection p {
+    font-family: var(--serif);
+    font-size: 42px;
+    font-weight: 400;
+    color: var(--gray-600);
+    line-height: 1.55;
+    max-width: 1100px;
+  }
+
+  /* Closing slide */
+  .slide.closing {
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+  }
+  .slide.closing h2 {
+    font-family: var(--serif);
+    font-size: 76px;
+    font-weight: 500;
+    line-height: 1.1;
+    color: var(--near-black);
+    margin-bottom: 20px;
+  }
+  .slide.closing p {
+    font-family: var(--serif);
+    font-size: 36px;
+    color: var(--gray-600);
+    margin-bottom: 48px;
+  }
+  .slide.closing .wide-logo {
+    width: 340px;
+  }
+
+  /* Activity slide with numbered list */
+  .slide.activity ol {
+    list-style: none;
+    counter-reset: act-items;
+  }
+  .slide.activity ol li {
+    counter-increment: act-items;
+    font-family: var(--serif);
+    font-size: 34px;
+    font-weight: 400;
+    color: var(--gray-700);
+    line-height: 1.5;
+    margin-bottom: 22px;
+    padding-left: 48px;
+    position: relative;
+  }
+  .slide.activity ol li::before {
+    content: counter(act-items) ".";
+    position: absolute;
+    left: 0;
+    color: var(--ink-blue);
+    font-weight: 500;
+  }
+  .slide.activity .follow-up {
+    font-family: var(--serif);
+    font-size: 32px;
+    color: var(--gray-600);
+    margin-top: 28px;
+  }
+
+  /* Keyboard nav indicator */
+  .nav-hint {
+    position: fixed;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--sans);
+    font-size: 13px;
+    color: rgba(255,255,255,0.4);
+    z-index: 100;
+    pointer-events: none;
+    transition: opacity 0.6s;
+  }
+
+  /* Print styles */
+  @media print {
+    html { scroll-snap-type: none; }
+    body { background: white; }
+    .slide {
+      page-break-after: always;
+      page-break-inside: avoid;
+      margin: 0;
+      box-shadow: none;
+    }
+    .nav-hint { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SLIDE 1: Title -->
+<section class="slide title-slide">
+  <img src="pep-logo.png" alt="PEP School" class="wide-logo">
+  <h1>Learning Science Workshop</h1>
+  <p class="subtitle">What research says about how students actually learn</p>
+  <span class="slide-number">1</span>
+</section>
+
+<!-- SLIDE 2: How This Works -->
+<section class="slide format-slide">
+  <h2>How this works</h2>
+  <ol class="step-list">
+    <li>I'll give you a situation from a real classroom</li>
+    <li>Your table discusses it for 7 minutes &mdash; rank the options or take a stand</li>
+    <li>I'll share what researchers have found</li>
+    <li>We'll end each case with one thing you can try tomorrow</li>
+  </ol>
+  <img src="pep-icon.png" alt="" class="corner-logo">
+  <span class="slide-number">2</span>
+</section>
+
+<!-- SLIDE 3: Theme 1 Divider -->
+<section class="slide divider">
+  <div class="divider-label">Theme 1</div>
+  <h2>What Is Learning?</h2>
+  <div class="divider-bar"></div>
+  <img src="pep-icon.png" alt="" class="corner-logo">
+  <span class="slide-number">3</span>
+</section>
+
+<!-- SLIDE 4: Case 1 Scenario + Discussion -->
+<section class="slide scenario">
+  <div class="eyebrow">Case 1 &middot; The Revision Surprise</div>
+  <div class="scenario-card">
+    <p>You've been working with a group of students on equivalent fractions. Over several lessons, you used manipulatives, worked through problems together, and gave them practice. By the end of the week, students were solving equivalent fraction problems confidently.</p>
+    <p>Three weeks later, you revisit fractions. More than half the group stares blankly. They can't do what they were doing fluently just three weeks ago.</p>
+    <div class="discuss-divider"></div>
+    <div class="discuss-prompt">At your table:</div>
+    <ol class="discuss-list">
+      <li>What happened? Why did they "forget"?</li>
+      <li>Does this happen in your classroom?</li>
+      <li>Whose fault is it?</li>
+    </ol>
+  </div>
+  <img src="pep-icon.png" alt="" class="corner-logo">
+  <span class="slide-number">4</span>
+</section>
+
+<!-- SLIDE 5: Case 1 Research Reveal -->
+<section class="slide reveal">
+  <div class="big-idea">Performance is not the same as learning.</div>
+  <ul class="points">
+    <li>Performance = what students can do right now, with everything fresh</li>
+    <li>Learning = what they can still do weeks later, independently</li>
+    <li>A smooth lesson can produce no durable learning</li>
+  </ul>
+  <img src="pep-icon.png" alt="" class="corner-logo">
+  <span class="slide-number">5</span>
+</section>
+
+<!-- SLIDE 6: Case 1 Takeaway -->
+<section class="slide takeaway">
+  <div class="takeaway-card">
+    <div class="takeaway-label">Key Actionable Takeaway</div>
+    <p>If you want to know whether students have actually learned something, check again later &mdash; next week, next month. The way you structure practice between now and then determines whether learning sticks.</p>
+  </div>
+  <img src="pep-icon.png" alt="" class="corner-logo">
+  <span class="slide-number">6</span>
+</section>
+
+<!-- SLIDE 7: Case 2 Scenario + Discussion -->
+<section class="slide scenario">
+  <div class="eyebrow">Case 2 &middot; The Practice Puzzle</div>
+  <div class="scenario-card">
+    <p>Four students are preparing for a presentation on the solar system:</p>
+    <p><strong style="font-weight:500;color:var(--near-black)">Student A</strong> &mdash; reading notes for the third time, highlighting key sentences</p>
+    <p><strong style="font-weight:500;color:var(--near-black)">Student B</strong> &mdash; notes put away, writing down everything she can remember, then checking what she missed</p>
+    <p><strong style="font-weight:500;color:var(--near-black)">Student C</strong> &mdash; made a beautiful colour-coded mind map, keeps admiring it</p>
+    <p><strong style="font-weight:500;color:var(--near-black)">Student D</strong> &mdash; mixing topics: recalling Mars facts, then a maths problem from yesterday, back to the solar system, then vocabulary from last week</p>
+    <div class="discuss-divider"></div>
+    <div class="discuss-prompt">At your table:</div>
+    <p class="discuss-instruction">Rank these students from most effective to least effective preparation.</p>
+    <p class="discuss-instruction" style="margin-top:12px">Be ready to defend your ranking.</p>
+  </div>
+  <img src="pep-icon.png" alt="" class="corner-logo">
+  <span class="slide-number">7</span>
+</section>
+
+<!-- SLIDE 8: Case 2 Research Reveal -->
+<section class="slide reveal">
+  <div class="big-idea">The ranking:</div>
+  <ol class="points-numbered">
+    <li><strong style="font-weight:500;color:var(--near-black)">Student B</strong> &mdash; retrieval practice (pulling from memory IS learning)</li>
+    <li><strong style="font-weight:500;color:var(--near-black)">Student D</strong> &mdash; interleaved practice (mixing forces discrimination)</li>
+    <li><strong style="font-weight:500;color:var(--near-black)">Student A</strong> &mdash; re-reading (feels productive, barely works)</li>
+    <li><strong style="font-weight:500;color:var(--near-black)">Student C</strong> &mdash; beautiful notes (effort went into formatting, not thinking)</li>
+  </ol>
+  <img src="pep-icon.png" alt="" class="corner-logo">
+  <span class="slide-number">8</span>
+</section>
+
+<!-- SLIDE 9: Case 2 Research Reveal 2 -->
+<section class="slide reveal">
+  <div class="big-idea">Students are reliably wrong about what works for their own learning.</div>
+  <ul class="points">
+    <li>Re-reading feels best &rarr; weakest results</li>
+    <li>Retrieval practice feels hardest &rarr; strongest results</li>
+  </ul>
+  <img src="pep-icon.png" alt="" class="corner-logo">
+  <span class="slide-number">9</span>
+</section>
+
+<!-- SLIDE 10: Case 2 Takeaway -->
+<section class="slide takeaway">
+  <div class="takeaway-card">
+    <div class="takeaway-label">Key Actionable Takeaway</div>
+    <p>This is exactly what Mindspark does in maths and English &mdash; retrieval practice, spaced over time, at the right difficulty level. Now you know why we use it. In all subjects: closing the book and recalling from memory beats re-reading every time.</p>
+  </div>
+  <img src="pep-icon.png" alt="" class="corner-logo">
+  <span class="slide-number">10</span>
+</section>
+
+<!-- SLIDE 11: Case 3 Scenario + Discussion -->
+<section class="slide scenario">
+  <div class="eyebrow">Case 3 &middot; The Packed Lesson</div>
+  <div class="scenario-card">
+    <p>A teacher introduces ecosystems in a single lesson:</p>
+    <ul>
+      <li>Explains 6 new vocabulary words</li>
+      <li>Reads aloud a passage about rainforests</li>
+      <li>Students draw and label a food chain</li>
+      <li>Students write a paragraph comparing rainforest and desert ecosystems</li>
+      <li>Finishes with "name one thing you learned"</li>
+    </ul>
+    <p>Students are busy the whole time. Two days later, most can only say "it's about animals and plants."</p>
+    <div class="discuss-divider"></div>
+    <div class="discuss-prompt">At your table:</div>
+    <ol class="discuss-list">
+      <li>Rank the five activities from most to least valuable.</li>
+      <li>If you could only keep TWO, which would you keep and why?</li>
+    </ol>
+  </div>
+  <img src="pep-icon.png" alt="" class="corner-logo">
+  <span class="slide-number">11</span>
+</section>
+
+<!-- SLIDE 12: Case 3 Research Reveal -->
+<section class="slide reveal">
+  <div class="big-idea">Working memory holds 3&ndash;5 new items. That's it.</div>
+  <ul class="points">
+    <li>When overloaded, students don't learn less &mdash; they learn almost nothing</li>
+    <li>This isn't a flaw in students. It's how every brain works.</li>
+    <li>Intrinsic load (real complexity) vs extraneous load (poor presentation)</li>
+  </ul>
+  <img src="pep-icon.png" alt="" class="corner-logo">
+  <span class="slide-number">12</span>
+</section>
+
+<!-- SLIDE 13: Case 3 Takeaway -->
+<section class="slide takeaway">
+  <div class="takeaway-card">
+    <div class="takeaway-label">Key Actionable Takeaway</div>
+    <p>Before your next lesson, count: how many genuinely new things am I introducing? If it's more than 3&ndash;4, something needs to move to the next day. Cover less, they learn more.</p>
+  </div>
+  <img src="pep-icon.png" alt="" class="corner-logo">
+  <span class="slide-number">13</span>
+</section>
+
+<!-- SLIDE 14: Case 4 Scenario + Discussion -->
+<section class="slide scenario">
+  <div class="eyebrow">Case 4 &middot; Collaboration &mdash; When It Works</div>
+  <div class="scenario-card">
+    <p>Four groups are working on a research project about civilisations:</p>
+    <p><strong style="font-weight:500;color:var(--near-black)">Group 1</strong> &mdash; One strong student does everything. Others watch.</p>
+    <p><strong style="font-weight:500;color:var(--near-black)">Group 2</strong> &mdash; Each person does a separate part alone. They staple them together. No one reads anyone else's section.</p>
+    <p><strong style="font-weight:500;color:var(--near-black)">Group 3</strong> &mdash; Students discuss together, challenge each other's understanding, build a shared explanation richer than any one person could produce.</p>
+    <p><strong style="font-weight:500;color:var(--near-black)">Group 4</strong> &mdash; Two students argue about formatting. Most time spent on logistics. Content is thin.</p>
+    <div class="discuss-divider"></div>
+    <div class="discuss-prompt">At your table:</div>
+    <ol class="discuss-list">
+      <li>Rank the groups from most learning to least learning.</li>
+      <li>What made the difference?</li>
+    </ol>
+  </div>
+  <img src="pep-icon.png" alt="" class="corner-logo">
+  <span class="slide-number">14</span>
+</section>
+
+<!-- SLIDE 15: Case 4 Research Reveal -->
+<section class="slide reveal">
+  <div class="big-idea">Sitting together does not mean learning together.</div>
+  <ul class="points">
+    <li>Social loafing &mdash; some coast, others carry</li>
+    <li>Divide-and-ignore &mdash; looks collaborative, no shared thinking</li>
+    <li>Structure matters: individual accountability, conceptually rich tasks, taught collaboration skills</li>
+  </ul>
+  <img src="pep-icon.png" alt="" class="corner-logo">
+  <span class="slide-number">15</span>
+</section>
+
+<!-- SLIDE 16: Case 4 Takeaway -->
+<section class="slide takeaway">
+  <div class="takeaway-card">
+    <div class="takeaway-label">Key Actionable Takeaway</div>
+    <p>Add one rule: every individual must be able to explain the group's answer. Call on a random student &mdash; not the spokesperson. If one person can't explain it, the group hasn't succeeded.</p>
+  </div>
+  <img src="pep-icon.png" alt="" class="corner-logo">
+  <span class="slide-number">16</span>
+</section>
+
+<!-- SLIDE 17: Theme 1 Recap -->
+<section class="slide recap">
+  <h2>Theme 1: What we've uncovered</h2>
+  <ol>
+    <li>Performance &#8800; learning &mdash; looking good today doesn't mean it stuck</li>
+    <li>Students choose strategies that feel best, not strategies that work best</li>
+    <li>Working memory is tiny &mdash; cover less, they learn more</li>
+    <li>Collaboration needs design &mdash; sitting together &#8800; learning together</li>
+  </ol>
+  <img src="pep-icon.png" alt="" class="corner-logo">
+  <span class="slide-number">17</span>
+</section>
+
+<!-- SLIDE 18: Theme 2 Divider -->
+<section class="slide divider">
+  <div class="divider-label">Theme 2</div>
+  <h2>Teaching That Responds</h2>
+  <div class="divider-bar"></div>
+  <img src="pep-icon.png" alt="" class="corner-logo">
+  <span class="slide-number">18</span>
+</section>
+
+<!-- SLIDE 19: Reconnection -->
+<section class="slide activity">
+  <h2>Reconnection</h2>
+  <p>Quick: each person name one thing from Theme 1 that stuck with you.</p>
+  <p class="aside">(This is retrieval practice. You just strengthened your memory by pulling it out instead of me re-telling it.)</p>
+  <img src="pep-icon.png" alt="" class="corner-logo">
+  <span class="slide-number">19</span>
+</section>
+
+<!-- SLIDE 20: Case 5 Scenario + Discussion -->
+<section class="slide scenario">
+  <div class="eyebrow">Case 5 &middot; Three Ways to Teach the Same Thing</div>
+  <div class="scenario-card">
+    <p>Three teachers introduce a new concept to a group of students who are new to it.</p>
+    <p><strong style="font-weight:500;color:var(--near-black)">Teacher A</strong> &mdash; brief explanation, then "work through these problems, I'll come around to help." Students are busy. Some figure it out; many spin their wheels.</p>
+    <p><strong style="font-weight:500;color:var(--near-black)">Teacher B</strong> &mdash; solves 3 problems thinking aloud, then students try in pairs, then independently with increasing difficulty.</p>
+    <p><strong style="font-weight:500;color:var(--near-black)">Teacher C</strong> &mdash; thorough explanation with detailed notes, students copy into notebooks. Notebooks look neat.</p>
+    <p>A month later, all three groups get a new problem applying the same concept.</p>
+    <div class="discuss-divider"></div>
+    <div class="discuss-prompt">At your table:</div>
+    <ol class="discuss-list">
+      <li>Rank the three teachers &mdash; whose students perform best on the new problem a month later?</li>
+    </ol>
+    <p class="discuss-instruction" style="margin-top:12px">Be ready to defend your ranking.</p>
+  </div>
+  <img src="pep-icon.png" alt="" class="corner-logo">
+  <span class="slide-number">20</span>
+</section>
+
+<!-- SLIDE 21: Case 5 Research Reveal -->
+<section class="slide reveal">
+  <div class="big-idea">Novices need to see before they do.</div>
+  <ol class="points-numbered">
+    <li><strong style="font-weight:500;color:var(--near-black)">Teacher B</strong> &mdash; model &rarr; guide &rarr; release (the worked example effect)</li>
+    <li><strong style="font-weight:500;color:var(--near-black)">Teacher A</strong> &mdash; valuable for students who already have the basics (not novices)</li>
+    <li><strong style="font-weight:500;color:var(--near-black)">Teacher C</strong> &mdash; copying notes is transcribing, not thinking</li>
+  </ol>
+  <img src="pep-icon.png" alt="" class="corner-logo">
+  <span class="slide-number">21</span>
+</section>
+
+<!-- SLIDE 22: Case 5 Research Reveal 2 -->
+<section class="slide reveal">
+  <div class="big-idea">The expertise reversal effect:</div>
+  <ul class="points">
+    <li>What helps a novice hurts an expert.</li>
+    <li>Scaffolding that beginners need becomes counterproductive once expertise develops.</li>
+    <li>The art is knowing when to shift.</li>
+  </ul>
+  <img src="pep-icon.png" alt="" class="corner-logo">
+  <span class="slide-number">22</span>
+</section>
+
+<!-- SLIDE 23: Case 5 Takeaway -->
+<section class="slide takeaway">
+  <div class="takeaway-card">
+    <div class="takeaway-label">Key Actionable Takeaway</div>
+    <p>Before independent practice, solve 2&ndash;3 problems in front of students while thinking aloud. Narrate your decisions. Then do a few together. Then let them try alone. The sequence matters.</p>
+  </div>
+  <img src="pep-icon.png" alt="" class="corner-logo">
+  <span class="slide-number">23</span>
+</section>
+
+<!-- SLIDE 24: Case 6 Scenario + Discussion -->
+<section class="slide scenario">
+  <div class="eyebrow">Case 6 &middot; "Does Everyone Understand?"</div>
+  <div class="scenario-card">
+    <p>You're working with a group of 8 students on adjectives. You've explained the concept, given examples, done practice sentences together. You ask: "Does everyone understand?"</p>
+    <p>A few nod. One says "Yes." Two stay quiet. You move on.</p>
+    <p>Next day: three of the eight can't identify adjectives in new sentences &mdash; including one who nodded.</p>
+    <div class="discuss-divider"></div>
+    <div class="discuss-prompt">At your table:</div>
+    <ol class="discuss-list">
+      <li>What went wrong with "Does everyone understand?"</li>
+      <li>Even with only 8 students, why didn't you catch the confusion?</li>
+      <li>What could you do instead?</li>
+    </ol>
+  </div>
+  <img src="pep-icon.png" alt="" class="corner-logo">
+  <span class="slide-number">24</span>
+</section>
+
+<!-- SLIDE 25: Case 6 Research Reveal -->
+<section class="slide reveal">
+  <div class="big-idea">"Does everyone understand?" gives you no useful information &mdash; even in a small group.</div>
+  <ul class="points">
+    <li>Nodding and understanding are not the same thing</li>
+    <li>Formative assessment = evidence used to decide what to do next</li>
+    <li>You need every student to produce a response</li>
+  </ul>
+  <img src="pep-icon.png" alt="" class="corner-logo">
+  <span class="slide-number">25</span>
+</section>
+
+<!-- SLIDE 26: Case 6 Takeaway -->
+<section class="slide takeaway">
+  <div class="takeaway-card">
+    <div class="takeaway-label">Key Actionable Takeaway</div>
+    <p>Tomorrow, where you'd normally ask "Does everyone understand?", have everyone write their answer instead. Look at all responses before you move on.</p>
+  </div>
+  <img src="pep-icon.png" alt="" class="corner-logo">
+  <span class="slide-number">26</span>
+</section>
+
+<!-- SLIDE 27: Case 7 Scenario + Discussion -->
+<section class="slide scenario">
+  <div class="eyebrow">Case 7 &middot; The Diagnostic Question</div>
+  <div class="scenario-card">
+    <p>You're working with students on area and perimeter. You write this question:</p>
+    <p>"A farmer has a rectangular field, 8m long and 5m wide. He wants to build a fence around it. How much fencing does he need?"</p>
+    <p style="margin-top:16px">A) 40 metres &nbsp;&nbsp; B) 26 metres &nbsp;&nbsp; C) 13 metres &nbsp;&nbsp; D) 80 metres</p>
+    <p style="margin-top:16px">Every student writes their answer.</p>
+    <div class="discuss-divider"></div>
+    <div class="discuss-prompt">At your table:</div>
+    <ol class="discuss-list">
+      <li>What does each answer tell you about the student's thinking?</li>
+      <li>Why is this better than just asking "What's the perimeter?"</li>
+      <li>What would you do if most students chose A?</li>
+    </ol>
+  </div>
+  <img src="pep-icon.png" alt="" class="corner-logo">
+  <span class="slide-number">27</span>
+</section>
+
+<!-- SLIDE 28: Case 7 Research Reveal -->
+<section class="slide reveal">
+  <div class="big-idea">A diagnostic question: every wrong answer reveals a specific misunderstanding.</div>
+  <ul class="points">
+    <li>A (40m) = found area, not perimeter &mdash; confusing the two concepts</li>
+    <li>B (26m) = correct</li>
+    <li>C (13m) = only added two sides &mdash; partial understanding</li>
+    <li>D (80m) = computation error</li>
+  </ul>
+  <img src="pep-icon.png" alt="" class="corner-logo">
+  <span class="slide-number">28</span>
+</section>
+
+<!-- SLIDE 29: Case 7 Research Reveal 2 -->
+<section class="slide reveal">
+  <div class="big-idea">Your EI ASSET assessments work on this exact principle.</div>
+  <ul class="points">
+    <li>Diagnostic questions designed to reveal misconceptions, not just right/wrong</li>
+    <li>The difference: EI does it once a year. You can do it every lesson.</li>
+    <li>"Don't collect evidence to admire it. Collect evidence to decide."</li>
+  </ul>
+  <img src="pep-icon.png" alt="" class="corner-logo">
+  <span class="slide-number">29</span>
+</section>
+
+<!-- SLIDE 30: Case 7 Takeaway -->
+<section class="slide takeaway">
+  <div class="takeaway-card">
+    <div class="takeaway-label">Key Actionable Takeaway</div>
+    <p>Think about a concept you're teaching this week where students get confused. Design one question where each wrong answer tells you something specific. Try it tomorrow.</p>
+  </div>
+  <img src="pep-icon.png" alt="" class="corner-logo">
+  <span class="slide-number">30</span>
+</section>
+
+<!-- SLIDE 31: Case 8 Scenario + Discussion -->
+<section class="slide scenario">
+  <div class="eyebrow">Case 8 &middot; Two Lesson Plans</div>
+  <div class="scenario-card">
+    <p><strong style="font-weight:500;color:var(--near-black)">Teacher A</strong> &mdash; detailed plan: intro, explanation, exploration, recording. Follows it exactly. Lesson flows smoothly. Covers everything.</p>
+    <p><strong style="font-weight:500;color:var(--near-black)">Teacher B</strong> &mdash; same plan, but builds in three checkpoints. At each, she asks a diagnostic question. If they get it &rarr; move on. If not &rarr; backup activity. Her lesson looks messier. She skips her last activity to re-teach a key term.</p>
+    <div class="discuss-divider"></div>
+    <div class="discuss-prompt">At your table:</div>
+    <ol class="discuss-list">
+      <li>Rank the two teachers &mdash; whose students remember more a week later?</li>
+      <li>And: which lesson would look "better" to an observer?</li>
+    </ol>
+  </div>
+  <img src="pep-icon.png" alt="" class="corner-logo">
+  <span class="slide-number">31</span>
+</section>
+
+<!-- SLIDE 32: Case 8 Research Reveal -->
+<section class="slide reveal">
+  <div class="big-idea">Students do not always learn what we teach.</div>
+  <ul class="points">
+    <li>Teacher A delivered content. Teacher B taught students.</li>
+    <li>The "messy" lesson is the learning.</li>
+    <li>The smooth lesson might look better to an observer &mdash; but coverage is not teaching.</li>
+  </ul>
+  <img src="pep-icon.png" alt="" class="corner-logo">
+  <span class="slide-number">32</span>
+</section>
+
+<!-- SLIDE 33: Case 8 Takeaway -->
+<section class="slide takeaway">
+  <div class="takeaway-card">
+    <div class="takeaway-label">Key Actionable Takeaway</div>
+    <p>In your next lesson, identify one moment where understanding could break down. Plan a 2-minute check. Plan what you'll do if the answer isn't what you hoped. One checkpoint. One backup plan.</p>
+  </div>
+  <img src="pep-icon.png" alt="" class="corner-logo">
+  <span class="slide-number">33</span>
+</section>
+
+<!-- SLIDE 34: Theme 2 Recap -->
+<section class="slide recap">
+  <h2>Theme 2: What we've added</h2>
+  <ol>
+    <li>Novices need modelling before independence</li>
+    <li>"Does everyone understand?" tells you nothing &mdash; even with 8 students</li>
+    <li>Diagnostic questions reveal thinking, not just answers</li>
+    <li>Build Plan B into Plan A &mdash; the best lessons have decision points</li>
+  </ol>
+  <img src="pep-icon.png" alt="" class="corner-logo">
+  <span class="slide-number">34</span>
+</section>
+
+<!-- SLIDE 35: Theme 3 Divider -->
+<section class="slide divider">
+  <div class="divider-label">Theme 3</div>
+  <h2>Feedback, Ownership &amp; What's Next</h2>
+  <div class="divider-bar"></div>
+  <img src="pep-icon.png" alt="" class="corner-logo">
+  <span class="slide-number">35</span>
+</section>
+
+<!-- SLIDE 36: Reconnection -->
+<section class="slide activity">
+  <h2>Reconnection</h2>
+  <p>Without looking at notes, write down one thing you remember from previous sessions.</p>
+  <p>Compare with your table. Who remembered something no one else did?</p>
+  <img src="pep-icon.png" alt="" class="corner-logo">
+  <span class="slide-number">36</span>
+</section>
+
+<!-- SLIDE 37: Case 9 Scenario + Discussion -->
+<section class="slide scenario">
+  <div class="eyebrow">Case 9 &middot; The Three Feedback Approaches</div>
+  <div class="scenario-card">
+    <p>Three teachers review the same student writing &mdash; a report with a strong opening but weak evidence in the middle section.</p>
+    <p><strong style="font-weight:500;color:var(--near-black)">Teacher A</strong> &mdash; puts a tick, writes "Good work, keep it up!"</p>
+    <p><strong style="font-weight:500;color:var(--near-black)">Teacher B</strong> &mdash; writes detailed comments on every paragraph</p>
+    <p><strong style="font-weight:500;color:var(--near-black)">Teacher C</strong> &mdash; writes: "Your opening drew me in. One paragraph makes a claim without evidence. Find it, add the evidence, bring it to me by Thursday."</p>
+    <div class="discuss-divider"></div>
+    <div class="discuss-prompt">At your table:</div>
+    <ol class="discuss-list">
+      <li>Rank the three approaches &mdash; which produces the most improvement in the student's next piece of work?</li>
+      <li>Which produces the least?</li>
+    </ol>
+  </div>
+  <img src="pep-icon.png" alt="" class="corner-logo">
+  <span class="slide-number">37</span>
+</section>
+
+<!-- SLIDE 38: Case 9 Research Reveal -->
+<section class="slide reveal">
+  <div class="big-idea">Feedback is a task, not a verdict.</div>
+  <ol class="points-numbered">
+    <li><strong style="font-weight:500;color:var(--near-black)">Teacher C</strong> &mdash; specific praise + detective task + deadline (3 minutes, most learning)</li>
+    <li><strong style="font-weight:500;color:var(--near-black)">Teacher B</strong> &mdash; detailed but teacher did all the thinking (10 minutes, less learning)</li>
+    <li><strong style="font-weight:500;color:var(--near-black)">Teacher A</strong> &mdash; no information, no action (least learning)</li>
+  </ol>
+  <img src="pep-icon.png" alt="" class="corner-logo">
+  <span class="slide-number">38</span>
+</section>
+
+<!-- SLIDE 39: Case 9 Research Reveal 2 -->
+<section class="slide reveal">
+  <div class="big-idea">No grades doesn't mean no feedback.</div>
+  <ul class="points">
+    <li>It means feedback matters more &mdash; it's the only mechanism for signalling quality and next steps.</li>
+    <li>Without it, students have no mirror.</li>
+  </ul>
+  <img src="pep-icon.png" alt="" class="corner-logo">
+  <span class="slide-number">39</span>
+</section>
+
+<!-- SLIDE 40: Case 9 Takeaway -->
+<section class="slide takeaway">
+  <div class="takeaway-card">
+    <div class="takeaway-label">Key Actionable Takeaway</div>
+    <p>Next time you review student work: identify the one most important thing to improve. Turn it into a task &mdash; not a correction. Make it specific enough to locate, open enough to think. Set a deadline.</p>
+  </div>
+  <img src="pep-icon.png" alt="" class="corner-logo">
+  <span class="slide-number">40</span>
+</section>
+
+<!-- SLIDE 41: Case 10 Scenario + Discussion -->
+<section class="slide scenario">
+  <div class="eyebrow">Case 10 &middot; The Metacognition Puzzle</div>
+  <div class="scenario-card">
+    <p>A student says: "I practised a lot but I still couldn't do it."</p>
+    <p>You ask how she practised. She says: "I read through all my notes. I even copied the key points. I spent a whole hour."</p>
+    <p>She's not lying. She really did spend an hour. She really did feel prepared.</p>
+    <div class="discuss-divider"></div>
+    <div class="discuss-prompt">At your table:</div>
+    <ol class="discuss-list">
+      <li>What went wrong? She clearly put in effort.</li>
+      <li>How would you help her prepare differently?</li>
+      <li>Do the students in your classroom know how to practise effectively?</li>
+    </ol>
+  </div>
+  <img src="pep-icon.png" alt="" class="corner-logo">
+  <span class="slide-number">41</span>
+</section>
+
+<!-- SLIDE 42: Case 10 Research Reveal -->
+<section class="slide reveal">
+  <div class="big-idea">This is a metacognition problem, not a motivation problem.</div>
+  <ul class="points">
+    <li>Metacognition = thinking about your own thinking</li>
+    <li>She can't tell the difference between "I've seen this" and "I can do this"</li>
+    <li>Students are reliably poor at judging their own learning</li>
+  </ul>
+  <img src="pep-icon.png" alt="" class="corner-logo">
+  <span class="slide-number">42</span>
+</section>
+
+<!-- SLIDE 43: Case 10 Takeaway -->
+<section class="slide takeaway">
+  <div class="takeaway-card">
+    <div class="takeaway-label">Key Actionable Takeaway</div>
+    <p>Three questions, every day, built into the work:<br>
+    Before: "What's your plan?"<br>
+    During: "Is it working? Do you need to change anything?"<br>
+    After: "What went well? What would you do differently?"</p>
+  </div>
+  <img src="pep-icon.png" alt="" class="corner-logo">
+  <span class="slide-number">43</span>
+</section>
+
+<!-- SLIDE 44: Case 11 Scenario + Discussion -->
+<section class="slide scenario">
+  <div class="eyebrow">Case 11 &middot; The Feedback That Builds Trust</div>
+  <div class="scenario-card">
+    <p>Three teachers respond to a student named Aarav who submitted weak work:</p>
+    <p><strong style="font-weight:500;color:var(--near-black)">Teacher A</strong> &mdash; "I can see you put in some effort. Nice attempt. Let me know if you need help."</p>
+    <p><strong style="font-weight:500;color:var(--near-black)">Teacher B</strong> &mdash; "This isn't your best work. I've seen what you're capable of. Redo it and take it seriously."</p>
+    <p><strong style="font-weight:500;color:var(--near-black)">Teacher C</strong> &mdash; "I'm giving you this feedback because I hold you to a high standard and I believe you can meet it. Your opening shows you understand the question. But your second section makes a claim without backing it up. Find one piece of evidence and rewrite that section. Bring it to me by Thursday."</p>
+    <div class="discuss-divider"></div>
+    <div class="discuss-prompt">At your table:</div>
+    <ol class="discuss-list">
+      <li>Rank the three approaches &mdash; which is most likely to get Aarav to improve?</li>
+      <li>Which builds the strongest relationship over time?</li>
+    </ol>
+  </div>
+  <img src="pep-icon.png" alt="" class="corner-logo">
+  <span class="slide-number">44</span>
+</section>
+
+<!-- SLIDE 45: Case 11 Research Reveal -->
+<section class="slide reveal">
+  <div class="big-idea">Wise feedback: high standards + belief the student can meet them.</div>
+  <ol class="points-numbered">
+    <li><strong style="font-weight:500;color:var(--near-black)">Teacher C</strong> &mdash; specific, actionable, trust-building</li>
+    <li><strong style="font-weight:500;color:var(--near-black)">Teacher B</strong> &mdash; well-intentioned but no guidance on what to fix</li>
+    <li><strong style="font-weight:500;color:var(--near-black)">Teacher A</strong> &mdash; feels kind, but signals low expectations</li>
+  </ol>
+  <img src="pep-icon.png" alt="" class="corner-logo">
+  <span class="slide-number">45</span>
+</section>
+
+<!-- SLIDE 46: Case 11 Takeaway -->
+<section class="slide takeaway">
+  <div class="takeaway-card">
+    <div class="takeaway-label">Key Actionable Takeaway</div>
+    <p>When work falls short: "I'm giving you this feedback because I expect a lot from you and I believe you can deliver. Here's specifically what needs to change, and here's what I want you to do about it."</p>
+  </div>
+  <img src="pep-icon.png" alt="" class="corner-logo">
+  <span class="slide-number">46</span>
+</section>
+
+<!-- SLIDE 47: Case 12 Scenario + Discussion -->
+<section class="slide scenario">
+  <div class="eyebrow">Case 12 &middot; The Knowing-Doing Gap</div>
+  <div class="scenario-card">
+    <p>You attend a fantastic professional development session. You learn about retrieval practice, spacing, formative assessment. You take notes. You feel energised.</p>
+    <p>Week 1: you try a few new things.<br>
+    Week 2: things get busy. You fall back to usual routines.<br>
+    Week 4: you're teaching exactly as before. Notes are in a bag somewhere.</p>
+    <p>Research shows this is what happens with most PD.</p>
+    <div class="discuss-divider"></div>
+    <div class="discuss-prompt">At your table:</div>
+    <ol class="discuss-list">
+      <li>Why does this happen?</li>
+      <li>What would need to be different for change to stick?</li>
+      <li>What support would you need &mdash; honestly?</li>
+    </ol>
+  </div>
+  <img src="pep-icon.png" alt="" class="corner-logo">
+  <span class="slide-number">47</span>
+</section>
+
+<!-- SLIDE 48: Case 12 Research Reveal -->
+<section class="slide reveal">
+  <div class="big-idea">Knowing is not doing.</div>
+  <ul class="points">
+    <li>One-shot PD changes almost nothing long-term</li>
+    <li>What works: small steps (one technique at a time), peer accountability, observation for learning not evaluation</li>
+    <li>The same principles that apply to your students apply to you</li>
+  </ul>
+  <img src="pep-icon.png" alt="" class="corner-logo">
+  <span class="slide-number">48</span>
+</section>
+
+<!-- SLIDE 49: Case 12 Activity -->
+<section class="slide activity">
+  <h2>Write down:</h2>
+  <ol>
+    <li>One idea from these sessions you want to try</li>
+    <li>One specific thing you'll do differently in your next lesson</li>
+    <li>One person at your table who will check in with you next week</li>
+  </ol>
+  <p class="follow-up">Turn to that person now. Exchange your plans.</p>
+  <img src="pep-icon.png" alt="" class="corner-logo">
+  <span class="slide-number">49</span>
+</section>
+
+<!-- SLIDE 50: The Full Picture -->
+<section class="slide full-picture">
+  <h2>How Learning Works</h2>
+  <div class="columns">
+    <div class="col">
+      <div class="col-label">What Is Learning</div>
+      <ol>
+        <li><span class="num">1.</span> Performance &#8800; learning</li>
+        <li><span class="num">2.</span> Students choose what feels best, not what works best</li>
+        <li><span class="num">3.</span> Working memory is tiny &mdash; less is more</li>
+        <li><span class="num">4.</span> Collaboration needs design</li>
+      </ol>
+    </div>
+    <div class="col">
+      <div class="col-label">How Teachers Respond</div>
+      <ol>
+        <li><span class="num">5.</span> Novices need modelling before independence</li>
+        <li><span class="num">6.</span> Check every student's thinking</li>
+        <li><span class="num">7.</span> Diagnostic questions reveal thinking</li>
+        <li><span class="num">8.</span> Build Plan B into Plan A</li>
+      </ol>
+    </div>
+    <div class="col">
+      <div class="col-label">How Students Own It</div>
+      <ol>
+        <li><span class="num">9.</span> Feedback is a task, not a verdict</li>
+        <li><span class="num">10.</span> Students need to learn how to learn</li>
+        <li><span class="num">11.</span> High standards + belief = trust</li>
+        <li><span class="num">12.</span> Knowing is not doing</li>
+      </ol>
+    </div>
+  </div>
+  <img src="pep-icon.png" alt="" class="corner-logo">
+  <span class="slide-number">50</span>
+</section>
+
+<!-- SLIDE 51: Bridge to Online Course -->
+<section class="slide bridge">
+  <h2>Learning Science 101: The Big Picture</h2>
+  <p>The online course goes deeper into every concept from this workshop. Scenarios, voice exercises, assessments.</p>
+  <p>After 101:</p>
+  <ul class="course-list">
+    <li>How Learning Works</li>
+    <li>Formative Assessment</li>
+    <li>Feedback &amp; Student Ownership</li>
+    <li>Designing for Durable Learning</li>
+  </ul>
+  <p style="margin-top:40px">We start together this week.</p>
+  <img src="pep-icon.png" alt="" class="corner-logo">
+  <span class="slide-number">51</span>
+</section>
+
+<!-- SLIDE 52: Final Reflection -->
+<section class="slide reflection">
+  <h2>One sentence each:</h2>
+  <p>What's one belief about teaching that these sessions made you question?</p>
+  <img src="pep-icon.png" alt="" class="corner-logo">
+  <span class="slide-number">52</span>
+</section>
+
+<!-- SLIDE 53: Closing -->
+<section class="slide closing">
+  <h2>Thank you.</h2>
+  <p>See you in the course.</p>
+  <img src="pep-logo.png" alt="PEP School" class="wide-logo">
+  <span class="slide-number">53</span>
+</section>
+
+<div class="nav-hint">Arrow keys to navigate</div>
+
+<script>
+  // Keyboard navigation
+  const slides = document.querySelectorAll('.slide');
+  let current = 0;
+
+  // Determine initial slide from URL hash
+  if (window.location.hash) {
+    const idx = parseInt(window.location.hash.replace('#', ''), 10) - 1;
+    if (idx >= 0 && idx < slides.length) current = idx;
+  }
+
+  function goTo(index) {
+    if (index < 0 || index >= slides.length) return;
+    current = index;
+    slides[current].scrollIntoView({ behavior: 'smooth' });
+    window.location.hash = current + 1;
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') {
+      e.preventDefault();
+      goTo(current + 1);
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      goTo(current - 1);
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      goTo(0);
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      goTo(slides.length - 1);
+    }
+  });
+
+  // Hide nav hint after first interaction
+  let hintShown = true;
+  document.addEventListener('keydown', () => {
+    if (hintShown) {
+      document.querySelector('.nav-hint').style.opacity = '0';
+      hintShown = false;
+    }
+  }, { once: true });
+
+  // Scroll to initial slide
+  if (current > 0) {
+    slides[current].scrollIntoView();
+  }
+
+  // Update current on scroll (for mouse/trackpad users)
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const idx = Array.from(slides).indexOf(entry.target);
+        if (idx !== -1) current = idx;
+      }
+    });
+  }, { threshold: 0.5 });
+
+  slides.forEach(slide => observer.observe(slide));
+</script>
+
+</body>
+</html>

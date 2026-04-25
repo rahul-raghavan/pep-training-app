@@ -2,13 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireAdmin, requireSuperAdmin } from '@/lib/auth';
 import { clearProgramCache } from '@/lib/programs';
+import { getScopedTraineeIds } from '@/lib/admin-scope';
 
 // GET - List all programs
 export async function GET(request: NextRequest) {
-  const { error: authError } = await requireAdmin(request);
+  const { user, error: authError } = await requireAdmin(request);
   if (authError) return authError;
 
   const supabase = createAdminClient();
+  const scopedTraineeIds = await getScopedTraineeIds(supabase, user);
 
   const { data: programs, error } = await supabase
     .from('programs')
@@ -18,13 +20,40 @@ export async function GET(request: NextRequest) {
   if (error) {
     return NextResponse.json({ error: 'Failed to fetch programs' }, { status: 500 });
   }
+  let visiblePrograms = programs || [];
+  if (scopedTraineeIds) {
+    if (user.adminScopeTrackIds.length === 0) {
+      return NextResponse.json({ programs: [] });
+    }
+    const { data: mapped } = await supabase
+      .from('course_programs')
+      .select('program_id')
+      .in('track_id', user.adminScopeTrackIds);
+    const visibleProgramIds = new Set((mapped ?? []).map(row => row.program_id));
+    visiblePrograms = visiblePrograms.filter(program => visibleProgramIds.has(program.id));
+  }
 
   // Get section counts and trainee counts
   const programsWithCounts = await Promise.all(
-    (programs || []).map(async (program) => {
+    visiblePrograms.map(async (program) => {
+      let traineeQuery = supabase
+        .from('trainee_programs')
+        .select('*', { count: 'exact', head: true })
+        .eq('program_id', program.id);
+      if (scopedTraineeIds) {
+        const ids = [...scopedTraineeIds];
+        if (ids.length === 0) {
+          const { count: sectionCount } = await supabase
+            .from('program_sections')
+            .select('*', { count: 'exact', head: true })
+            .eq('program_id', program.id);
+          return { ...program, sectionCount: sectionCount || 0, traineeCount: 0 };
+        }
+        traineeQuery = traineeQuery.in('trainee_id', ids);
+      }
       const [{ count: sectionCount }, { count: traineeCount }] = await Promise.all([
         supabase.from('program_sections').select('*', { count: 'exact', head: true }).eq('program_id', program.id),
-        supabase.from('trainee_programs').select('*', { count: 'exact', head: true }).eq('program_id', program.id),
+        traineeQuery,
       ]);
       return { ...program, sectionCount: sectionCount || 0, traineeCount: traineeCount || 0 };
     })

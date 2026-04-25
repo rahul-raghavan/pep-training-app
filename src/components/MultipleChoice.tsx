@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { MultipleChoiceExercise } from '@/content/types';
+import Pill from '@/components/paper/Pill';
 
 interface Props {
   exercise: MultipleChoiceExercise;
@@ -11,7 +12,48 @@ interface Props {
   correctAttempts?: number;
 }
 
-export default function MultipleChoice({ exercise, onComplete, previousAttempts = 0, previouslyCorrect, correctAttempts = 0 }: Props) {
+type OptionState = 'idle' | 'selected' | 'correct' | 'wrong' | 'revealed-correct' | 'dim';
+
+function optionStyle(state: OptionState): { borderClass: string; bg: string; markColor: string; mark: string } {
+  switch (state) {
+    case 'selected':
+      return { borderClass: 'border-2', bg: 'var(--accent-soft)', markColor: 'var(--accent)', mark: '●' };
+    case 'correct':
+      return { borderClass: 'border-2', bg: 'var(--good-soft)', markColor: 'var(--good)', mark: '✓' };
+    case 'wrong':
+      return { borderClass: 'border-2', bg: 'var(--bad-soft)', markColor: 'var(--bad)', mark: '✕' };
+    case 'revealed-correct':
+      return { borderClass: 'border-2', bg: 'var(--good-soft)', markColor: 'var(--good)', mark: '✓' };
+    case 'dim':
+      return { borderClass: 'border', bg: 'var(--paper)', markColor: 'var(--ink-3)', mark: '' };
+    default:
+      return { borderClass: 'border', bg: 'var(--paper)', markColor: 'var(--ink-3)', mark: '' };
+  }
+}
+
+function stateBorderColor(state: OptionState): string {
+  switch (state) {
+    case 'selected':
+      return 'var(--accent)';
+    case 'correct':
+    case 'revealed-correct':
+      return 'var(--good)';
+    case 'wrong':
+      return 'var(--bad)';
+    case 'dim':
+      return 'var(--rule)';
+    default:
+      return 'var(--rule)';
+  }
+}
+
+export default function MultipleChoice({
+  exercise,
+  onComplete,
+  previousAttempts = 0,
+  previouslyCorrect,
+  correctAttempts = 0,
+}: Props) {
   const [selected, setSelected] = useState<number | null>(null);
   const [submitted, setSubmitted] = useState(false);
 
@@ -29,114 +71,110 @@ export default function MultipleChoice({ exercise, onComplete, previousAttempts 
   const isCorrect = selected === exercise.correctIndex;
 
   return (
-    <div className="bg-white border border-slate-200 rounded-lg p-4 sm:p-6 my-4 sm:my-6">
-      <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="bg-slate-100 text-slate-600 text-xs font-medium px-2 py-1 rounded">
-            Knowledge Check
-          </div>
-          {previousAttempts > 0 && (
-            <div className={`text-xs px-2 py-1 rounded ${
-              previouslyCorrect
-                ? 'bg-green-100 text-green-700'
-                : 'bg-amber-100 text-amber-700'
-            }`}>
-              {previousAttempts} previous attempt{previousAttempts > 1 ? 's' : ''}
-              {correctAttempts > 0 && ` (${correctAttempts} correct)`}
-              {correctAttempts === 0 && previousAttempts > 0 && ' (none correct yet)'}
-            </div>
-          )}
+    <div className="border border-rule rounded-lg bg-paper p-4 sm:p-5 my-5 shadow-sm">
+      {/* Eyebrow */}
+      <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+        <div className="text-[11px] uppercase tracking-wide font-medium text-ink-2">
+          Knowledge check
         </div>
+        {previousAttempts > 0 && (
+          <Pill kind={previouslyCorrect ? 'good' : 'warn'}>
+            {previousAttempts} attempt{previousAttempts > 1 ? 's' : ''}
+            {correctAttempts > 0 && ` · ${correctAttempts} correct`}
+            {correctAttempts === 0 && ` · none correct yet`}
+          </Pill>
+        )}
       </div>
 
-      <h4 className="text-lg font-medium text-slate-900 mb-4">{exercise.question}</h4>
+      <h4 className="text-[17px] font-semibold tracking-tight leading-snug mb-4">{exercise.question}</h4>
 
-      <div className="space-y-3">
+      <div className="flex flex-col gap-2.5">
         {exercise.options.map((option, index) => {
           const isSelected = selected === index;
           const isCorrectOption = index === exercise.correctIndex;
 
-          let optionClass = 'border-slate-200 hover:border-slate-300 hover:bg-slate-50';
-
+          let state: OptionState;
           if (submitted) {
-            if (isCorrectOption) {
-              optionClass = 'border-green-500 bg-green-50';
-            } else if (isSelected && !isCorrectOption) {
-              optionClass = 'border-red-500 bg-red-50';
-            }
+            if (isCorrectOption && isSelected) state = 'correct';
+            else if (!isCorrectOption && isSelected) state = 'wrong';
+            else if (isCorrectOption && !isSelected) state = 'revealed-correct';
+            else state = 'dim';
           } else if (isSelected) {
-            optionClass = 'border-blue-500 bg-blue-50';
+            state = 'selected';
+          } else {
+            state = 'idle';
           }
+
+          const s = optionStyle(state);
 
           return (
             <button
               key={index}
               onClick={() => !submitted && setSelected(index)}
               disabled={submitted}
-              className={`w-full text-left p-3 sm:p-4 rounded-lg border-2 transition-colors ${optionClass} ${
-                submitted ? 'cursor-default' : 'cursor-pointer'
+              className={`w-full text-left p-3 sm:p-3.5 rounded-md ${s.borderClass} flex items-start gap-3 transition-colors ${
+                submitted ? 'cursor-default' : 'cursor-pointer hover:border-slate-300'
               }`}
+              style={{
+                borderColor: stateBorderColor(state),
+                background: s.bg,
+                color: state === 'dim' ? 'var(--ink-3)' : 'var(--ink)',
+              }}
             >
-              <div className="flex items-start gap-3">
-                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${
-                  isSelected ? 'border-current' : 'border-slate-300'
-                }`}>
-                  {submitted && isCorrectOption && (
-                    <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                  )}
-                  {submitted && isSelected && !isCorrectOption && (
-                    <svg className="w-4 h-4 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                    </svg>
-                  )}
-                </div>
-                <span className="text-slate-700 break-words">{option}</span>
+              <div
+                className="w-6 h-6 border rounded-full flex items-center justify-center flex-shrink-0 text-[11px] font-semibold"
+                style={{ borderColor: s.markColor, color: s.markColor }}
+              >
+                {s.mark || String.fromCharCode(65 + index)}
               </div>
+              <span className="text-[14px] leading-snug break-words flex-1">
+                {option}
+              </span>
             </button>
           );
         })}
       </div>
 
       {!submitted && (
-        <button
-          onClick={handleSubmit}
-          disabled={selected === null}
-          className="mt-4 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
-          Check Answer
-        </button>
+        <div className="flex justify-end mt-4">
+          <button
+            onClick={handleSubmit}
+            disabled={selected === null}
+            className="text-[13px] font-medium rounded-md px-4 py-2 bg-ink text-paper hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
+          >
+            Check answer
+          </button>
+        </div>
       )}
 
       {submitted && (
-        <div className={`mt-4 p-4 rounded-lg ${isCorrect ? 'bg-green-50' : 'bg-amber-50'}`}>
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              {isCorrect ? (
-                <>
-                  <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  <span className="font-medium text-green-800">Correct!</span>
-                </>
-              ) : (
-                <>
-                  <svg className="w-5 h-5 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                  </svg>
-                  <span className="font-medium text-amber-800">Not quite</span>
-                </>
-              )}
-            </div>
-            <button
-              onClick={handleRetry}
-              className="text-sm text-slate-600 hover:text-slate-800 underline"
-            >
-              Try again
-            </button>
+        <div
+          className="mt-4 p-3.5 rounded-md border"
+          style={{
+            borderColor: isCorrect ? '#86efac' : '#fde68a',
+            background: isCorrect ? 'var(--good-soft)' : 'var(--warn-soft)',
+          }}
+        >
+          <div className="flex items-center gap-2 mb-1.5">
+            {isCorrect ? (
+              <span className="text-[14px] font-semibold text-good">✓ Correct</span>
+            ) : (
+              <span className="text-[14px] font-semibold" style={{ color: 'var(--warn-ink)' }}>
+                Not quite
+              </span>
+            )}
+            <span className="ml-auto">
+              <button
+                onClick={handleRetry}
+                className="text-[12px] text-ink-2 hover:text-ink underline underline-offset-2"
+              >
+                Try again
+              </button>
+            </span>
           </div>
-          <p className="text-sm text-slate-700">{exercise.explanation}</p>
+          <p className="text-[14px] leading-relaxed text-ink">
+            {exercise.explanation}
+          </p>
         </div>
       )}
     </div>
