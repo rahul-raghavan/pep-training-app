@@ -11,13 +11,26 @@ interface ProgramInfo {
   description: string | null;
   totalSections: number;
   completedSections: number;
-  status: 'not_started' | 'in_progress' | 'sections_complete' | 'passed';
+  status: 'locked' | 'not_started' | 'in_progress' | 'sections_complete' | 'passed';
+  locked?: boolean;
+  prerequisite?: {
+    slug: string;
+    title: string;
+    enrolled: boolean;
+    passed: boolean;
+  } | null;
   bestScore: number | null;
   bestTotal: number | null;
 }
 
 function StatusBadge({ status }: { status: ProgramInfo['status'] }) {
   switch (status) {
+    case 'locked':
+      return (
+        <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-slate-100 text-slate-500">
+          Locked
+        </span>
+      );
     case 'passed':
       return (
         <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-green-100 text-green-700">
@@ -123,16 +136,14 @@ export default function LearnPage() {
                 ? Math.round((program.completedSections / program.totalSections) * 100)
                 : 0;
 
-              return (
-                <Link
-                  key={program.id}
-                  href={`/learn/${program.slug}`}
-                  className="bg-white rounded-lg border border-slate-200 p-6 hover:border-slate-300 hover:shadow-sm transition-all group"
-                >
+              const locked = program.status === 'locked' || program.locked;
+
+              const cardContent = (
+                <>
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
                       <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-1">
-                        <h2 className="text-base sm:text-lg font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">
+                        <h2 className={`text-base sm:text-lg font-semibold text-slate-900 transition-colors ${locked ? '' : 'group-hover:text-blue-600'}`}>
                           {program.title}
                         </h2>
                         <StatusBadge status={program.status} />
@@ -141,10 +152,22 @@ export default function LearnPage() {
                         <p className="text-slate-600 text-sm">{program.description}</p>
                       )}
                     </div>
-                    <svg className="w-5 h-5 text-slate-400 group-hover:text-blue-600 transition-colors flex-shrink-0 ml-4 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
+                    {locked ? (
+                      <svg className="w-5 h-5 text-slate-400 flex-shrink-0 ml-4 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                    ) : (
+                      <svg className="w-5 h-5 text-slate-400 group-hover:text-blue-600 transition-colors flex-shrink-0 ml-4 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    )}
                   </div>
+
+                  {locked && program.prerequisite && (
+                    <div className="mb-3 rounded-md bg-slate-50 border border-slate-200 px-3 py-2 text-sm text-slate-600">
+                      Pass {program.prerequisite.title} to unlock this course.
+                    </div>
+                  )}
 
                   {/* Progress bar */}
                   {program.totalSections > 0 && (
@@ -176,6 +199,27 @@ export default function LearnPage() {
                       </div>
                     </div>
                   )}
+                </>
+              );
+
+              if (locked) {
+                return (
+                  <div
+                    key={program.id}
+                    className="bg-white rounded-lg border border-slate-200 p-6 transition-all group opacity-80"
+                  >
+                    {cardContent}
+                  </div>
+                );
+              }
+
+              return (
+                <Link
+                  key={program.id}
+                  href={`/learn/${program.slug}`}
+                  className="bg-white rounded-lg border border-slate-200 p-6 hover:border-slate-300 hover:shadow-sm transition-all group"
+                >
+                  {cardContent}
                 </Link>
               );
             })}

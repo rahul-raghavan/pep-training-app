@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireAuth } from '@/lib/auth';
+import { getProgramAccessStatus } from '@/lib/program-prerequisites';
 
 export async function GET(request: NextRequest) {
   const { user, error: authError } = await requireAuth(request);
@@ -86,7 +87,7 @@ export async function GET(request: NextRequest) {
     }
   });
 
-  const programs = activeEnrollments.map((e: Record<string, unknown>) => {
+  const programs = await Promise.all(activeEnrollments.map(async (e: Record<string, unknown>) => {
     const prog = e.programs as Record<string, unknown>;
     const programId = prog.id as string;
     const totalSections = sectionCountMap[programId] || 0;
@@ -98,10 +99,13 @@ export async function GET(request: NextRequest) {
     const passed = bestAttempt
       ? (bestAttempt.score / bestAttempt.total) * 100 >= passingScore
       : false;
+    const accessStatus = await getProgramAccessStatus(user.traineeId!, { slug: prog.slug as string });
 
     // Determine status
     let status: string;
-    if (passed) {
+    if (accessStatus.locked) {
+      status = 'locked';
+    } else if (passed) {
       status = 'passed';
     } else if (completedSections === totalSections && totalSections > 0) {
       status = 'sections_complete';
@@ -119,10 +123,12 @@ export async function GET(request: NextRequest) {
       totalSections,
       completedSections,
       status,
+      locked: accessStatus.locked,
+      prerequisite: accessStatus.prerequisite,
       bestScore: bestAttempt ? bestAttempt.score : null,
       bestTotal: bestAttempt ? bestAttempt.total : null,
     };
-  });
+  }));
 
   return NextResponse.json({ programs });
 }

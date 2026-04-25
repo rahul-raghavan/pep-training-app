@@ -10,6 +10,7 @@ import {
   dbExerciseToExercise,
   isTraineeEnrolled,
 } from '@/lib/programs';
+import { getProgramAccessStatus, prerequisiteLockedResponse } from '@/lib/program-prerequisites';
 
 // GET - Combined endpoint for section page: trainee data + section content + filtered responses
 // ?programSlug=X&sectionSlug=Y
@@ -37,6 +38,11 @@ export async function GET(request: NextRequest) {
   // Enrollment check
   if (!(await isTraineeEnrolled(user.traineeId, program.id))) {
     return NextResponse.json({ error: 'Not enrolled in this program' }, { status: 403 });
+  }
+
+  const accessStatus = await getProgramAccessStatus(user.traineeId, program);
+  if (accessStatus.locked) {
+    return NextResponse.json(prerequisiteLockedResponse(accessStatus), { status: 423 });
   }
 
   // Get sections list (cached) and find the requested section (cached)

@@ -9,6 +9,7 @@ import {
   dbExerciseToExercise,
   isTraineeEnrolled,
 } from '@/lib/programs';
+import { getProgramAccessStatus, prerequisiteLockedResponse } from '@/lib/program-prerequisites';
 
 // GET - Fetch program content for trainees (read-only)
 // ?programSlug=X — returns program with section list
@@ -32,6 +33,11 @@ export async function GET(request: NextRequest) {
   // Enrollment check
   if (!user.traineeId || !(await isTraineeEnrolled(user.traineeId, program.id))) {
     return NextResponse.json({ error: 'Not enrolled in this program' }, { status: 403 });
+  }
+
+  const accessStatus = await getProgramAccessStatus(user.traineeId, program);
+  if (accessStatus.locked) {
+    return NextResponse.json(prerequisiteLockedResponse(accessStatus), { status: 423 });
   }
 
   const sections = await getProgramSections(program.id);
