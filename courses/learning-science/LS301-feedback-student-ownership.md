@@ -97,9 +97,9 @@ A teacher says: "I don't give much feedback because I want students to be indepe
 #### Voice Exercise: The no-grades debate
 **Scenario:** Two teachers both work in schools without formal grades. Teacher A says: "We don't need to worry about feedback so much — students can see their own progress through the work they're doing. They don't need us to tell them how they're going." Teacher B says: "Feedback matters MORE in our school than in a graded school. Without grades, our feedback is the only way students know where they stand." Rank which teacher's view is better supported by research, and explain why.
 **Guidance:** A good response should:
-- Clearly rank Teacher B's view as better supported by research
+- Take a clear position and support it with research from the section
 - Explain that students' self-perception of progress is often inaccurate (the fluency trap — feeling confident doesn't mean understanding)
-- Acknowledge Teacher A's point has a grain of truth (students do learn from doing work) but explain why it's insufficient
+- Acknowledge the reasonable part of the opposing view, then explain why it is insufficient
 - Connect to the vacuum principle: removing grades removes a signal, and feedback must fill that gap
 - Reference the practical consequence: without feedback, students may practise and repeat mistakes without knowing it
 **AI Prompt:** Evaluate whether the response: (1) correctly identifies Teacher B's view as better supported by research, (2) explains why student self-perception of progress is unreliable without external feedback (referencing the fluency trap or similar concept), (3) addresses Teacher A's reasoning and explains its flaw — that doing work is not the same as knowing whether the work is good, (4) connects to the no-grades context specifically. Flag if the response says both teachers are equally right, or if it doesn't address why feedback matters more without grades.
@@ -204,12 +204,11 @@ In LS 101, you learned about the fluency trap. A student reads through their not
 #### Voice Exercise: Ranking feedback quality
 **Scenario:** A student in your group submits a short piece of writing about their favourite animal. Three teachers each give feedback on the same piece. Teacher A writes: "Lovely work! You clearly love animals. Keep it up!" Teacher B writes: "Your spelling needs work. Check these words: giraffe, because, beautiful, different, their. Also, your sentences are too long. And you need a better conclusion." Teacher C writes: "Your description of what the giraffe looks like is vivid — I could picture it. Your second paragraph starts to explain why giraffes are interesting but stops short. Add two more sentences explaining what makes giraffes different from other animals." Rank the three pieces of feedback from most to least likely to improve the student's next piece of writing, and explain why.
 **Guidance:** A good response should:
-- Rank Teacher C first — specific, focused, actionable, and balanced (identifies what works and what to improve)
-- Rank Teacher A last — praise only, no actionable information
-- Place Teacher B in the middle — specific but overwhelming (too many issues at once)
-- Explain that Teacher C's feedback is focused on ONE priority, tells the student what to do, and is bridgeable
-- Note that Teacher B's feedback, while accurate, gives the student too many things to fix and is likely to overwhelm
-- Note that Teacher A's response, while kind, gives the student zero information about their work
+- Rank the feedback by how likely it is to improve the student's next piece of writing
+- Look for feedback that is specific, focused, actionable, and balanced
+- Notice whether the student is given one bridgeable next step or too many corrections at once
+- Distinguish praise from feedback that gives information about the work
+- Explain the tradeoff between accuracy, kindness, focus, and usefulness
 **AI Prompt:** Evaluate whether the response: (1) ranks Teacher C as most effective, (2) ranks Teacher A as least effective, (3) explains why focused, actionable feedback (Teacher C) outperforms both praise (Teacher A) and overloaded correction (Teacher B), (4) mentions at least one key principle — specificity, prioritisation, or actionability. Flag if the response ranks Teacher A first or doesn't explain why Teacher B's approach is problematic despite being specific.
 
 ---
@@ -436,11 +435,11 @@ In LS 202, you learned about success criteria. Why are clear success criteria es
 #### Voice Exercise: Ranking trust and improvement
 **Scenario:** A student in your group has written a persuasive letter. The argument is clear but the writing is disorganised — ideas jump around without logical connections. Three teachers give feedback. Teacher A says: "Nice job! Your argument really comes through. Just tidy it up a bit." Teacher B says: "This is disorganised. You need to restructure the whole thing. The ideas are all over the place." Teacher C says: "Your central argument is strong — you've taken a clear stand and I can hear your voice in the writing. The challenge is that your ideas don't flow in a logical order yet. Here's what I'd like you to try: number your paragraphs in the order that would make the most sense to a reader, then rearrange them. I'm pushing you on structure because your ideas are too good to be lost in a jumble." Rank which teacher builds the most trust AND produces the most improvement. Explain your ranking.
 **Guidance:** A good response should:
-- Rank Teacher C first for both trust and improvement — balances honest criticism with specific guidance, actionable steps, and belief in the student
-- Rank Teacher A last for improvement (no actionable information) and note that the apparent kindness may signal low expectations
-- Place Teacher B in the middle — honest but lacks guidance or trust-building elements
-- Reference the wise feedback formula: high standards + belief
-- Explain that Teacher C's approach gives the student a concrete task (number and rearrange paragraphs) rather than just identifying the problem
+- Rank the responses for both trust and improvement, not just surface kindness
+- Reference the wise feedback formula: high standards plus belief
+- Look for feedback that is honest about the problem and gives a concrete next action
+- Notice whether "kind" feedback still communicates high expectations
+- Explain how the wording affects the student's willingness and ability to revise
 **AI Prompt:** Evaluate whether the response: (1) ranks Teacher C as best for both trust and improvement, (2) explains why Teacher A's approach, despite feeling kind, may signal low expectations, (3) identifies what Teacher B gets right (honesty) and what's missing (guidance, belief), (4) references the wise feedback elements — high standards combined with belief in the student. Flag if the response ranks Teacher A first for trust or doesn't distinguish between being nice and building trust.
 
 ---

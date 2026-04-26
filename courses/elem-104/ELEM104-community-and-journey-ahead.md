@@ -843,13 +843,14 @@ When Montessori called education "an aid to life," she meant:
 - D) Life skills should be taught as a separate subject
 **Explanation:** For Montessori, the classroom is not a waiting room for "real life." It is a living community where children practise the skills of cooperation, conflict resolution, and contribution every day. What they do in the classroom is not preparation — it is the real thing.
 #### Voice Exercise: What you carry forward
-**Scenario:** You have just completed this course. In a few words or a few minutes, speak about what you are taking away. What idea, image, or principle from these four courses will stay with you as you work with children — whether in your current classroom or your first future classroom? Why does it matter to you?
+**Scenario:** A new guide joining your team asks, "What is one practice from this elementary training that I should actually see you doing differently in the first month?" Choose one concrete classroom moment — for example, a first-day routine, a community agreement conversation, a parent concern, a 9-12 presentation, or a child testing independence — and explain what you will do differently and why.
 **Guidance:** A strong response should:
-- Name a specific idea, principle, or moment from the course that resonated personally
-- Explain why it matters — not in theoretical terms, but in terms of their own practice and growth
-- Show genuine reflection, not just a summary of content
-- Be honest about hopes, doubts, or commitments
-**AI Prompt:** Evaluate whether the response: (1) names something specific rather than a vague general statement, (2) shows personal connection — this matters to ME, not just "this is important," (3) is honest and reflective rather than performative, (4) connects to their actual classroom practice or growth as a guide. Flag if the response is a generic summary of the course, if it lacks personal voice, or if it avoids genuine reflection.
+- Name a specific principle from the course, not just a broad value
+- Apply it to a concrete classroom or parent-facing moment
+- Describe the teacher action others would actually observe
+- Explain what the child, parent, or community should experience as a result
+- Include honest reflection without becoming vague or sentimental
+**AI Prompt:** Evaluate whether the response: (1) names a specific principle from the course, (2) applies it to a concrete first-month classroom or parent-facing moment, (3) describes observable teacher action, (4) explains the intended effect on the child, parent, or community, (5) includes genuine reflection without becoming a generic course summary. Flag if the response only says "follow the child," "build community," or "be patient" without showing what that changes in practice.
 
 ---
 

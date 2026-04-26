@@ -183,14 +183,15 @@ According to Montessori's vision, the primary goal of adolescent education is:
 **Explanation:** Montessori's aim was what she called "the science of peace" — supporting natural development AND making visible our interdependence. Academic achievement, practical skills, and student choice are all means to this end, not the end itself.
 
 #### Voice Exercise: Explaining Montessori to a sceptic
-**Scenario:** A new parent at an admissions meeting says: "I've heard Montessori is all about letting kids do whatever they want. How do I know my child will actually learn anything in your program?" Respond to this parent.
+**Scenario:** A new parent at an admissions meeting says: "I've heard Montessori is all about letting kids do whatever they want. How do I know my child will actually learn anything in your program?" Respond to this parent in 90 seconds. Your answer must explain Montessori's adolescent vision, not just defend PEP's schedule or list program features.
 **Guidance:** A good response should:
 - Acknowledge the concern without being defensive
-- Correct the misconception — Montessori is not unstructured or child-led in the way people assume
-- Explain what Montessori adolescent education actually is — purposeful work, real contribution, structured independence
-- Give a concrete example from the program (enterprise work, IGCSE pathway, the 50/50 split)
+- Correct the misconception by explaining structured independence, not "do whatever you want"
+- Use the Third Plane / adolescent-development lens from the section
+- Connect at least one Montessori idea (Erdkinder, real contribution, economic independence, or the academic holiday) to PEP's adapted practice
+- Give a concrete example from the program and explain why it supports learning
 - Be warm and confident, not preachy
-**AI Prompt:** Evaluate whether the response: (1) acknowledges the parent's concern genuinely, (2) corrects the misconception without being condescending, (3) explains what Montessori adolescent education actually looks like in practice, (4) gives at least one concrete example, (5) conveys confidence in the program. Flag if the response is dismissive of the parent's concern, overly theoretical, or fails to address the "will my child learn?" anxiety directly.
+**AI Prompt:** Evaluate whether the response: (1) acknowledges the parent's concern genuinely, (2) corrects the misconception without being condescending, (3) explicitly uses the Third Plane/adolescent-development lens, (4) accurately connects at least one Montessori adolescent concept (Erdkinder, real contribution/economic independence, academic holiday, structured independence) to PEP's adapted practice, (5) gives at least one concrete example and explains how learning happens through it. Flag if the response is generic Montessori marketing, only lists PEP features, misrepresents the academic holiday as lowered expectations, or fails to address the "will my child learn?" anxiety directly.
 
 ---
 

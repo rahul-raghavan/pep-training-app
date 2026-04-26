@@ -115,11 +115,11 @@ Teacher B says: "Understanding IS knowledge — it's just well-organised knowled
 
 Which teacher's view is better supported by what you've learned about schemas and how experts think? Explain why.
 **Guidance:** A good response should:
-- Clearly support Teacher B's view — understanding is not separate from knowledge, it IS well-organised knowledge (schemas)
+- Take a clear position using the schema argument from the section
 - Explain that schemas connect facts into meaningful patterns, which is what we call "understanding"
-- Note that Teacher A creates a false choice — dismissing knowledge-building actually undermines understanding
+- Identify the false choice between knowledge and understanding
 - Give a practical example: a student who "understands" fractions has built a rich schema connecting fractions to division, decimals, real-world sharing — that IS knowledge, just well-organised knowledge
-- Acknowledge that Teacher A's instinct is partly right — memorising isolated facts without connections isn't enough — but the solution is richer knowledge, not less knowledge
+- Acknowledge the valid concern about rote memorisation while explaining why the solution is richer knowledge, not less knowledge
 **AI Prompt:** Evaluate whether the response: (1) clearly takes a position supporting Teacher B, (2) explains that understanding IS well-organised knowledge (schemas), not something separate from knowledge, (3) explains why Teacher A's dismissal of knowledge-building actually undermines understanding, (4) gives at least one concrete example of how a schema represents "understanding," (5) avoids being dismissive of Teacher A — acknowledges the valid concern about rote memorisation while correcting the false choice. Flag if the response agrees with Teacher A, treats the two positions as equally valid, or fails to connect to the concept of schemas.
 
 ---
@@ -244,9 +244,10 @@ Teacher C gives students an engaging, hands-on activity where they build models.
 
 For each teacher, identify the primary type of cognitive load causing the problem and suggest a specific fix.
 **Guidance:** A good response should:
-- Identify Teacher A's problem as extraneous load (split attention) — the fix is to integrate information sources (put the formula on the worksheet, align instructions with the handout)
-- Identify Teacher B's problem as intrinsic load that's too high — the fix is to sequence the rules across multiple lessons, one at a time
-- Identify Teacher C's problem as germane load being misdirected — students are thinking about the model-building process rather than the scientific concept. The fix is to redesign the activity so the thinking is about the concept, or add structured reflection questions
+- Diagnose each case using the three-load framework: extraneous, intrinsic, and germane load
+- Explain the evidence in each scenario that points to your diagnosis
+- Propose a specific fix that reduces the wrong load or redirects attention to the learning goal
+- Avoid simply naming the load type; show why it fits
 - Use the diagnostic tool from the section: reduce extraneous, manage intrinsic, maximise germane
 **AI Prompt:** Evaluate whether the response: (1) correctly identifies Teacher A's problem as extraneous load / split attention and suggests integrating information sources, (2) correctly identifies Teacher B's problem as excessive intrinsic load and suggests sequencing across multiple lessons, (3) correctly identifies Teacher C's problem as misdirected germane load (students thinking about the wrong things) and suggests focusing the activity on the concept, (4) uses the three-load framework accurately — not just naming the types but explaining why each diagnosis fits. Flag if the response confuses the load types, gives vague fixes, or fails to address all three teachers.
 
@@ -935,12 +936,11 @@ Teacher B starts by asking students to draw as many different triangles as they 
 
 Which lesson is more likely to produce durable learning? Rank the two approaches and explain your reasoning using what you know about desirable difficulties, retrieval, and generation.
 **Guidance:** A good response should:
-- Rank Teacher B's lesson as more likely to produce durable learning
-- Identify the desirable difficulties in Teacher B's lesson: generation (drawing from memory), discrimination (sorting shapes), retrieval, productive struggle with feedback
-- Explain why Teacher A's smooth lesson may produce good performance in the moment but weaker retention — students are labelling (recognition) rather than generating
-- Acknowledge that Teacher A's lesson isn't bad — it's just less likely to produce durable learning
-- Connect to the paradox: the harder lesson (B) is likely to produce better long-term outcomes, even though it felt worse to students
-- Note that the real test is what students can do a week or two later, not how confident they feel right after
+- Judge the lessons by durable learning, not by how smooth or confident the lesson felt
+- Identify any desirable difficulties present: generation, retrieval, discrimination, productive struggle, and feedback
+- Distinguish recognition or labelling from having to generate and use knowledge
+- Avoid dismissing either lesson as simply "good" or "bad"; explain the tradeoff
+- Use the later-test standard: what students can do a week or two later
 **AI Prompt:** Evaluate whether the response: (1) clearly ranks Teacher B as more likely to produce durable learning, (2) identifies specific desirable difficulties in Teacher B's lesson (generation, discrimination, retrieval, productive struggle), (3) explains why Teacher A's lesson, despite looking good, may produce weaker retention, (4) connects to the performance vs learning distinction, (5) uses the "test it later" standard rather than in-the-moment confidence as the measure of learning. Flag if the response ranks Teacher A higher, fails to identify the desirable difficulties in Teacher B's approach, or dismisses Teacher A's lesson as "bad teaching."
 
 ---

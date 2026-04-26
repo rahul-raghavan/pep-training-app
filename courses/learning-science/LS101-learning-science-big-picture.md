@@ -101,7 +101,7 @@ A teacher attends an excellent workshop on retrieval practice. Two weeks later, 
 **Guidance:** A good response should:
 - Show empathy for Teacher A's position — experience IS valuable, especially in the early years
 - Explain that after the first few years, experience alone doesn't reliably improve teaching quality
-- Make the case for Teacher B's view using the knowing-doing gap: practice without structured reflection tends to reinforce existing habits, not improve them
+- Use the knowing-doing gap to evaluate the two views: practice without structured reflection tends to reinforce existing habits, not improve them
 - Mention that sustained, structured professional learning is the only strategy research shows can consistently improve teaching quality at scale
 **AI Prompt:** Evaluate whether the response: (1) shows genuine respect for Teacher A's experience rather than dismissing it, (2) explains why experience alone plateaus after the first few years, (3) connects to the knowing-doing gap — that doing something repeatedly doesn't mean doing it better, (4) makes a clear case that structured learning with feedback and reflection is what the research supports. Flag if the response is dismissive of experience or if it fails to take a clear position supported by research.
 
@@ -331,10 +331,11 @@ Teacher C covers all three ideas but gives students a summary sheet to refer to 
 
 Rank the three approaches for students who are new to this topic — which produces the most durable learning, and why?
 **Guidance:** A good response should:
-- Rank Teacher B as the strongest approach for novices — one idea at a time respects working memory limits
-- Explain why Teacher A overloads working memory — three new, interrelated ideas exceed the 3-5 item capacity
-- Explain why Teacher C's summary sheet doesn't solve the problem — the extraneous load from juggling three new ideas persists, and referring to a sheet adds split attention
-- Connect to the principle that small steps aren't spoon-feeding — they're managing cognitive load so real learning happens
+- Rank all three approaches using working memory limits for novices
+- Explain how the number of new interacting elements affects cognitive load
+- Consider whether a support sheet actually reduces the load or adds split attention
+- Connect to the principle that small steps are cognitive-load management, not spoon-feeding
+- Make clear what the teacher should do next and why
 **AI Prompt:** Evaluate whether the response: (1) clearly ranks Teacher B first and explains why single-concept focus works for novices, (2) identifies Teacher A's approach as overloading working memory with too many new elements, (3) explains why Teacher C's summary sheet is insufficient — the cognitive load problem isn't solved by a reference sheet, (4) connects to the principle that breaking content into small steps is about cognitive load management, not spoon-feeding. Flag if the response fails to rank all three or gives vague reasoning.
 
 ---
@@ -837,10 +838,9 @@ Teacher B builds in two diagnostic checkpoints. At the first checkpoint, she dis
 
 Which teacher's students are more likely to remember the material a week later, and why?
 **Guidance:** A good response should:
-- Identify Teacher B's approach as more effective for student learning
 - Explain that a smooth lesson isn't necessarily an effective one — coverage doesn't guarantee learning
-- Note that Teacher B gathered evidence and adjusted, which is the core of formative assessment
-- Acknowledge that Teacher A's lesson may have looked better from the outside but didn't check whether students were learning
+- Compare the two lessons by whether the teacher gathered evidence and adjusted
+- Acknowledge that a lesson may look better from the outside while still failing to check learning
 - Connect to the principle: "Students don't always learn what we teach" — only by checking can you find out
 **AI Prompt:** Evaluate whether the response: (1) clearly identifies Teacher B as more effective, (2) explains that smooth coverage doesn't guarantee learning — Teacher A didn't check understanding, (3) explains that Teacher B's "messy" lesson was actually responsive teaching in action, (4) connects to the principle that evidence of understanding should drive lesson decisions. Flag if the response equivocates ("both are good in different ways") or fails to explain why the smooth lesson is problematic.
 
@@ -971,11 +971,11 @@ Teacher C writes: "Your opening is strong — the question you start with hooks 
 
 Rank the three approaches — which produces the most improvement in the student's next piece of work, and why?
 **Guidance:** A good response should:
-- Rank Teacher C first: specific positive feedback (what works and why) + a detective task (find and fix) + a deadline for action
-- Rank Teacher B second: well-intentioned and informative, but the teacher did all the diagnostic work; the student just follows instructions; also risks overwhelming the student
-- Rank Teacher A last: no information, no action required, no learning
-- Explain that effective feedback creates work for the student — Teacher C's approach makes the student think; Teacher B's makes the student follow; Teacher A's requires nothing
-- Note that in a no-grades environment, feedback like Teacher C's is especially powerful because there's no grade competing for the student's attention
+- Rank all three approaches by how much useful learning work they create for the student
+- Look for feedback that is specific, focused, actionable, and tied to a next step
+- Notice whether the student must diagnose and improve the work, or whether the teacher has done all the thinking
+- Explain why praise alone is not the same as feedback
+- Connect to the no-grades context: feedback is the main improvement signal
 **AI Prompt:** Evaluate whether the response: (1) clearly ranks Teacher C first and explains why — specific praise + detective task + deadline, (2) ranks Teacher B second and explains the limitation — the teacher did the thinking, not the student, (3) ranks Teacher A last and explains that it provides no useful information, (4) connects to the detective principle: good feedback creates work for the learner, (5) optionally notes the no-grades advantage. Flag if the response ranks Teacher B first (a common error — it seems thorough but the student doesn't do the cognitive work) or fails to explain the reasoning behind the ranking.
 
 ---

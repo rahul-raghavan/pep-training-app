@@ -504,14 +504,15 @@ After giving a presentation with materials, the guide should:
 - C) Immediately give the next presentation in the sequence
 - D) Ask the child to explain back what they learned
 **Explanation:** Hovering after a presentation communicates "I don't trust you." The guide transfers the work to the child, steps away, and observes from a distance. They note what was presented so they can track each child's journey. The child needs space to explore, experiment, and make the work their own.
-#### Voice Exercise: Your storytelling strengths and fears
-**Scenario:** Think about the last time you told a story or gave a presentation to children. What went well? What felt uncomfortable? If you haven't done this yet, what excites you about it and what makes you nervous? Be honest.
+#### Voice Exercise: Diagnosing a story that falls flat
+**Scenario:** A guide is preparing a Great Story. Her plan is to read a page of facts, show six pictures, ask children to copy three key terms, and then tell them what the lesson means. She worries the children will drift. Diagnose what is likely to go wrong and redesign the opening two minutes so the story has a better chance of capturing attention.
 **Guidance:** A strong response should:
-- Reflect on a specific experience or an honest assessment of their readiness
-- Identify at least one strength (even small — "I made eye contact") and one area for growth
-- Show vulnerability — storytelling is challenging and it's important to acknowledge that
-- Connect personal growth to the principles in this section (preparation, voice, eyes, body)
-**AI Prompt:** Evaluate whether the response: (1) reflects on a specific experience or gives an honest self-assessment, (2) identifies both a strength and an area for growth, (3) shows genuine vulnerability rather than false confidence, (4) connects their reflection to practical storytelling principles. Flag if the response is purely theoretical, avoids personal reflection, or claims no weaknesses.
+- Diagnose the plan using storytelling principles from the section
+- Explain why fact-dumping, copying terms, or over-explaining weakens the story
+- Offer a concrete opening with image, question, object, movement, or dramatic contrast
+- Mention at least one delivery choice: voice, eyes, body, pause, or pacing
+- Keep the redesign practical enough to use with children
+**AI Prompt:** Evaluate whether the response: (1) diagnoses the weak plan using specific storytelling principles, (2) explains why fact-dumping/copying/over-explaining will reduce attention, (3) offers a concrete revised opening rather than generic advice, (4) includes at least one delivery move such as voice, eyes, body, pause, pacing, object, image, or question, (5) keeps the story child-facing and curiosity-driven. Flag if the response only says "make it engaging," keeps the fact list structure, or gives no actual opening language.
 
 #### Voice Exercise: Preparing a story
 **Scenario:** Choose one story you need to tell your students — it could be a Great Story, a historical narrative, or any curriculum story. Walk through the eight preparation steps out loud. How would you make this story your own? What is your opening line? What is your closing?

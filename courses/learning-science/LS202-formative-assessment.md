@@ -104,10 +104,10 @@ A teacher asks the same question to her group of 8 students at the end of a less
 #### Voice Exercise: The exit ticket comparison
 **Scenario:** Two teachers both use exit tickets at the end of every lesson. Teacher A collects them, puts them in a folder, and never looks at them again — she heard exit tickets are "best practice" and wants to follow the routine. Teacher B reads hers that evening and changes tomorrow's lesson based on what she finds. Which teacher is using formative assessment, and why does the distinction matter?
 **Guidance:** A good response should:
-- Clearly identify Teacher B as doing formative assessment and Teacher A as not
+- Take a clear position on which use of the exit ticket is actually formative
 - Explain that the exit ticket itself isn't formative — it's what you do with the information that matters
-- Reference the three-part definition: elicit, interpret, use — and show that Teacher A only does the first part
-- Explain why this matters: Teacher A is wasting time on a ritual; Teacher B is actually adjusting her teaching to meet student needs
+- Reference the three-part definition: elicit, interpret, use
+- Explain why the distinction matters for the next lesson, not just for terminology
 **AI Prompt:** Evaluate whether the response: (1) correctly identifies Teacher B as doing formative assessment and Teacher A as not, (2) explains that the tool doesn't make it formative — the use of evidence does, (3) references at least two of the three parts (elicit, interpret, use) and explains which Teacher A is missing, (4) articulates why the distinction matters in practical terms. Flag if the response says both teachers are doing formative assessment, or if it focuses on the exit ticket format rather than the use of information.
 
 ---
@@ -314,10 +314,11 @@ A teacher writes "Students will complete the maths worksheet" as her learning in
 #### Voice Exercise: Comparing checking methods
 **Scenario:** Three teachers each check understanding during a small-group lesson on the same topic. Teacher A asks "Does everyone understand?" and gets nods from most students. Teacher B calls on two students to explain the concept and both give good answers. Teacher C gives every student a mini-whiteboard and asks them to solve one problem — she sees that 5 of 8 students got it right and 3 made the same error. Rank the three approaches from most to least reliable in terms of checking every student's thinking, and explain your ranking.
 **Guidance:** A good response should:
-- Rank Teacher C first — she has evidence from every student and can see the specific error pattern
-- Rank Teacher B second — she has evidence from two students, which is better than none, but she doesn't know about the other six
-- Rank Teacher A last — nods and silence give no reliable information about understanding
-- Explain that the key principle is: every student produces a response, and the teacher sees all of them
+- Rank the approaches by how reliably they reveal every student's thinking
+- Explain what evidence each teacher actually has, and whose thinking remains invisible
+- Look for independent responses rather than nods, silence, or a few confident voices
+- Notice whether the teacher can see patterns of error, not just correct answers
+- State the key principle: every student produces a response, and the teacher sees all of them
 **AI Prompt:** Evaluate whether the response: (1) correctly ranks C first, B second, A last, (2) explains that Teacher C's approach gives evidence from every student while the others don't, (3) identifies the specific advantage of Teacher C seeing the error pattern (3 students made the same mistake), (4) articulates the principle that reliable checking requires every student to produce an independent response. Flag if the response ranks B first, or if it suggests that Teacher A's approach is adequate for a small group.
 
 ---
@@ -546,9 +547,9 @@ A teacher uses exit tickets every day but never reads them. She files them in a 
 #### Voice Exercise: Planning a decision point
 **Scenario:** Two teachers plan the same lesson on a concept students often struggle with. Teacher A plans a straight sequence: explain, practice, review. No checkpoints. Teacher B plans the same sequence but places a diagnostic question after the explanation — before practice begins. She has planned what she'll do if most students get it right (move to practice), if most get it wrong (reteach with a different example), or if the group is split (pair students with different answers). Rank whose students are more likely to learn the concept, and explain why the decision point makes a difference.
 **Guidance:** A good response should:
-- Clearly rank Teacher B's students as more likely to learn
-- Explain that Teacher A won't discover misunderstandings until practice (or later), by which time students have been practising with a misconception
-- Explain that Teacher B will catch misunderstandings at the critical moment and can respond immediately
+- Rank the approaches by whether the teacher can catch misunderstanding before students practise it
+- Explain what each teacher will know, when they will know it, and what they can do with that evidence
+- Connect the planned decision point to responsive teaching
 - Connect to the principle: "Don't collect evidence to admire it. Collect evidence to decide."
 **AI Prompt:** Evaluate whether the response: (1) clearly ranks Teacher B higher and explains why, (2) identifies the risk in Teacher A's approach — that misunderstandings go undetected and may be reinforced during practice, (3) explains the specific advantage of Teacher B's decision point — catching errors at the critical moment and having planned responses, (4) articulates the principle that the diagnostic question changes the lesson from "I hope they understand" to "I know whether they understand." Flag if the response suggests both approaches are equally good or if it doesn't explain the mechanism by which the decision point improves learning.
 

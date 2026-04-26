@@ -101,10 +101,10 @@ A middle school science teacher is planning a unit on photosynthesis. She has de
 #### Voice Exercise: The two teachers
 **Scenario:** Teacher A teaches fractions with a brilliant Phase 1 — concrete materials, clear modelling, careful guided practice, thorough checking. Students leave with solid understanding. But Teacher A moves on and never revisits fractions. Teacher B teaches fractions with a decent but unremarkable Phase 1. Students leave with reasonable understanding. But Teacher B plans retrieval starters on fractions for the next three weeks, plus an interleaved problem set a month later. Rank whose students will retain more a month later, and explain why using what you know about how memory works.
 **Guidance:** A good response should:
-- Clearly rank Teacher B's students as retaining more
+- Rank the two plans by likely long-term retention, not by how polished the initial lesson looks
 - Explain that initial understanding (Phase 1) is necessary but not sufficient for long-term retention
 - Reference the forgetting curve — without retrieval and spacing, even well-understood material fades
-- Acknowledge Teacher A's lesson was better in the moment, but that the moment isn't what matters for durable learning
+- Acknowledge the difference between strong initial performance and durable learning
 - Connect to the two-phase model: Phase 2 (retrieval, spacing, interleaving) is what prevents forgetting
 **AI Prompt:** Evaluate whether the response: (1) correctly ranks Teacher B's students as retaining more, (2) explains WHY using memory science (forgetting curve, retrieval practice, spacing), (3) acknowledges that Teacher A's lesson was better initially but explains why that's not enough, (4) connects to the two-phase design model. Flag if the response says Teacher A's students retain more, or if it doesn't explain the mechanism behind forgetting.
 
