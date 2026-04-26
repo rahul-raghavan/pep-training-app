@@ -241,14 +241,18 @@ export async function POST(request: NextRequest) {
       name,
       role,
       centerId,
+      centerIds,
       programTrackIds,
+      adminScopeCenterIds,
       adminScopeTrackIds,
     }: {
       email?: string;
       name?: string;
       role?: string;
       centerId?: string | null;
+      centerIds?: string[];
       programTrackIds?: string[];
+      adminScopeCenterIds?: string[];
       adminScopeTrackIds?: string[];
     } = body;
 
@@ -285,7 +289,14 @@ export async function POST(request: NextRequest) {
 
     // Sanitise scope. Admin scope only matters for role=admin. Trim to what's
     // also in programTrackIds — admin can't be admin of a track they aren't on.
+    const cleanCenters = Array.isArray(centerIds) ? centerIds : centerId ? [centerId] : [];
     const cleanProgramTracks = Array.isArray(programTrackIds) ? programTrackIds : [];
+    const cleanAdminCenters =
+      role === 'admin'
+        ? Array.isArray(adminScopeCenterIds) && adminScopeCenterIds.length > 0
+          ? adminScopeCenterIds
+          : cleanCenters
+        : [];
     const cleanAdminScope =
       role === 'admin' && Array.isArray(adminScopeTrackIds)
         ? adminScopeTrackIds.filter(id => cleanProgramTracks.includes(id))
@@ -298,6 +309,7 @@ export async function POST(request: NextRequest) {
       email: email.toLowerCase(),
       access_token: crypto.randomUUID(),
       pre_assigned_role: role || 'user',
+      pre_assigned_admin_scope_center_ids: cleanAdminCenters,
       pre_assigned_admin_scope_track_ids: cleanAdminScope,
     };
 
@@ -308,14 +320,28 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (traineeError && traineeError.code === '42703') {
-      // Column doesn't exist → migration not applied. Retry without scope.
-      const { pre_assigned_admin_scope_track_ids: _drop, ...fallback } = traineeInsert as {
-        pre_assigned_admin_scope_track_ids: unknown;
+      const {
+        pre_assigned_admin_scope_center_ids: _dropCenters,
+        ...fallbackWithTrackScope
+      } = traineeInsert as {
+        pre_assigned_admin_scope_center_ids: unknown;
         [k: string]: unknown;
       };
-      void _drop;
-      traineeInsert = fallback;
-      const retry = await supabase.from('trainees').insert(fallback).select().single();
+      void _dropCenters;
+      traineeInsert = fallbackWithTrackScope;
+      let retry = await supabase.from('trainees').insert(fallbackWithTrackScope).select().single();
+      if (retry.error?.code === '42703') {
+        const {
+          pre_assigned_admin_scope_track_ids: _dropTracks,
+          ...fallbackBasic
+        } = fallbackWithTrackScope as {
+          pre_assigned_admin_scope_track_ids: unknown;
+          [k: string]: unknown;
+        };
+        void _dropTracks;
+        traineeInsert = fallbackBasic;
+        retry = await supabase.from('trainees').insert(fallbackBasic).select().single();
+      }
       trainee = retry.data;
       traineeError = retry.error;
     }
@@ -329,10 +355,10 @@ export async function POST(request: NextRequest) {
     // exist yet (migration pending), surface a warning but keep the trainee.
     const warnings: string[] = [];
 
-    if (centerId) {
+    if (cleanCenters[0]) {
       const { error } = await supabase
         .from('teacher_centers')
-        .insert({ trainee_id: trainee.id, center_id: centerId });
+        .insert({ trainee_id: trainee.id, center_id: cleanCenters[0] });
       if (error) {
         if (error.code === '42P01') {
           warnings.push('center mapping skipped (schema migration not yet applied)');

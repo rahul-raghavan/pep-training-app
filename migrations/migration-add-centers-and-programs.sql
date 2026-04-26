@@ -94,6 +94,7 @@ CREATE INDEX IF NOT EXISTS course_programs_track_idx ON course_programs(track_id
 -- ----------------------------------------------------------------------------
 ALTER TABLE profiles
   ADD COLUMN IF NOT EXISTS admin_scope_center_id  UUID REFERENCES centers(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS admin_scope_center_ids UUID[] DEFAULT '{}'::uuid[],
   ADD COLUMN IF NOT EXISTS admin_scope_track_ids  UUID[] DEFAULT '{}'::uuid[];
 
 CREATE INDEX IF NOT EXISTS profiles_admin_scope_center_idx
@@ -106,6 +107,7 @@ CREATE INDEX IF NOT EXISTS profiles_admin_scope_center_idx
 -- clears it. The center comes from teacher_centers (already keyed by trainee_id).
 -- ----------------------------------------------------------------------------
 ALTER TABLE trainees
+  ADD COLUMN IF NOT EXISTS pre_assigned_admin_scope_center_ids UUID[] DEFAULT '{}'::uuid[],
   ADD COLUMN IF NOT EXISTS pre_assigned_admin_scope_track_ids UUID[] DEFAULT '{}'::uuid[];
 
 -- ----------------------------------------------------------------------------

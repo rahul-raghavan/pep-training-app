@@ -9,8 +9,10 @@ export type AuthUser = {
   name: string | null;
   traineeId: string | null;
   isActive: boolean;
-  /** Admin scope: which center this admin manages. NULL for super_admin/user. */
+  /** Admin scope: primary/legacy center this admin manages. NULL for super_admin/user. */
   adminScopeCenterId: string | null;
+  /** Admin scope: centers this admin manages. Empty for super_admin/user. */
+  adminScopeCenterIds: string[];
   /** Admin scope: which program tracks this admin manages within their center. */
   adminScopeTrackIds: string[];
 };
@@ -50,12 +52,13 @@ export async function getAuthUser(request: NextRequest): Promise<AuthResult> {
     name: string | null;
     is_active: boolean;
     admin_scope_center_id?: string | null;
+    admin_scope_center_ids?: string[] | null;
     admin_scope_track_ids?: string[] | null;
   } | null = null;
 
   const full = await admin
     .from('profiles')
-    .select('role, name, is_active, admin_scope_center_id, admin_scope_track_ids')
+    .select('role, name, is_active, admin_scope_center_id, admin_scope_center_ids, admin_scope_track_ids')
     .eq('id', user.id)
     .single();
   if (full.data) {
@@ -84,6 +87,13 @@ export async function getAuthUser(request: NextRequest): Promise<AuthResult> {
     .eq('user_id', user.id)
     .single();
 
+  const adminScopeCenterIds =
+    profile.admin_scope_center_ids && profile.admin_scope_center_ids.length > 0
+      ? profile.admin_scope_center_ids
+      : profile.admin_scope_center_id
+        ? [profile.admin_scope_center_id]
+        : [];
+
   return {
     user: {
       id: user.id,
@@ -92,7 +102,8 @@ export async function getAuthUser(request: NextRequest): Promise<AuthResult> {
       name: profile.name,
       traineeId: trainee?.id ?? null,
       isActive: profile.is_active,
-      adminScopeCenterId: profile.admin_scope_center_id ?? null,
+      adminScopeCenterId: adminScopeCenterIds[0] ?? null,
+      adminScopeCenterIds,
       adminScopeTrackIds: profile.admin_scope_track_ids ?? [],
     },
     error: null,

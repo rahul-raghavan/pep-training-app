@@ -40,7 +40,7 @@ export async function PUT(request: NextRequest) {
 
   // Scope check for regular admins
   if (user.role === 'admin') {
-    if (!user.adminScopeCenterId) {
+    if (user.adminScopeCenterIds.length === 0) {
       return NextResponse.json({ error: 'Admin has no center scope assigned' }, { status: 403 });
     }
     if (user.adminScopeTrackIds.length === 0) {
@@ -53,7 +53,7 @@ export async function PUT(request: NextRequest) {
       .select('center_id')
       .eq('trainee_id', traineeId)
       .single();
-    if (!tc || tc.center_id !== user.adminScopeCenterId) {
+    if (!tc || !user.adminScopeCenterIds.includes(tc.center_id)) {
       return NextResponse.json({ error: 'Trainee is not in your center' }, { status: 403 });
     }
 

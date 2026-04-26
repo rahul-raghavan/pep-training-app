@@ -62,6 +62,15 @@ const middleSchoolSlugs = [
   'ms-conduct',
 ];
 
+const learningScienceSlugs = [
+  'learning-science-101',
+  'how-learning-works',
+  'formative-assessment',
+  'feedback-student-ownership',
+  'designing-durable-learning',
+  'leading-teacher-learning',
+];
+
 async function main() {
   const { error: trackUpsertError } = await supabase
     .from('program_tracks')
@@ -75,8 +84,13 @@ async function main() {
 
   const trackBySlug = new Map((tracks ?? []).map(track => [track.slug, track]));
   const middleTrack = trackBySlug.get('middle');
+  const elementaryTrack = trackBySlug.get('elementary');
   if (!middleTrack) {
     console.error('Middle School track missing after upsert');
+    process.exit(1);
+  }
+  if (!elementaryTrack) {
+    console.error('Elementary track missing after upsert');
     process.exit(1);
   }
 
@@ -97,6 +111,18 @@ async function main() {
       .from('course_programs')
       .upsert(mappingRows, { onConflict: 'program_id,track_id', ignoreDuplicates: true });
     requireOk('middle-school course_programs upsert failed', mappingError);
+  }
+
+  const learningScienceCourses = activePrograms.filter(program => learningScienceSlugs.includes(program.slug));
+  const learningScienceMappingRows = learningScienceCourses.flatMap(program => [
+    { program_id: program.id, track_id: elementaryTrack.id },
+    { program_id: program.id, track_id: middleTrack.id },
+  ]);
+  if (learningScienceMappingRows.length > 0) {
+    const { error: mappingError } = await supabase
+      .from('course_programs')
+      .upsert(learningScienceMappingRows, { onConflict: 'program_id,track_id', ignoreDuplicates: true });
+    requireOk('learning-science course_programs upsert failed', mappingError);
   }
 
   const { data: existingTrainees, error: traineeLookupError } = await supabase
@@ -202,6 +228,7 @@ async function main() {
   console.log(JSON.stringify({
     tracks: trackSeeds.map(track => track.slug),
     middleSchoolCoursesMapped: middleCourses.map(course => course.slug),
+    learningScienceCoursesMapped: learningScienceCourses.map(course => course.slug),
     testTeacher: {
       id: testTrainee.id,
       email: TEST_EMAIL,

@@ -87,6 +87,7 @@ export async function GET(request: Request) {
     // Determine role + read any pre-assigned admin scope from the trainee row.
     // Admin scope columns may not exist yet (migration pending) — handle gracefully.
     let preAssignedAdminScope: string[] = [];
+    let preAssignedAdminCenters: string[] = [];
     let preRegisteredTraineeId: string | null = null;
 
     if (SUPER_ADMIN_EMAILS.includes(email)) {
@@ -105,12 +106,13 @@ export async function GET(request: Request) {
       let preRegistered: {
         id: string;
         pre_assigned_role: string | null;
+        pre_assigned_admin_scope_center_ids: string[] | null;
         pre_assigned_admin_scope_track_ids: string[] | null;
       } | null = null;
 
       const full = await admin
         .from('trainees')
-        .select('id, pre_assigned_role, pre_assigned_admin_scope_track_ids')
+        .select('id, pre_assigned_role, pre_assigned_admin_scope_center_ids, pre_assigned_admin_scope_track_ids')
         .eq('email', email)
         .not('pre_assigned_role', 'is', null)
         .single();
@@ -128,6 +130,7 @@ export async function GET(request: Request) {
           preRegistered = {
             id: fallback.data.id,
             pre_assigned_role: fallback.data.pre_assigned_role,
+            pre_assigned_admin_scope_center_ids: null,
             pre_assigned_admin_scope_track_ids: null,
           };
         }
@@ -135,6 +138,7 @@ export async function GET(request: Request) {
 
       if (preRegistered?.pre_assigned_role) {
         role = preRegistered.pre_assigned_role;
+        preAssignedAdminCenters = preRegistered.pre_assigned_admin_scope_center_ids ?? [];
         preAssignedAdminScope = preRegistered.pre_assigned_admin_scope_track_ids ?? [];
         preRegisteredTraineeId = preRegistered.id;
       } else {
@@ -151,9 +155,12 @@ export async function GET(request: Request) {
         .select('center_id')
         .eq('trainee_id', preRegisteredTraineeId)
         .single();
-      if (!tcError && tc) {
+      if (!tcError && tc && preAssignedAdminCenters.length === 0) {
         adminScopeCenterId = tc.center_id;
       }
+    }
+    if (preAssignedAdminCenters.length === 0 && adminScopeCenterId) {
+      preAssignedAdminCenters = [adminScopeCenterId];
     }
 
     // Build the profile insert. Try with the new admin scope columns first;
@@ -166,13 +173,18 @@ export async function GET(request: Request) {
     };
     const profileWithScope: Record<string, unknown> = {
       ...profileBase,
-      admin_scope_center_id: role === 'admin' ? adminScopeCenterId : null,
+      admin_scope_center_id: role === 'admin' ? preAssignedAdminCenters[0] ?? adminScopeCenterId : null,
+      admin_scope_center_ids: role === 'admin' ? preAssignedAdminCenters : [],
       admin_scope_track_ids: role === 'admin' ? preAssignedAdminScope : [],
     };
 
     let { error: profileError } = await admin.from('profiles').insert(profileWithScope);
     if (profileError?.code === '42703') {
-      const retry = await admin.from('profiles').insert(profileBase);
+      const retry = await admin.from('profiles').insert({
+        ...profileBase,
+        admin_scope_center_id: role === 'admin' ? preAssignedAdminCenters[0] ?? adminScopeCenterId : null,
+        admin_scope_track_ids: role === 'admin' ? preAssignedAdminScope : [],
+      });
       profileError = retry.error;
     }
 
@@ -188,6 +200,7 @@ export async function GET(request: Request) {
         .from('trainees')
         .update({
           pre_assigned_role: null,
+          pre_assigned_admin_scope_center_ids: [],
           pre_assigned_admin_scope_track_ids: [],
           user_id: user.id,
         })
@@ -195,7 +208,11 @@ export async function GET(request: Request) {
       if (clearWithScope.error?.code === '42703') {
         await admin
           .from('trainees')
-          .update({ pre_assigned_role: null, user_id: user.id })
+          .update({
+            pre_assigned_role: null,
+            pre_assigned_admin_scope_track_ids: [],
+            user_id: user.id,
+          })
           .eq('id', preRegisteredTraineeId);
       }
     } else {

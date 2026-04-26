@@ -16,8 +16,10 @@ interface ProgramTrack {
 
 interface ScopeData {
   centerId: string | null;
+  centerIds: string[];
   programTrackIds: string[];
   role: 'super_admin' | 'admin' | 'user';
+  adminScopeCenterIds: string[];
   adminScopeTrackIds: string[];
 }
 
@@ -105,8 +107,10 @@ export default function ScopeEditor({ traineeId }: Props) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           centerId: draft.centerId,
+          centerIds: draft.role === 'admin' ? draft.centerIds : draft.centerId ? [draft.centerId] : [],
           programTrackIds: draft.programTrackIds,
           role: draft.role,
+          adminScopeCenterIds: draft.role === 'admin' ? draft.centerIds : [],
           adminScopeTrackIds: draft.role === 'admin' ? draft.adminScopeTrackIds : [],
         }),
       });
@@ -132,7 +136,17 @@ export default function ScopeEditor({ traineeId }: Props) {
   const view = editing && draft ? draft : data;
 
   const setCenter = (id: string) =>
-    setDraft(prev => (prev ? { ...prev, centerId: prev.centerId === id ? null : id } : prev));
+    setDraft(prev => {
+      if (!prev) return prev;
+      if (prev.role === 'admin') {
+        const centerIds = prev.centerIds.includes(id)
+          ? prev.centerIds.filter(centerId => centerId !== id)
+          : [...prev.centerIds, id];
+        return { ...prev, centerIds, centerId: centerIds[0] ?? null, adminScopeCenterIds: centerIds };
+      }
+      const centerId = prev.centerId === id ? null : id;
+      return { ...prev, centerId, centerIds: centerId ? [centerId] : [], adminScopeCenterIds: [] };
+    });
 
   const toggleTrack = (id: string) =>
     setDraft(prev => {
@@ -157,9 +171,18 @@ export default function ScopeEditor({ traineeId }: Props) {
     });
 
   const setRole = (id: 'user' | 'admin' | 'super_admin') =>
-    setDraft(prev => (prev ? { ...prev, role: id } : prev));
+    setDraft(prev => {
+      if (!prev) return prev;
+      if (id === 'admin') {
+        const centerIds = prev.centerIds.length > 0 ? prev.centerIds : prev.centerId ? [prev.centerId] : [];
+        return { ...prev, role: id, centerIds, centerId: centerIds[0] ?? null, adminScopeCenterIds: centerIds };
+      }
+      return { ...prev, role: id, centerIds: prev.centerId ? [prev.centerId] : [], adminScopeCenterIds: [] };
+    });
 
-  const centerName = centers.find(c => c.id === view.centerId)?.name;
+  const centerNames = (view.role === 'admin' ? view.centerIds : view.centerId ? [view.centerId] : [])
+    .map(id => centers.find(c => c.id === id)?.name)
+    .filter(Boolean) as string[];
   const trackName = (id: string) => tracks.find(t => t.id === id)?.name ?? '?';
 
   return (
@@ -217,8 +240,12 @@ export default function ScopeEditor({ traineeId }: Props) {
       {!editing && (
         <dl className="space-y-2.5 text-sm">
           <Row label="Center">
-            {view.centerId ? (
-              <Tag>{centerName ?? '?'}</Tag>
+            {centerNames.length > 0 ? (
+              <div className="flex flex-wrap gap-1.5">
+                {centerNames.map(name => (
+                  <Tag key={name}>{name}</Tag>
+                ))}
+              </div>
             ) : (
               <span className="text-slate-400">—</span>
             )}
@@ -258,13 +285,13 @@ export default function ScopeEditor({ traineeId }: Props) {
       {/* Edit form */}
       {editing && draft && (
         <div className="space-y-4 text-sm">
-          <Field label="Center" hint="One center per user">
+          <Field label="Center" hint={draft.role === 'admin' ? 'Admins may manage multiple centers' : 'One center per teacher'}>
             <Chips
               items={centers}
-              selectedIds={draft.centerId ? [draft.centerId] : []}
+              selectedIds={draft.role === 'admin' ? draft.centerIds : draft.centerId ? [draft.centerId] : []}
               onToggle={setCenter}
               empty="No centers seeded yet."
-              single
+              single={draft.role !== 'admin'}
             />
           </Field>
           <Field label="Programs" hint="One or more program tracks">

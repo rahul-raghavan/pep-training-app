@@ -66,7 +66,7 @@ export async function GET(
       needsTracks: true,
     });
   }
-  if (user.role === 'admin' && (!user.adminScopeCenterId || user.adminScopeTrackIds.length === 0)) {
+  if (user.role === 'admin' && (user.adminScopeCenterIds.length === 0 || user.adminScopeTrackIds.length === 0)) {
     return adminScopeError();
   }
 
@@ -146,9 +146,12 @@ export async function GET(
   }
 
   // Restrict regular admin to their center
-  if (user.role === 'admin' && user.adminScopeCenterId) {
+  if (user.role === 'admin' && user.adminScopeCenterIds.length > 0) {
     trainees = trainees.filter(
-      t => centerByTrainee.get(t.id)?.centerId === user.adminScopeCenterId
+      t => {
+        const centerId = centerByTrainee.get(t.id)?.centerId;
+        return Boolean(centerId && user.adminScopeCenterIds.includes(centerId));
+      }
     );
   }
 
@@ -272,7 +275,7 @@ export async function PUT(
 
   // For regular admins, the course's tracks must overlap with their managed tracks
   if (user.role === 'admin') {
-    if (!user.adminScopeCenterId || user.adminScopeTrackIds.length === 0) {
+    if (user.adminScopeCenterIds.length === 0 || user.adminScopeTrackIds.length === 0) {
       return adminScopeError();
     }
     const overlap = courseTrackIds.filter(id => user.adminScopeTrackIds.includes(id));
@@ -305,12 +308,12 @@ export async function PUT(
   });
 
   let validIds = validTraineeIds;
-  if (user.role === 'admin' && user.adminScopeCenterId) {
+  if (user.role === 'admin' && user.adminScopeCenterIds.length > 0) {
     const { data: tcs } = await supabase
       .from('teacher_centers')
       .select('trainee_id, center_id')
       .in('trainee_id', validIds)
-      .eq('center_id', user.adminScopeCenterId);
+      .in('center_id', user.adminScopeCenterIds);
     const inCenter = new Set((tcs ?? []).map(r => r.trainee_id));
     validIds = validIds.filter(id => inCenter.has(id));
   }

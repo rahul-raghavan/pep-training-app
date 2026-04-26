@@ -5,7 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 type AdminClient = ReturnType<typeof createAdminClient>;
 
 export function adminHasCompleteScope(user: AuthUser): boolean {
-  return user.role === 'super_admin' || Boolean(user.adminScopeCenterId && user.adminScopeTrackIds.length > 0);
+  return user.role === 'super_admin' || Boolean(user.adminScopeCenterIds.length > 0 && user.adminScopeTrackIds.length > 0);
 }
 
 export function adminScopeError() {
@@ -20,14 +20,14 @@ export async function getScopedTraineeIds(
   user: AuthUser
 ): Promise<Set<string> | null> {
   if (user.role === 'super_admin') return null;
-  if (!user.adminScopeCenterId || user.adminScopeTrackIds.length === 0) {
+  if (user.adminScopeCenterIds.length === 0 || user.adminScopeTrackIds.length === 0) {
     return new Set();
   }
 
   const { data: centerRows } = await supabase
     .from('teacher_centers')
     .select('trainee_id')
-    .eq('center_id', user.adminScopeCenterId);
+    .in('center_id', user.adminScopeCenterIds);
   const centerTraineeIds = (centerRows ?? []).map(row => row.trainee_id);
   if (centerTraineeIds.length === 0) return new Set();
 
@@ -46,7 +46,7 @@ export async function isTraineeInAdminScope(
   traineeId: string
 ): Promise<boolean> {
   if (user.role === 'super_admin') return true;
-  if (!user.adminScopeCenterId || user.adminScopeTrackIds.length === 0) return false;
+  if (user.adminScopeCenterIds.length === 0 || user.adminScopeTrackIds.length === 0) return false;
 
   const [{ data: centerRow }, { data: trackRows }] = await Promise.all([
     supabase
@@ -61,7 +61,7 @@ export async function isTraineeInAdminScope(
       .in('program_id', user.adminScopeTrackIds),
   ]);
 
-  return centerRow?.center_id === user.adminScopeCenterId && (trackRows ?? []).length > 0;
+  return Boolean(centerRow?.center_id && user.adminScopeCenterIds.includes(centerRow.center_id)) && (trackRows ?? []).length > 0;
 }
 
 export async function isCourseInAdminScope(

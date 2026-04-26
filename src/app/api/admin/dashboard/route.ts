@@ -86,10 +86,11 @@ export async function GET(request: NextRequest) {
 
   // Resolve scope.
   //   super_admin: requestedCenterId or "all" (default)
-  //   admin: pinned to their adminScopeCenterId
+  //   admin: pinned to one or more assigned centers
   let centerId: string | null;
   let scopeLocked = false;
   let isAllCenters = false;
+  let scopedCenterIds: string[] | null = null;
   if (user.role === 'super_admin') {
     if (requestedCenterId) {
       centerId = requestedCenterId;
@@ -98,7 +99,15 @@ export async function GET(request: NextRequest) {
       isAllCenters = true;
     }
   } else {
-    centerId = user.adminScopeCenterId ?? null;
+    scopedCenterIds = user.adminScopeCenterIds;
+    if (requestedCenterId && scopedCenterIds.includes(requestedCenterId)) {
+      centerId = requestedCenterId;
+    } else if (scopedCenterIds.length === 1) {
+      centerId = scopedCenterIds[0];
+    } else {
+      centerId = null;
+      isAllCenters = scopedCenterIds.length > 1;
+    }
     scopeLocked = true;
   }
   const center = centerId ? centers.find(c => c.id === centerId) ?? null : null;
@@ -163,6 +172,8 @@ export async function GET(request: NextRequest) {
   let tcQuery = supabase.from('teacher_centers').select('trainee_id');
   if (!isAllCenters && centerId) {
     tcQuery = tcQuery.eq('center_id', centerId);
+  } else if (scopedCenterIds) {
+    tcQuery = tcQuery.in('center_id', scopedCenterIds);
   }
   const { data: tcRows } = await tcQuery;
   const traineeIdsAll = (tcRows ?? []).map(r => r.trainee_id);

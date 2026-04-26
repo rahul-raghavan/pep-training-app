@@ -84,7 +84,10 @@ export async function GET(request: NextRequest) {
   if (user.role === 'super_admin') {
     centerId = requestedCenterId ?? centers[0]?.id ?? null;
   } else {
-    centerId = user.adminScopeCenterId ?? null;
+    centerId =
+      requestedCenterId && user.adminScopeCenterIds.includes(requestedCenterId)
+        ? requestedCenterId
+        : user.adminScopeCenterIds[0] ?? null;
     scopeLocked = true;
   }
   const center = centers.find(c => c.id === centerId) ?? null;

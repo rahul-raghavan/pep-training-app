@@ -11,8 +11,10 @@ interface UserScopeResponse {
     userId: string | null;        // null = pending (hasn't signed in yet)
   };
   centerId: string | null;
+  centerIds: string[];
   programTrackIds: string[];
   role: 'super_admin' | 'admin' | 'user';
+  adminScopeCenterIds: string[];
   adminScopeTrackIds: string[];
 }
 
@@ -34,11 +36,31 @@ export async function GET(
   const { traineeId } = await params;
   const supabase = createAdminClient();
 
-  const { data: trainee } = await supabase
+  let trainee: {
+    id: string;
+    name: string;
+    email: string | null;
+    user_id: string | null;
+    pre_assigned_role: string | null;
+    pre_assigned_admin_scope_center_ids?: string[] | null;
+    pre_assigned_admin_scope_track_ids?: string[] | null;
+  } | null = null;
+
+  const fullTrainee = await supabase
     .from('trainees')
-    .select('id, name, email, user_id, pre_assigned_role, pre_assigned_admin_scope_track_ids')
+    .select('id, name, email, user_id, pre_assigned_role, pre_assigned_admin_scope_center_ids, pre_assigned_admin_scope_track_ids')
     .eq('id', traineeId)
     .single();
+  if (fullTrainee.data) {
+    trainee = fullTrainee.data;
+  } else if (fullTrainee.error?.code === '42703') {
+    const fallback = await supabase
+      .from('trainees')
+      .select('id, name, email, user_id, pre_assigned_role, pre_assigned_admin_scope_track_ids')
+      .eq('id', traineeId)
+      .single();
+    trainee = fallback.data;
+  }
 
   if (!trainee) {
     return NextResponse.json({ error: 'Trainee not found' }, { status: 404 });
@@ -62,18 +84,44 @@ export async function GET(
 
   // Role + admin scope: prefer profile (live) over trainee (pre-assigned)
   let role: UserScopeResponse['role'] = (trainee.pre_assigned_role as UserScopeResponse['role']) ?? 'user';
+  let adminScopeCenterIds: string[] = trainee.pre_assigned_admin_scope_center_ids ?? [];
   let adminScopeTrackIds: string[] = trainee.pre_assigned_admin_scope_track_ids ?? [];
 
   if (trainee.user_id) {
-    const { data: profile } = await supabase
+    let profile: {
+      role: string;
+      admin_scope_center_id?: string | null;
+      admin_scope_center_ids?: string[] | null;
+      admin_scope_track_ids?: string[] | null;
+    } | null = null;
+    const fullProfile = await supabase
       .from('profiles')
-      .select('role, admin_scope_track_ids')
+      .select('role, admin_scope_center_id, admin_scope_center_ids, admin_scope_track_ids')
       .eq('id', trainee.user_id)
       .single();
+    if (fullProfile.data) {
+      profile = fullProfile.data;
+    } else if (fullProfile.error?.code === '42703') {
+      const fallback = await supabase
+        .from('profiles')
+        .select('role, admin_scope_center_id, admin_scope_track_ids')
+        .eq('id', trainee.user_id)
+        .single();
+      profile = fallback.data;
+    }
     if (profile) {
       role = profile.role as UserScopeResponse['role'];
+      adminScopeCenterIds =
+        profile.admin_scope_center_ids && profile.admin_scope_center_ids.length > 0
+          ? profile.admin_scope_center_ids
+          : profile.admin_scope_center_id
+            ? [profile.admin_scope_center_id]
+            : [];
       adminScopeTrackIds = profile.admin_scope_track_ids ?? [];
     }
+  }
+  if (adminScopeCenterIds.length === 0 && tc?.center_id) {
+    adminScopeCenterIds = [tc.center_id];
   }
 
   const payload: UserScopeResponse = {
@@ -84,8 +132,10 @@ export async function GET(
       userId: trainee.user_id ?? null,
     },
     centerId: tc?.center_id ?? null,
+    centerIds: role === 'admin' ? adminScopeCenterIds : (tc?.center_id ? [tc.center_id] : []),
     programTrackIds: (tps ?? []).map(r => r.program_id),
     role,
+    adminScopeCenterIds,
     adminScopeTrackIds,
   };
 
@@ -112,8 +162,10 @@ export async function PUT(
 
   let body: {
     centerId?: string | null;
+    centerIds?: string[];
     programTrackIds?: string[];
     role?: string;
+    adminScopeCenterIds?: string[];
     adminScopeTrackIds?: string[];
   };
   try {
@@ -122,7 +174,14 @@ export async function PUT(
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
-  const { centerId = null, programTrackIds = [], role, adminScopeTrackIds = [] } = body;
+  const {
+    centerId = null,
+    centerIds,
+    programTrackIds = [],
+    role,
+    adminScopeCenterIds,
+    adminScopeTrackIds = [],
+  } = body;
 
   if (role !== undefined && !VALID_ROLES.includes(role as (typeof VALID_ROLES)[number])) {
     return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
@@ -139,16 +198,22 @@ export async function PUT(
   }
 
   // Sanitise admin scope to overlap with selected tracks
+  const chosenCenterIds = Array.isArray(centerIds) ? centerIds : centerId ? [centerId] : [];
+  const primaryCenterId = chosenCenterIds[0] ?? null;
+  const cleanAdminCenters = role === 'admin'
+    ? (Array.isArray(adminScopeCenterIds) && adminScopeCenterIds.length > 0 ? adminScopeCenterIds : chosenCenterIds)
+    : [];
   const cleanAdminScope = role === 'admin'
     ? adminScopeTrackIds.filter(id => programTrackIds.includes(id))
     : [];
 
-  // 1. Replace center mapping (delete then insert if centerId provided)
+  // 1. Replace teacher center mapping. Teachers have one home center; admins
+  // can have many admin-scope centers, stored on profiles/trainees below.
   await supabase.from('teacher_centers').delete().eq('trainee_id', traineeId);
-  if (centerId) {
+  if (primaryCenterId) {
     const { error } = await supabase
       .from('teacher_centers')
-      .insert({ trainee_id: traineeId, center_id: centerId });
+      .insert({ trainee_id: traineeId, center_id: primaryCenterId });
     if (error) {
       console.error('teacher_centers insert error', error);
       return NextResponse.json({ error: 'Failed to set center' }, { status: 500 });
@@ -178,10 +243,25 @@ export async function PUT(
         .from('profiles')
         .update({
           role,
-          admin_scope_center_id: role === 'admin' ? centerId : null,
+          admin_scope_center_id: role === 'admin' ? cleanAdminCenters[0] ?? null : null,
+          admin_scope_center_ids: cleanAdminCenters,
           admin_scope_track_ids: cleanAdminScope,
         })
         .eq('id', trainee.user_id);
+      if (error?.code === '42703') {
+        const retry = await supabase
+          .from('profiles')
+          .update({
+            role,
+            admin_scope_center_id: role === 'admin' ? cleanAdminCenters[0] ?? null : null,
+            admin_scope_track_ids: cleanAdminScope,
+          })
+          .eq('id', trainee.user_id);
+        if (retry.error) {
+          console.error('profiles update error', retry.error);
+          return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 });
+        }
+      } else
       if (error) {
         console.error('profiles update error', error);
         return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 });
@@ -192,9 +272,23 @@ export async function PUT(
         .from('trainees')
         .update({
           pre_assigned_role: role,
+          pre_assigned_admin_scope_center_ids: cleanAdminCenters,
           pre_assigned_admin_scope_track_ids: cleanAdminScope,
         })
         .eq('id', traineeId);
+      if (error?.code === '42703') {
+        const retry = await supabase
+          .from('trainees')
+          .update({
+            pre_assigned_role: role,
+            pre_assigned_admin_scope_track_ids: cleanAdminScope,
+          })
+          .eq('id', traineeId);
+        if (retry.error) {
+          console.error('trainees pre-assign update error', retry.error);
+          return NextResponse.json({ error: 'Failed to stage role' }, { status: 500 });
+        }
+      } else
       if (error) {
         console.error('trainees pre-assign update error', error);
         return NextResponse.json({ error: 'Failed to stage role' }, { status: 500 });

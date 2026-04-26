@@ -168,7 +168,8 @@ export default function AddUserPage() {
     setter(current.includes(id) ? current.filter(x => x !== id) : [...current, id]);
 
   const adminCandidateTracks = programTracks.filter(p => trackIds.includes(p.id));
-  const centerName = centers.find(c => c.id === centerId[0])?.name ?? '—';
+  const centerNames = centerId.map(id => centers.find(c => c.id === id)?.name).filter(Boolean) as string[];
+  const centerName = centerNames.length > 0 ? centerNames.join(', ') : '—';
   const ready =
     name.trim().length > 0 &&
     email.trim().length > 0 &&
@@ -188,7 +189,9 @@ export default function AddUserPage() {
           email: email.trim().toLowerCase(),
           role,
           centerId: centerId[0] ?? null,
+          centerIds: centerId,
           programTrackIds: trackIds,
+          adminScopeCenterIds: role === 'admin' ? centerId : [],
           adminScopeTrackIds: role === 'admin' ? adminScopeIds : [],
         }),
       });
@@ -276,12 +279,16 @@ export default function AddUserPage() {
               />
             </FieldRow>
 
-            <FieldRow label="Center" required={role !== 'super_admin'} hint="one center per user">
+            <FieldRow
+              label="Center"
+              required={role !== 'super_admin'}
+              hint={role === 'admin' ? 'admins may manage multiple centers' : 'one center per teacher'}
+            >
               <ChipPick
                 items={centers}
                 selected={centerId}
-                onToggle={togSingle(centerId, setCenterId)}
-                single
+                onToggle={role === 'admin' ? togMulti(centerId, setCenterId) : togSingle(centerId, setCenterId)}
+                single={role !== 'admin'}
                 empty="No centers yet — seed them via the migration."
               />
             </FieldRow>
