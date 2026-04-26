@@ -40,7 +40,12 @@ export async function GET(request: NextRequest, { params }: Params) {
     progressData = data || [];
   }
 
-  const trainees = (enrollments || []).map((enrollment: Record<string, unknown>) => {
+  const trainees = (enrollments || [])
+    .filter((enrollment: Record<string, unknown>) => {
+      const trainee = enrollment.trainees as Record<string, unknown> | null;
+      return !trainee?.is_test_account;
+    })
+    .map((enrollment: Record<string, unknown>) => {
     const trainee = enrollment.trainees as Record<string, unknown>;
     const traineeProgress = progressData.filter(
       (p: Record<string, unknown>) => p.trainee_id === enrollment.trainee_id

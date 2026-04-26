@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireAdmin } from '@/lib/auth';
+import { sortProgramTracks } from '@/lib/course-order';
 
 interface Center {
   id: string;
@@ -58,7 +59,7 @@ export async function GET(request: NextRequest) {
       if (error.code === '42P01') migrationApplied = false;
       else console.error('lookups: program_tracks query error', error);
     } else {
-      programTracks = data ?? [];
+      programTracks = sortProgramTracks(data ?? []);
     }
   } catch (e) {
     console.error('lookups: program_tracks exception', e);

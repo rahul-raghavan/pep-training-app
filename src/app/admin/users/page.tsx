@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { PageShell, TopBar, AdminNav, AdminSubNav } from '@/components/paper';
+import { trackSortIndex } from '@/lib/course-order';
 
 const TEACHERS_TABS = [
   { label: 'All teachers', href: '/admin/users' },
@@ -20,6 +21,9 @@ interface UserProfile {
   created_at: string;
   traineeId: string | null;
   enrollments: { program_id: string; title: string; slug: string }[];
+  center: { id: string; slug: string; name: string } | null;
+  programTracks: { id: string; slug: string; name: string }[];
+  isTestAccount?: boolean;
   pending?: boolean;
 }
 
@@ -28,6 +32,67 @@ interface Program {
   title: string;
   slug: string;
   is_active: boolean;
+}
+
+interface UserCenterGroup {
+  centerName: string;
+  users: UserProfile[];
+}
+
+interface UserProgramGroup {
+  id: string;
+  slug: string;
+  name: string;
+  centers: UserCenterGroup[];
+}
+
+function displayName(user: UserProfile): string {
+  return user.name || user.email;
+}
+
+function buildUserGroups(users: UserProfile[]): UserProgramGroup[] {
+  const groups = new Map<string, { id: string; slug: string; name: string; users: UserProfile[] }>();
+
+  for (const user of users) {
+    const tracks = user.programTracks.length
+      ? user.programTracks
+      : [{ id: 'unmapped', slug: 'unmapped', name: 'No program track' }];
+
+    for (const track of tracks) {
+      const existing = groups.get(track.id) ?? { ...track, users: [] };
+      existing.users.push(user);
+      groups.set(track.id, existing);
+    }
+  }
+
+  return [...groups.values()]
+    .sort((a, b) => {
+      const byFlow = trackSortIndex(a.slug) - trackSortIndex(b.slug);
+      if (byFlow !== 0) return byFlow;
+      if (a.slug === 'unmapped') return 1;
+      if (b.slug === 'unmapped') return -1;
+      return a.name.localeCompare(b.name);
+    })
+    .map(group => {
+      const centerMap = new Map<string, UserProfile[]>();
+      for (const user of group.users) {
+        const centerName = user.center?.name || 'No center mapped';
+        const arr = centerMap.get(centerName) ?? [];
+        arr.push(user);
+        centerMap.set(centerName, arr);
+      }
+      const centers = [...centerMap.entries()]
+        .sort(([a], [b]) => {
+          if (a === 'No center mapped') return 1;
+          if (b === 'No center mapped') return -1;
+          return a.localeCompare(b);
+        })
+        .map(([centerName, centerUsers]) => ({
+          centerName,
+          users: centerUsers.sort((a, b) => displayName(a).localeCompare(displayName(b))),
+        }));
+      return { id: group.id, slug: group.slug, name: group.name, centers };
+    });
 }
 
 export default function UsersPage() {
@@ -203,6 +268,7 @@ export default function UsersPage() {
     if (hideInactive && !u.is_active && !u.pending) return false;
     return true;
   });
+  const groupedUsers = buildUserGroups(filteredUsers);
 
   const roleCounts = {
     total: users.length,
@@ -312,7 +378,22 @@ export default function UsersPage() {
             </div>
           ) : (
             <div className="divide-y divide-slate-100">
-              {filteredUsers.map(userItem => (
+              {groupedUsers.map(group => (
+                <section key={group.id} className="divide-y divide-slate-100">
+                  <div className="px-4 py-3 bg-slate-50 flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-slate-800">{group.name}</h3>
+                    <span className="text-xs text-slate-500">
+                      {group.centers.reduce((sum, center) => sum + center.users.length, 0)} teacher
+                      {group.centers.reduce((sum, center) => sum + center.users.length, 0) === 1 ? '' : 's'}
+                    </span>
+                  </div>
+                  {group.centers.map(center => (
+                    <div key={`${group.id}-${center.centerName}`}>
+                      <div className="px-4 py-2 bg-white text-[12px] uppercase tracking-wide text-slate-400 font-semibold">
+                        {center.centerName}
+                      </div>
+                      <div className="divide-y divide-slate-100">
+                        {center.users.map(userItem => (
                 <div
                   key={userItem.id}
                   className={`flex items-center justify-between p-4 hover:bg-slate-50 transition-colors ${
@@ -340,9 +421,27 @@ export default function UsersPage() {
                         {!userItem.is_active && !userItem.pending && (
                           <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded">Deactivated</span>
                         )}
+                        {userItem.isTestAccount && (
+                          <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded">Test</span>
+                        )}
                       </div>
                       <div className="text-sm text-slate-500">
                         {userItem.email} &middot; {userItem.pending ? 'Pre-registered' : `Joined ${formatDate(userItem.created_at)}`}
+                      </div>
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {userItem.center && (
+                          <span className="text-[11px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">
+                            {userItem.center.name}
+                          </span>
+                        )}
+                        {userItem.programTracks.map(track => (
+                          <span
+                            key={track.id}
+                            className="text-[11px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full"
+                          >
+                            {track.name}
+                          </span>
+                        ))}
                       </div>
                     </div>
                   </div>
@@ -373,8 +472,8 @@ export default function UsersPage() {
                         title={userItem.traineeId ? 'Click to assign programs' : 'No trainee record'}
                       >
                         {userItem.enrollments.length > 0
-                          ? `${userItem.enrollments.length} program${userItem.enrollments.length > 1 ? 's' : ''}`
-                          : 'No programs'}
+                          ? `${userItem.enrollments.length} course${userItem.enrollments.length > 1 ? 's' : ''}`
+                          : 'No courses'}
                         {userItem.traineeId && (
                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -388,7 +487,7 @@ export default function UsersPage() {
                           className="absolute right-0 top-full mt-1 w-64 bg-white border border-slate-200 rounded-lg shadow-lg z-20"
                         >
                           <div className="p-2 border-b border-slate-100">
-                            <div className="text-xs font-medium text-slate-500 px-2 py-1">Assign programs</div>
+                            <div className="text-xs font-medium text-slate-500 px-2 py-1">Assign courses</div>
                           </div>
                           <div className="p-1 max-h-48 overflow-y-auto">
                             {programs.map(program => {
@@ -475,6 +574,11 @@ export default function UsersPage() {
                     )}
                   </div>
                 </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </section>
               ))}
             </div>
           )}

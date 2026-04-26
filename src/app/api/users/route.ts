@@ -2,6 +2,33 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireAdmin, requireSuperAdmin } from '@/lib/auth';
 import { getScopedTraineeIds } from '@/lib/admin-scope';
+import { sortCourses, sortProgramTracks } from '@/lib/course-order';
+
+interface TraineeLite {
+  id: string;
+  user_id: string | null;
+  name: string;
+  email: string | null;
+  is_test_account?: boolean | null;
+}
+
+interface CenterLite {
+  id: string;
+  slug: string;
+  name: string;
+}
+
+interface ProgramTrackLite {
+  id: string;
+  slug: string;
+  name: string;
+}
+
+interface EnrollmentLite {
+  program_id: string;
+  title: string;
+  slug: string;
+}
 
 // GET - List all users with their profiles
 export async function GET(request: NextRequest) {
@@ -23,22 +50,32 @@ export async function GET(request: NextRequest) {
 
   // Get linked trainee IDs
   const userIds = profiles?.map(p => p.id) || [];
-  const { data: trainees } = await supabase
+  let trainees: TraineeLite[] = [];
+  const traineeQuery = await supabase
     .from('trainees')
-    .select('id, user_id, name, email')
+    .select('id, user_id, name, email, is_test_account')
     .in('user_id', userIds);
+  if (traineeQuery.error?.code === '42703') {
+    const fallback = await supabase
+      .from('trainees')
+      .select('id, user_id, name, email')
+      .in('user_id', userIds);
+    trainees = (fallback.data ?? []) as TraineeLite[];
+  } else {
+    trainees = (traineeQuery.data ?? []) as TraineeLite[];
+  }
 
-  const traineeMap: Record<string, string> = {};
-  (trainees || [])
-    .filter((t: { id: string }) => !scopedTraineeIds || scopedTraineeIds.has(t.id))
-    .forEach((t: { id: string; user_id: string }) => {
-      if (t.user_id) traineeMap[t.user_id] = t.id;
+  const traineeMap: Record<string, TraineeLite> = {};
+  trainees
+    .filter(t => !scopedTraineeIds || scopedTraineeIds.has(t.id))
+    .forEach(t => {
+      if (t.user_id) traineeMap[t.user_id] = t;
     });
 
   // Get enrollment counts
-  const traineeIds = (trainees || [])
-    .map((t: { id: string }) => t.id)
-    .filter((id: string) => !scopedTraineeIds || scopedTraineeIds.has(id));
+  const traineeIds = trainees
+    .map(t => t.id)
+    .filter(id => !scopedTraineeIds || scopedTraineeIds.has(id));
   const { data: enrollments } = traineeIds.length > 0
     ? await supabase
         .from('trainee_programs')
@@ -46,7 +83,7 @@ export async function GET(request: NextRequest) {
         .in('trainee_id', traineeIds)
     : { data: [] };
 
-  const enrollmentMap: Record<string, { program_id: string; title: string; slug: string }[]> = {};
+  const enrollmentMap: Record<string, EnrollmentLite[]> = {};
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (enrollments || []).forEach((e: any) => {
     if (!e.programs) return;
@@ -58,23 +95,25 @@ export async function GET(request: NextRequest) {
     });
   });
 
-  const users = profiles
-    ?.filter(profile => user.role === 'super_admin' || Boolean(traineeMap[profile.id]))
-    .map(profile => ({
-      ...profile,
-      traineeId: traineeMap[profile.id] || null,
-      enrollments: enrollmentMap[traineeMap[profile.id]] || [],
-      pending: false,
-    }));
-
   // Also fetch pre-registered trainees (no user_id = haven't logged in yet)
-  const { data: pendingTraineesRaw } = await supabase
+  let pendingTraineesRaw: (TraineeLite & { pre_assigned_role: string | null; created_at: string })[] = [];
+  const pendingQuery = await supabase
     .from('trainees')
-    .select('id, name, email, pre_assigned_role, created_at')
+    .select('id, user_id, name, email, is_test_account, pre_assigned_role, created_at')
     .is('user_id', null)
     .order('created_at', { ascending: false });
+  if (pendingQuery.error?.code === '42703') {
+    const fallback = await supabase
+      .from('trainees')
+      .select('id, user_id, name, email, pre_assigned_role, created_at')
+      .is('user_id', null)
+      .order('created_at', { ascending: false });
+    pendingTraineesRaw = (fallback.data ?? []) as typeof pendingTraineesRaw;
+  } else {
+    pendingTraineesRaw = (pendingQuery.data ?? []) as typeof pendingTraineesRaw;
+  }
   const pendingTrainees = (pendingTraineesRaw || []).filter(
-    (t: { id: string }) => !scopedTraineeIds || scopedTraineeIds.has(t.id)
+    t => !scopedTraineeIds || scopedTraineeIds.has(t.id)
   );
 
   // Get enrollments for pending trainees too
@@ -86,7 +125,7 @@ export async function GET(request: NextRequest) {
         .in('trainee_id', pendingTraineeIds)
     : { data: [] };
 
-  const pendingEnrollmentMap: Record<string, { program_id: string; title: string; slug: string }[]> = {};
+  const pendingEnrollmentMap: Record<string, EnrollmentLite[]> = {};
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (pendingEnrollments || []).forEach((e: any) => {
     if (!e.programs) return;
@@ -98,7 +137,66 @@ export async function GET(request: NextRequest) {
     });
   });
 
-  const pendingUsers = (pendingTrainees || []).map((t: { id: string; name: string; email: string; pre_assigned_role: string | null; created_at: string }) => ({
+  const allVisibleTraineeIds = [...new Set([...traineeIds, ...pendingTraineeIds])];
+  const centerMap: Record<string, CenterLite | null> = {};
+  const trackMap: Record<string, ProgramTrackLite[]> = {};
+  if (allVisibleTraineeIds.length > 0) {
+    const [{ data: centerRows, error: centerError }, { data: trackRows, error: trackError }] = await Promise.all([
+      supabase
+        .from('teacher_centers')
+        .select('trainee_id, centers(id, slug, name)')
+        .in('trainee_id', allVisibleTraineeIds),
+      supabase
+        .from('teacher_programs')
+        .select('trainee_id, program_tracks(id, slug, name)')
+        .in('trainee_id', allVisibleTraineeIds),
+    ]);
+
+    if (!centerError) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (centerRows ?? []).forEach((row: any) => {
+        centerMap[row.trainee_id] = Array.isArray(row.centers) ? row.centers[0] ?? null : row.centers ?? null;
+      });
+    }
+
+    if (!trackError) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (trackRows ?? []).forEach((row: any) => {
+        const track = Array.isArray(row.program_tracks) ? row.program_tracks[0] : row.program_tracks;
+        if (!track) return;
+        const arr = trackMap[row.trainee_id] ?? [];
+        arr.push(track);
+        trackMap[row.trainee_id] = arr;
+      });
+      Object.keys(trackMap).forEach(traineeId => {
+        trackMap[traineeId] = sortProgramTracks(trackMap[traineeId]);
+      });
+    }
+  }
+
+  Object.keys(enrollmentMap).forEach(traineeId => {
+    enrollmentMap[traineeId] = sortCourses(enrollmentMap[traineeId]);
+  });
+  Object.keys(pendingEnrollmentMap).forEach(traineeId => {
+    pendingEnrollmentMap[traineeId] = sortCourses(pendingEnrollmentMap[traineeId]);
+  });
+
+  const users = profiles
+    ?.filter(profile => user.role === 'super_admin' || Boolean(traineeMap[profile.id]))
+    .map(profile => {
+      const trainee = traineeMap[profile.id];
+      return {
+        ...profile,
+        traineeId: trainee?.id || null,
+        isTestAccount: Boolean(trainee?.is_test_account),
+        center: trainee ? centerMap[trainee.id] ?? null : null,
+        programTracks: trainee ? trackMap[trainee.id] ?? [] : [],
+        enrollments: trainee ? enrollmentMap[trainee.id] || [] : [],
+        pending: false,
+      };
+    });
+
+  const pendingUsers = (pendingTrainees || []).map(t => ({
     id: `pending_${t.id}`,
     traineeId: t.id,
     email: t.email,
@@ -106,6 +204,9 @@ export async function GET(request: NextRequest) {
     role: t.pre_assigned_role || 'user',
     is_active: true,
     created_at: t.created_at,
+    isTestAccount: Boolean(t.is_test_account),
+    center: centerMap[t.id] ?? null,
+    programTracks: trackMap[t.id] ?? [],
     enrollments: pendingEnrollmentMap[t.id] || [],
     pending: true,
   }));

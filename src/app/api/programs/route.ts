@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { requireAdmin, requireSuperAdmin } from '@/lib/auth';
 import { clearProgramCache } from '@/lib/programs';
 import { getScopedTraineeIds } from '@/lib/admin-scope';
+import { courseGroupLabel, sortCourses } from '@/lib/course-order';
 
 // GET - List all programs
 export async function GET(request: NextRequest) {
@@ -36,10 +37,12 @@ export async function GET(request: NextRequest) {
   // Get section counts and trainee counts
   const programsWithCounts = await Promise.all(
     visiblePrograms.map(async (program) => {
-      let traineeQuery = supabase
+      const { data: programEnrollments } = await supabase
         .from('trainee_programs')
-        .select('*', { count: 'exact', head: true })
+        .select('trainee_id')
         .eq('program_id', program.id);
+
+      let enrolledTraineeIds = (programEnrollments ?? []).map(row => row.trainee_id);
       if (scopedTraineeIds) {
         const ids = [...scopedTraineeIds];
         if (ids.length === 0) {
@@ -47,19 +50,38 @@ export async function GET(request: NextRequest) {
             .from('program_sections')
             .select('*', { count: 'exact', head: true })
             .eq('program_id', program.id);
-          return { ...program, sectionCount: sectionCount || 0, traineeCount: 0 };
+          return { ...program, courseGroup: courseGroupLabel(program), sectionCount: sectionCount || 0, traineeCount: 0 };
         }
-        traineeQuery = traineeQuery.in('trainee_id', ids);
+        const scoped = new Set(ids);
+        enrolledTraineeIds = enrolledTraineeIds.filter(id => scoped.has(id));
       }
-      const [{ count: sectionCount }, { count: traineeCount }] = await Promise.all([
+
+      let traineeCount = enrolledTraineeIds.length;
+      if (enrolledTraineeIds.length > 0) {
+        const full = await supabase
+          .from('trainees')
+          .select('*', { count: 'exact', head: true })
+          .in('id', enrolledTraineeIds)
+          .eq('is_test_account', false);
+        if (full.error?.code === '42703') {
+          const fallback = await supabase
+            .from('trainees')
+            .select('*', { count: 'exact', head: true })
+            .in('id', enrolledTraineeIds);
+          traineeCount = fallback.count || 0;
+        } else {
+          traineeCount = full.count || 0;
+        }
+      }
+
+      const [{ count: sectionCount }] = await Promise.all([
         supabase.from('program_sections').select('*', { count: 'exact', head: true }).eq('program_id', program.id),
-        traineeQuery,
       ]);
-      return { ...program, sectionCount: sectionCount || 0, traineeCount: traineeCount || 0 };
+      return { ...program, courseGroup: courseGroupLabel(program), sectionCount: sectionCount || 0, traineeCount };
     })
   );
 
-  return NextResponse.json({ programs: programsWithCounts });
+  return NextResponse.json({ programs: sortCourses(programsWithCounts) });
 }
 
 // POST - Create a program (super_admin only)
@@ -88,6 +110,20 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'A program with this slug already exists' }, { status: 409 });
       }
       return NextResponse.json({ error: 'Failed to create program', details: error.message, code: error.code }, { status: 500 });
+    }
+
+    const { data: testAccounts } = await supabase
+      .from('trainees')
+      .select('id')
+      .eq('is_test_account', true);
+    if ((testAccounts ?? []).length > 0) {
+      const rows = (testAccounts ?? []).map(t => ({ trainee_id: t.id, program_id: data.id }));
+      const { error: enrollmentError } = await supabase
+        .from('trainee_programs')
+        .upsert(rows, { onConflict: 'trainee_id,program_id', ignoreDuplicates: true });
+      if (enrollmentError && enrollmentError.code !== '42703') {
+        console.error('Failed to auto-enroll test accounts:', enrollmentError);
+      }
     }
 
     clearProgramCache();

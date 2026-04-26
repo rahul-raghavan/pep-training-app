@@ -8,7 +8,8 @@
 --
 --   • centers              — physical school locations (HSR, Whitefield, …)
 --   • teacher_centers      — 1:1 trainee → center
---   • program_tracks       — track concept (Primary / Elementary / Middle / HR)
+--   • program_tracks       — track concept (Toddler / Primary / Elementary /
+--                            Middle / HR / Admin)
 --   • teacher_programs     — M:N trainee → program_track (a teacher belongs to
 --                            one or more tracks)
 --   • course_programs      — M:N course (programs row) → program_track
@@ -112,10 +113,12 @@ ALTER TABLE trainees
 -- depends on them.
 -- ----------------------------------------------------------------------------
 INSERT INTO program_tracks (slug, name) VALUES
+  ('toddler',     'Toddler'),
   ('primary',     'Primary'),
   ('elementary',  'Elementary'),
   ('middle',      'Middle School'),
-  ('hr',          'HR')
+  ('hr',          'HR'),
+  ('admin',       'Admin')
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO centers (slug, name, city) VALUES

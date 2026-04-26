@@ -111,7 +111,7 @@ export default function TracksEditor({ programId, canEdit = false }: Props) {
         <div>
           <h2 className="text-lg font-medium text-slate-900">Program Tracks</h2>
           <p className="text-sm text-slate-500">
-            Which tracks (Primary, Elementary, …) is this course offered to?
+            Use Edit to link this course to one or more tracks: Toddler, Primary, Elementary, Middle School, HR, or Admin.
           </p>
         </div>
         <div className="flex items-center gap-3">

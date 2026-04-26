@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { PageShell, TopBar, AdminNav } from '@/components/paper';
+import { courseGroupLabel, sortCourses } from '@/lib/course-order';
 
 interface ProgramSummary {
   id: string;
@@ -15,6 +16,7 @@ interface ProgramSummary {
   sectionCount: number;
   traineeCount: number;
   created_at: string;
+  courseGroup?: string;
 }
 
 export default function ProgramsListPage() {
@@ -33,7 +35,7 @@ export default function ProgramsListPage() {
       const res = await fetch('/api/programs');
       if (!res.ok) throw new Error('Failed to fetch');
       const data = await res.json();
-      setPrograms(data.programs);
+      setPrograms(sortCourses(data.programs || []));
     } catch {
       // ignore
     } finally {
@@ -98,6 +100,17 @@ export default function ProgramsListPage() {
     );
   }
 
+  const groupedPrograms = sortCourses(programs).reduce<Array<{ label: string; programs: ProgramSummary[] }>>(
+    (groups, program) => {
+      const label = program.courseGroup || courseGroupLabel(program);
+      const existing = groups.find(group => group.label === label);
+      if (existing) existing.programs.push(program);
+      else groups.push({ label, programs: [program] });
+      return groups;
+    },
+    []
+  );
+
   return (
     <PageShell maxWidth={1200}>
       <TopBar right={<span>{user?.email ?? ''}</span>} />
@@ -139,35 +152,47 @@ export default function ProgramsListPage() {
             )}
           </div>
         ) : (
-          <div className="grid gap-4">
-            {programs.map(program => (
-              <Link
-                key={program.id}
-                href={`/admin/programs/${program.id}`}
-                className="bg-white rounded-lg border border-slate-200 p-6 hover:bg-slate-50 transition-colors flex items-center justify-between"
-              >
-                <div>
-                  <div className="flex items-center gap-3 mb-1">
-                    <h2 className="text-lg font-semibold text-slate-900">{program.title}</h2>
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${
-                      program.is_active ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'
-                    }`}>
-                      {program.is_active ? 'Active' : 'Inactive'}
-                    </span>
-                  </div>
-                  {program.description && (
-                    <p className="text-sm text-slate-500 mb-2">{program.description}</p>
-                  )}
-                  <div className="flex items-center gap-4 text-sm text-slate-500">
-                    <span>{program.sectionCount} sections</span>
-                    <span>{program.traineeCount} trainees</span>
-                    <span>/{program.slug}</span>
-                  </div>
+          <div className="space-y-6">
+            {groupedPrograms.map(group => (
+              <section key={group.label}>
+                <div className="flex items-center gap-3 mb-2">
+                  <h2 className="text-[13px] uppercase tracking-wide text-slate-500 font-semibold">
+                    {group.label}
+                  </h2>
+                  <div className="h-px flex-1 bg-slate-200" />
                 </div>
-                <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </Link>
+                <div className="grid gap-3">
+                  {group.programs.map(program => (
+                    <Link
+                      key={program.id}
+                      href={`/admin/programs/${program.id}`}
+                      className="bg-white rounded-lg border border-slate-200 p-5 hover:bg-slate-50 transition-colors flex items-center justify-between"
+                    >
+                      <div>
+                        <div className="flex items-center gap-3 mb-1">
+                          <h3 className="text-lg font-semibold text-slate-900">{program.title}</h3>
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${
+                            program.is_active ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'
+                          }`}>
+                            {program.is_active ? 'Active' : 'Inactive'}
+                          </span>
+                        </div>
+                        {program.description && (
+                          <p className="text-sm text-slate-500 mb-2">{program.description}</p>
+                        )}
+                        <div className="flex items-center gap-4 text-sm text-slate-500 flex-wrap">
+                          <span>{program.sectionCount} sections</span>
+                          <span>{program.traineeCount} trainees</span>
+                          <span>/{program.slug}</span>
+                        </div>
+                      </div>
+                      <svg className="w-5 h-5 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </Link>
+                  ))}
+                </div>
+              </section>
             ))}
           </div>
         )}

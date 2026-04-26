@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireAdmin } from '@/lib/auth';
+import { sortCourses, sortProgramTracks } from '@/lib/course-order';
 
 interface TeacherEntry {
   id: string;            // trainee id
@@ -313,7 +314,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Build per-track teacher entries with progress
-  const programs: ProgramTrackBlock[] = (tracks ?? []).map(t => {
+  const programs: ProgramTrackBlock[] = sortProgramTracks(tracks ?? []).map(t => {
     const teacherIdsInTrack = trackToTrainees.get(t.id) ?? [];
     const trackCourseIds = trackToCourses.get(t.id) ?? [];
     const trackTeachers: TeacherEntry[] = teacherIdsInTrack
@@ -397,10 +398,9 @@ export async function GET(request: NextRequest) {
       .filter((x): x is TeacherEntry => x !== null)
       .sort((a, b) => a.name.localeCompare(b.name));
 
-    const trackCourses = trackCourseIds
+    const trackCourses = sortCourses(trackCourseIds
       .map(cid => courseById.get(cid))
-      .filter((c): c is { id: string; slug: string; title: string } => Boolean(c))
-      .sort((a, b) => a.title.localeCompare(b.title));
+      .filter((c): c is { id: string; slug: string; title: string } => Boolean(c)));
 
     return {
       id: t.id,
