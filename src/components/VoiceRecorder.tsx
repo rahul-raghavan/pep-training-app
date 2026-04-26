@@ -343,7 +343,7 @@ export default function VoiceRecorder({ exercise, traineeId, sectionId, onComple
                 {state === 'recorded' && 'Listen back'}
               </div>
               <div className="text-[13px] text-ink-2 mt-1">
-                {state === 'idle' && "Aim for 30–60 sec. You'll see a transcript + AI feedback after."}
+                {state === 'idle' && "Aim for responses that are 1-2 minutes long. You'll see a transcript + AI feedback after."}
                 {state === 'recording' && 'Stop when you\'re done — re-record anytime.'}
                 {state === 'recorded' && 'Re-record or submit for feedback.'}
               </div>

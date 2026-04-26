@@ -104,7 +104,7 @@ In a traditional school, a large number of 13-year-olds are disengaged during le
 
 ### Content
 
-**Handbook anchor:** Middle School Handbook, Chapter 9 — *From the Farm to Urban Bangalore*.
+**Handbook anchor:** Middle School Handbook, Chapter 3 — *The Inner World of the Teenager*.
 
 # The Third Plane of Development
 

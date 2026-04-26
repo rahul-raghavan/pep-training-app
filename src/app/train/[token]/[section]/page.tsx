@@ -21,6 +21,7 @@ export default function SectionPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [completedExercises, setCompletedExercises] = useState<Set<string>>(new Set());
+  const [isCompleting, setIsCompleting] = useState(false);
 
   const section = getSection(sectionId);
   const nextSection = getNextSection(sectionId);
@@ -100,22 +101,28 @@ export default function SectionPage() {
   };
 
   const markSectionComplete = async () => {
-    if (!trainee) return;
+    if (!trainee || isCompleting) return;
 
-    await fetch('/api/progress', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        traineeId: trainee.id,
-        sectionId,
-        status: 'completed',
-      }),
-    });
+    setIsCompleting(true);
+    try {
+      await fetch('/api/progress', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          traineeId: trainee.id,
+          sectionId,
+          status: 'completed',
+        }),
+      });
 
-    if (nextSection) {
-      router.push(`/train/${token}/${nextSection.id}`);
-    } else {
-      router.push(`/train/${token}`);
+      if (nextSection) {
+        router.push(`/train/${token}/${nextSection.id}`);
+      } else {
+        router.push(`/train/${token}`);
+      }
+    } catch {
+      setIsCompleting(false);
+      setError('Could not save progress. Please try again.');
     }
   };
 
@@ -280,17 +287,27 @@ export default function SectionPage() {
             {!isAlreadyComplete ? (
               <button
                 onClick={markSectionComplete}
-                disabled={!allExercisesComplete}
+                disabled={!allExercisesComplete || isCompleting}
+                aria-busy={isCompleting}
                 className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-colors ${
-                  allExercisesComplete
+                  allExercisesComplete && !isCompleting
                     ? 'bg-slate-900 text-white hover:bg-slate-800'
                     : 'bg-slate-100 text-slate-400 cursor-not-allowed'
                 }`}
               >
-                {nextSection ? 'Complete & Continue' : 'Complete Training'}
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
+                {isCompleting ? (
+                  <>
+                    <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    {nextSection ? 'Complete & Continue' : 'Complete Training'}
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </>
+                )}
               </button>
             ) : nextSection ? (
               <Link
