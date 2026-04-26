@@ -30,6 +30,19 @@ interface EnrollmentLite {
   slug: string;
 }
 
+function isMissingColumnError(
+  error: { code?: string; message?: string; details?: string } | null | undefined,
+  column: string
+): boolean {
+  return Boolean(
+    error &&
+      (error.code === '42703' ||
+        error.code === 'PGRST204' ||
+        error.message?.includes(column) ||
+        error.details?.includes(column))
+  );
+}
+
 // GET - List all users with their profiles
 export async function GET(request: NextRequest) {
   const { user, error: authError } = await requireAdmin(request);
@@ -319,7 +332,7 @@ export async function POST(request: NextRequest) {
       .select()
       .single();
 
-    if (traineeError && traineeError.code === '42703') {
+    if (isMissingColumnError(traineeError, 'pre_assigned_admin_scope_center_ids')) {
       const {
         pre_assigned_admin_scope_center_ids: _dropCenters,
         ...fallbackWithTrackScope
@@ -330,7 +343,7 @@ export async function POST(request: NextRequest) {
       void _dropCenters;
       traineeInsert = fallbackWithTrackScope;
       let retry = await supabase.from('trainees').insert(fallbackWithTrackScope).select().single();
-      if (retry.error?.code === '42703') {
+      if (isMissingColumnError(retry.error, 'pre_assigned_admin_scope_track_ids')) {
         const {
           pre_assigned_admin_scope_track_ids: _dropTracks,
           ...fallbackBasic

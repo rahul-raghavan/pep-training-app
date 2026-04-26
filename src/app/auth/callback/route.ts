@@ -11,6 +11,19 @@ const SUPER_ADMIN_EMAILS = [
   'founders.office@pepschoolv2.com',
 ];
 
+function isMissingColumnError(
+  error: { code?: string; message?: string; details?: string } | null | undefined,
+  column: string
+): boolean {
+  return Boolean(
+    error &&
+      (error.code === '42703' ||
+        error.code === 'PGRST204' ||
+        error.message?.includes(column) ||
+        error.details?.includes(column))
+  );
+}
+
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
@@ -118,7 +131,7 @@ export async function GET(request: Request) {
         .single();
       if (full.data) {
         preRegistered = full.data;
-      } else if (full.error?.code === '42703') {
+      } else if (isMissingColumnError(full.error, 'pre_assigned_admin_scope_center_ids')) {
         // Column missing → retry without it.
         const fallback = await admin
           .from('trainees')
@@ -179,7 +192,7 @@ export async function GET(request: Request) {
     };
 
     let { error: profileError } = await admin.from('profiles').insert(profileWithScope);
-    if (profileError?.code === '42703') {
+    if (isMissingColumnError(profileError, 'admin_scope_center_ids')) {
       const retry = await admin.from('profiles').insert({
         ...profileBase,
         admin_scope_center_id: role === 'admin' ? preAssignedAdminCenters[0] ?? adminScopeCenterId : null,
@@ -205,7 +218,7 @@ export async function GET(request: Request) {
           user_id: user.id,
         })
         .eq('id', preRegisteredTraineeId);
-      if (clearWithScope.error?.code === '42703') {
+      if (isMissingColumnError(clearWithScope.error, 'pre_assigned_admin_scope_center_ids')) {
         await admin
           .from('trainees')
           .update({

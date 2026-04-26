@@ -20,6 +20,19 @@ interface UserScopeResponse {
 
 const VALID_ROLES = ['user', 'admin', 'super_admin'] as const;
 
+function isMissingColumnError(
+  error: { code?: string; message?: string; details?: string } | null | undefined,
+  column: string
+): boolean {
+  return Boolean(
+    error &&
+      (error.code === '42703' ||
+        error.code === 'PGRST204' ||
+        error.message?.includes(column) ||
+        error.details?.includes(column))
+  );
+}
+
 /**
  * GET /api/admin/users/[traineeId]/scope
  * Returns the current center / program tracks / role / admin-scope for a user.
@@ -53,7 +66,7 @@ export async function GET(
     .single();
   if (fullTrainee.data) {
     trainee = fullTrainee.data;
-  } else if (fullTrainee.error?.code === '42703') {
+  } else if (isMissingColumnError(fullTrainee.error, 'pre_assigned_admin_scope_center_ids')) {
     const fallback = await supabase
       .from('trainees')
       .select('id, name, email, user_id, pre_assigned_role, pre_assigned_admin_scope_track_ids')
@@ -101,7 +114,7 @@ export async function GET(
       .single();
     if (fullProfile.data) {
       profile = fullProfile.data;
-    } else if (fullProfile.error?.code === '42703') {
+    } else if (isMissingColumnError(fullProfile.error, 'admin_scope_center_ids')) {
       const fallback = await supabase
         .from('profiles')
         .select('role, admin_scope_center_id, admin_scope_track_ids')
@@ -248,7 +261,7 @@ export async function PUT(
           admin_scope_track_ids: cleanAdminScope,
         })
         .eq('id', trainee.user_id);
-      if (error?.code === '42703') {
+      if (isMissingColumnError(error, 'admin_scope_center_ids')) {
         const retry = await supabase
           .from('profiles')
           .update({
@@ -276,7 +289,7 @@ export async function PUT(
           pre_assigned_admin_scope_track_ids: cleanAdminScope,
         })
         .eq('id', traineeId);
-      if (error?.code === '42703') {
+      if (isMissingColumnError(error, 'pre_assigned_admin_scope_center_ids')) {
         const retry = await supabase
           .from('trainees')
           .update({
