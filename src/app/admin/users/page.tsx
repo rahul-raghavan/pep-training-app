@@ -414,7 +414,16 @@ export default function UsersPage() {
                     </div>
                     <div>
                       <div className="font-medium text-slate-900 flex items-center gap-2">
-                        {userItem.name || userItem.email}
+                        {userItem.traineeId ? (
+                          <Link
+                            href={`/admin/users/${userItem.traineeId}`}
+                            className="hover:text-blue-700 hover:underline underline-offset-2"
+                          >
+                            {userItem.name || userItem.email}
+                          </Link>
+                        ) : (
+                          userItem.name || userItem.email
+                        )}
                         {userItem.pending && (
                           <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded">Pending</span>
                         )}
@@ -447,6 +456,15 @@ export default function UsersPage() {
                   </div>
 
                   <div className="flex items-center gap-4">
+                    {isSuperAdmin && userItem.traineeId && (
+                      <Link
+                        href={`/admin/users/${userItem.traineeId}`}
+                        className="text-sm text-blue-600 hover:text-blue-800 whitespace-nowrap"
+                      >
+                        Edit scope
+                      </Link>
+                    )}
+
                     <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${
                       userItem.role === 'super_admin'
                         ? 'bg-purple-100 text-purple-700'
