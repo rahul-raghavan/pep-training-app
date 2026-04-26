@@ -19,6 +19,19 @@ export type AuthUser = {
 
 type AuthResult = { user: AuthUser; error: null } | { user: null; error: NextResponse };
 
+function isMissingColumnError(
+  error: { code?: string; message?: string; details?: string } | null | undefined,
+  column: string
+): boolean {
+  return Boolean(
+    error &&
+      (error.code === '42703' ||
+        error.code === 'PGRST204' ||
+        error.message?.includes(column) ||
+        error.details?.includes(column))
+  );
+}
+
 /**
  * Read Supabase session from request cookies and fetch the profile + linked traineeId.
  */
@@ -63,7 +76,7 @@ export async function getAuthUser(request: NextRequest): Promise<AuthResult> {
     .single();
   if (full.data) {
     profile = full.data;
-  } else if (full.error?.code === '42703') {
+  } else if (isMissingColumnError(full.error, 'admin_scope_center_ids')) {
     const fallback = await admin
       .from('profiles')
       .select('role, name, is_active')
