@@ -24,6 +24,13 @@ function isMissingColumnError(
   );
 }
 
+function getMissingColumnName(
+  error: { code?: string; message?: string; details?: string } | null | undefined,
+  columns: string[]
+): string | null {
+  return columns.find(column => isMissingColumnError(error, column)) ?? null;
+}
+
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
@@ -131,7 +138,12 @@ export async function GET(request: Request) {
         .single();
       if (full.data) {
         preRegistered = full.data;
-      } else if (isMissingColumnError(full.error, 'pre_assigned_admin_scope_center_ids')) {
+      } else if (
+        getMissingColumnName(full.error, [
+          'pre_assigned_admin_scope_center_ids',
+          'pre_assigned_admin_scope_track_ids',
+        ])
+      ) {
         // Column missing → retry without it.
         const fallback = await admin
           .from('trainees')
@@ -191,14 +203,29 @@ export async function GET(request: Request) {
       admin_scope_track_ids: role === 'admin' ? preAssignedAdminScope : [],
     };
 
-    let { error: profileError } = await admin.from('profiles').insert(profileWithScope);
-    if (isMissingColumnError(profileError, 'admin_scope_center_ids')) {
-      const retry = await admin.from('profiles').insert({
-        ...profileBase,
-        admin_scope_center_id: role === 'admin' ? preAssignedAdminCenters[0] ?? adminScopeCenterId : null,
-        admin_scope_track_ids: role === 'admin' ? preAssignedAdminScope : [],
-      });
-      profileError = retry.error;
+    const profileScopeColumns = [
+      'admin_scope_center_ids',
+      'admin_scope_center_id',
+      'admin_scope_track_ids',
+    ];
+    let profileInsert = profileWithScope;
+    let profileError: { code?: string; message?: string; details?: string } | null = null;
+    for (let attempt = 0; attempt <= profileScopeColumns.length; attempt += 1) {
+      const result = await admin.from('profiles').insert(profileInsert);
+      if (!result.error) {
+        profileError = null;
+        break;
+      }
+
+      profileError = result.error;
+      const missingColumn = getMissingColumnName(result.error, profileScopeColumns);
+      if (!missingColumn || !(missingColumn in profileInsert)) {
+        break;
+      }
+
+      const { [missingColumn]: _dropColumn, ...retryInsert } = profileInsert;
+      void _dropColumn;
+      profileInsert = retryInsert;
     }
 
     if (profileError) {
