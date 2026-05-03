@@ -20,7 +20,7 @@ const PREREQUISITE_BY_PROGRAM_SLUG: Record<string, string> = {
   'designing-durable-learning': 'feedback-student-ownership',
   'leading-teacher-learning': 'designing-durable-learning',
 
-  // Elementary sequence.
+  // Elementary sequence. The separate ELEM 001 crash course is intentionally not part of this chain.
   'elem-102': 'elem-101',
   'elem-103': 'elem-102',
   'elem-104': 'elem-103',

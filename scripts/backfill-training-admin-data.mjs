@@ -62,6 +62,14 @@ const middleSchoolSlugs = [
   'ms-conduct',
 ];
 
+const elementarySlugs = [
+  'elem-001',
+  'elem-101',
+  'elem-102',
+  'elem-103',
+  'elem-104',
+];
+
 const learningScienceSlugs = [
   'learning-science-101',
   'how-learning-works',
@@ -111,6 +119,18 @@ async function main() {
       .from('course_programs')
       .upsert(mappingRows, { onConflict: 'program_id,track_id', ignoreDuplicates: true });
     requireOk('middle-school course_programs upsert failed', mappingError);
+  }
+
+  const elementaryCourses = activePrograms.filter(program => elementarySlugs.includes(program.slug));
+  const elementaryMappingRows = elementaryCourses.map(program => ({
+    program_id: program.id,
+    track_id: elementaryTrack.id,
+  }));
+  if (elementaryMappingRows.length > 0) {
+    const { error: mappingError } = await supabase
+      .from('course_programs')
+      .upsert(elementaryMappingRows, { onConflict: 'program_id,track_id', ignoreDuplicates: true });
+    requireOk('elementary course_programs upsert failed', mappingError);
   }
 
   const learningScienceCourses = activePrograms.filter(program => learningScienceSlugs.includes(program.slug));
@@ -228,6 +248,7 @@ async function main() {
   console.log(JSON.stringify({
     tracks: trackSeeds.map(track => track.slug),
     middleSchoolCoursesMapped: middleCourses.map(course => course.slug),
+    elementaryCoursesMapped: elementaryCourses.map(course => course.slug),
     learningScienceCoursesMapped: learningScienceCourses.map(course => course.slug),
     testTeacher: {
       id: testTrainee.id,
