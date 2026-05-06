@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Trainee, Progress, Response as ResponseType, Exercise, ContentBlock as ContentBlockType } from '@/content/types';
 import ContentBlock from '@/components/ContentBlock';
 import MultipleChoice from '@/components/MultipleChoice';
+import ShortAnswerInput from '@/components/ShortAnswerInput';
 import VoiceRecorder from '@/components/VoiceRecorder';
 import { PageShell, TopBar, Pill, Stickie } from '@/components/paper';
 
@@ -172,7 +173,7 @@ export default function ProgramSectionPage() {
         correct,
       }),
     });
-    if (!res.ok) return;
+    if (!res.ok) throw new Error('Failed to save exercise response');
     const { response: newResponse } = await res.json();
     if (newResponse) setResponses(prev => [...prev, newResponse]);
     setCompletedExercises(prev => new Set([...prev, exerciseId]));
@@ -336,7 +337,7 @@ export default function ProgramSectionPage() {
                       key={exercise.id}
                       exercise={exercise}
                       onComplete={(correct, selectedIndex) =>
-                        handleExerciseComplete(exercise.id, 'multiple_choice', String(selectedIndex), correct)
+                        handleExerciseComplete(exercise.id, 'multiple_choice', String(selectedIndex), correct).catch(() => {})
                       }
                       previousAttempts={previousResponses.length}
                       previouslyCorrect={wasEverCorrect(exercise.id)}
@@ -348,7 +349,7 @@ export default function ProgramSectionPage() {
                   const voiceAttempts = getExerciseResponses(exercise.id).map(r => ({
                     transcription: r.response_text || '',
                     feedback: r.ai_feedback || '',
-                    score: r.ai_score || 0,
+                    score: r.ai_score ?? null,
                     audioUrl: r.audio_url,
                     createdAt: r.created_at,
                   }));
@@ -360,6 +361,22 @@ export default function ProgramSectionPage() {
                       sectionId={section.id}
                       onComplete={() => handleVoiceComplete(exercise.id)}
                       previousAttempts={voiceAttempts}
+                    />
+                  );
+                }
+                if (exercise.type === 'short_answer') {
+                  const shortAnswerAttempts = getExerciseResponses(exercise.id).map(r => ({
+                    responseText: r.response_text || '',
+                    createdAt: r.created_at,
+                  }));
+                  return (
+                    <ShortAnswerInput
+                      key={exercise.id}
+                      exercise={exercise}
+                      onComplete={responseText =>
+                        handleExerciseComplete(exercise.id, 'short_answer', responseText)
+                      }
+                      previousAttempts={shortAnswerAttempts}
                     />
                   );
                 }

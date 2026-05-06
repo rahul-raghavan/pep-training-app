@@ -32,6 +32,7 @@ export function courseGroupLabel(course: CourseLike): string {
 
   if (slug === 'admissions-training') return 'Admissions';
   if (slug.includes('ptm')) return 'Parent Partnership';
+  if (slug === 'storytelling-101') return 'Elementary Training';
   if (slug.startsWith('elem-')) return 'Elementary Training';
   if (slug.startsWith('ms-')) return 'Middle School Training';
   if (
@@ -81,6 +82,7 @@ function courseFlowRank(course: CourseLike): number {
   const slug = course.slug;
   const numberMatch = slug.match(/(?:elem|ms)-(\d+)/);
   if (numberMatch) return Number(numberMatch[1]);
+  if (slug === 'storytelling-101') return 105;
   if (slug === 'ms-philosophy-101') return 101;
   if (slug === 'ms-conduct') return 299;
   if (learningScienceOrder[slug]) return learningScienceOrder[slug];

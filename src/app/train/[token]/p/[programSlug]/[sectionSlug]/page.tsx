@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Trainee, Progress, Response as ResponseType, Exercise, ContentBlock as ContentBlockType } from '@/content/types';
 import ContentBlock from '@/components/ContentBlock';
 import MultipleChoice from '@/components/MultipleChoice';
+import ShortAnswerInput from '@/components/ShortAnswerInput';
 import VoiceRecorder from '@/components/VoiceRecorder';
 
 interface SectionData {
@@ -105,7 +106,7 @@ export default function ProgramSectionPage() {
   const handleExerciseComplete = async (exerciseId: string, exerciseType: string, responseText: string, correct?: boolean) => {
     if (!trainee || !section) return;
 
-    await fetch('/api/progress', {
+    const res = await fetch('/api/progress', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -117,6 +118,7 @@ export default function ProgramSectionPage() {
         correct,
       }),
     });
+    if (!res.ok) throw new Error('Failed to save exercise response');
 
     setCompletedExercises(prev => new Set([...prev, exerciseId]));
     await fetchData();
@@ -243,7 +245,7 @@ export default function ProgramSectionPage() {
                           'multiple_choice',
                           String(selectedIndex),
                           correct
-                        );
+                        ).catch(() => {});
                       }}
                       previousAttempts={previousResponses.length}
                       previouslyCorrect={wasEverCorrect(exercise.id)}
@@ -256,7 +258,7 @@ export default function ProgramSectionPage() {
                   const voiceAttempts = getExerciseResponses(exercise.id).map(r => ({
                     transcription: r.response_text || '',
                     feedback: r.ai_feedback || '',
-                    score: r.ai_score || 0,
+                    score: r.ai_score ?? null,
                     audioUrl: r.audio_url,
                     createdAt: r.created_at,
                   }));
@@ -269,6 +271,23 @@ export default function ProgramSectionPage() {
                       sectionId={section.id}
                       onComplete={() => handleVoiceComplete(exercise.id)}
                       previousAttempts={voiceAttempts}
+                    />
+                  );
+                }
+                if (exercise.type === 'short_answer') {
+                  const shortAnswerAttempts = getExerciseResponses(exercise.id).map(r => ({
+                    responseText: r.response_text || '',
+                    createdAt: r.created_at,
+                  }));
+
+                  return (
+                    <ShortAnswerInput
+                      key={exercise.id}
+                      exercise={exercise}
+                      onComplete={responseText =>
+                        handleExerciseComplete(exercise.id, 'short_answer', responseText)
+                      }
+                      previousAttempts={shortAnswerAttempts}
                     />
                   );
                 }

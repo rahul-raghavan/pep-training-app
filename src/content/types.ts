@@ -29,6 +29,7 @@ export type VoiceExercise = {
   scenario: string;
   guidance: string;
   aiPrompt: string;
+  systemPrompt?: string;
 };
 
 export type Exercise = MultipleChoiceExercise | ShortAnswerExercise | VoiceExercise;
@@ -71,7 +72,7 @@ export type Response = {
   response_text?: string;
   audio_url?: string;
   ai_feedback?: string;
-  ai_score?: number;
-  correct?: boolean;
+  ai_score?: number | null;
+  correct?: boolean | null;
   created_at: string;
 };

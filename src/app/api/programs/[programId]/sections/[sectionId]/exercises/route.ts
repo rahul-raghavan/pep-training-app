@@ -15,7 +15,7 @@ export async function POST(request: NextRequest, { params }: Params) {
     const body = await request.json();
     const {
       exercise_type, question, options, correct_index, explanation,
-      scenario, guidance, ai_prompt, sample_answer, sort_order,
+      scenario, guidance, ai_prompt, system_prompt, sample_answer, sort_order,
     } = body;
 
     if (!exercise_type) {
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest, { params }: Params) {
       .insert({
         section_id: sectionId, sort_order: order, exercise_type,
         question, options, correct_index, explanation,
-        scenario, guidance, ai_prompt, sample_answer,
+        scenario, guidance, ai_prompt, system_prompt, sample_answer,
       })
       .select()
       .single();

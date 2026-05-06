@@ -2,7 +2,7 @@
 
 interface Props {
   feedback: string;
-  score?: number;
+  score?: number | null;
   compact?: boolean;
 }
 
@@ -21,7 +21,7 @@ function parseBlocks(feedback: string): Block[] {
   const blocks: Block[] = [];
 
   for (const p of paragraphs) {
-    if (p.match(/^\*\*Score:/i)) continue;
+    if (p.match(/^\s*(?:\*\*)?(?:Admin\s*)?Score:\s*[1-5]\/5(?:\*\*)?[\s.]*$/i)) continue;
 
     const headerMatch = p.match(/^\*\*([^*]+):\*\*\s*([\s\S]*)/);
     if (headerMatch) {
@@ -121,8 +121,8 @@ function renderBlock(b: Block, idx: number, compact: boolean) {
   );
 }
 
-function scoreSummary(score?: number): { color: string; line: string } {
-  if (score === undefined) return { color: 'var(--ink-2)', line: '' };
+function scoreSummary(score?: number | null): { color: string; line: string } {
+  if (score === undefined || score === null) return { color: 'var(--ink-2)', line: '' };
   if (score >= 4) return { color: 'var(--good)', line: 'Strong response.' };
   if (score >= 3) return { color: 'var(--warn-ink)', line: 'Solid attempt — see below for what to tighten.' };
   return { color: 'var(--bad)', line: "Couple of things to fix — see below, then try again." };
@@ -135,7 +135,7 @@ export default function FeedbackDisplay({ feedback, score, compact = false }: Pr
   if (compact) {
     return (
       <div className="border border-rule rounded-md bg-paper overflow-hidden">
-        {score !== undefined && (
+        {score !== undefined && score !== null && (
           <div
             className="px-3 py-2 flex items-center justify-between border-b border-rule"
             style={{ background: score >= 4 ? 'var(--good-soft)' : score >= 3 ? 'var(--warn-soft)' : 'var(--bad-soft)' }}
@@ -161,7 +161,7 @@ export default function FeedbackDisplay({ feedback, score, compact = false }: Pr
   return (
     <div>
       {/* Hero score band */}
-      {score !== undefined && (
+      {score !== undefined && score !== null && (
         <div
           className="flex items-center gap-4 p-4 border rounded-lg mb-4 shadow-sm"
           style={{

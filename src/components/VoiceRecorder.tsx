@@ -8,7 +8,7 @@ import Pill from '@/components/paper/Pill';
 interface PreviousAttempt {
   transcription: string;
   feedback: string;
-  score: number;
+  score: number | null;
   audioUrl?: string;
   createdAt: string;
 }
@@ -17,7 +17,7 @@ interface Props {
   exercise: VoiceExercise;
   traineeId: string;
   sectionId: string;
-  onComplete: (feedback: string, score: number) => void;
+  onComplete: (feedback: string, score: number | null) => void;
   previousAttempts?: PreviousAttempt[];
 }
 
@@ -69,17 +69,19 @@ export default function VoiceRecorder({ exercise, traineeId, sectionId, onComple
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [transcription, setTranscription] = useState<string>('');
   const [feedback, setFeedback] = useState<string>('');
-  const [score, setScore] = useState<number>(0);
+  const [score, setScore] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [recordingTime, setRecordingTime] = useState(0);
   const [showPreviousAttempts, setShowPreviousAttempts] = useState(false);
+  const hideTeacherScore = Boolean(exercise.systemPrompt);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const bestPreviousScore = previousAttempts.length > 0
-    ? Math.max(...previousAttempts.map(a => a.score))
+  const scoredAttempts = hideTeacherScore ? [] : previousAttempts.filter(a => a.score !== null);
+  const bestPreviousScore = scoredAttempts.length > 0
+    ? Math.max(...scoredAttempts.map(a => a.score as number))
     : null;
 
   useEffect(() => {
@@ -131,7 +133,7 @@ export default function VoiceRecorder({ exercise, traineeId, sectionId, onComple
     setAudioBlob(null);
     setTranscription('');
     setFeedback('');
-    setScore(0);
+    setScore(null);
     setRecordingTime(0);
     setState('idle');
   };
@@ -167,6 +169,7 @@ export default function VoiceRecorder({ exercise, traineeId, sectionId, onComple
           scenario: exercise.scenario,
           guidance: exercise.guidance,
           aiPrompt: exercise.aiPrompt,
+          systemPrompt: exercise.systemPrompt,
           transcription: text,
           audioUrl: uploadedUrl,
         }),
@@ -178,9 +181,9 @@ export default function VoiceRecorder({ exercise, traineeId, sectionId, onComple
 
       const { feedback: fb, score: sc } = await feedbackRes.json();
       setFeedback(fb);
-      setScore(sc);
+      setScore(sc ?? null);
       setState('complete');
-      onComplete(fb, sc);
+      onComplete(fb, sc ?? null);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Something went wrong';
       if (message.includes('transcribe')) {
@@ -204,9 +207,9 @@ export default function VoiceRecorder({ exercise, traineeId, sectionId, onComple
         </div>
         {previousAttempts.length > 0 && (
           <div className="flex items-center gap-2 flex-wrap">
-            <Pill kind={bestPreviousScore && bestPreviousScore >= 4 ? 'good' : 'warn'}>
+            <Pill kind={bestPreviousScore === null ? 'default' : bestPreviousScore >= 4 ? 'good' : 'warn'}>
               {previousAttempts.length} attempt{previousAttempts.length > 1 ? 's' : ''}
-              {bestPreviousScore && ` · best ${bestPreviousScore}/5`}
+              {bestPreviousScore !== null && ` · best ${bestPreviousScore}/5`}
             </Pill>
             <button
               onClick={() => setShowPreviousAttempts(!showPreviousAttempts)}
@@ -258,9 +261,11 @@ export default function VoiceRecorder({ exercise, traineeId, sectionId, onComple
                         minute: '2-digit',
                       })}
                     </span>
-                    <Pill kind={attempt.score >= 4 ? 'good' : attempt.score >= 3 ? 'warn' : 'bad'}>
-                      {attempt.score}/5
-                    </Pill>
+                    {!hideTeacherScore && attempt.score !== null && (
+                      <Pill kind={attempt.score >= 4 ? 'good' : attempt.score >= 3 ? 'warn' : 'bad'}>
+                        {attempt.score}/5
+                      </Pill>
+                    )}
                   </div>
                 </div>
                 {attempt.audioUrl && isAudioAvailable(attempt.createdAt) ? (
@@ -276,7 +281,11 @@ export default function VoiceRecorder({ exercise, traineeId, sectionId, onComple
                     View feedback
                   </summary>
                   <div className="mt-2">
-                    <FeedbackDisplay feedback={attempt.feedback} score={attempt.score} compact />
+                    <FeedbackDisplay
+                      feedback={attempt.feedback}
+                      score={hideTeacherScore ? null : attempt.score}
+                      compact
+                    />
                   </div>
                 </details>
               </div>
@@ -415,7 +424,7 @@ export default function VoiceRecorder({ exercise, traineeId, sectionId, onComple
           </div>
 
           {/* Score band + parsed feedback */}
-          <FeedbackDisplay feedback={feedback} score={score} />
+          <FeedbackDisplay feedback={feedback} score={hideTeacherScore ? null : score} />
 
           {/* Try again */}
           <div className="flex justify-between items-center pt-3 border-t border-rule flex-wrap gap-2">

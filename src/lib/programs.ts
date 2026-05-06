@@ -68,6 +68,7 @@ export interface ProgramExercise {
   scenario: string | null;
   guidance: string | null;
   ai_prompt: string | null;
+  system_prompt?: string | null;
   sample_answer: string | null;
 }
 
@@ -287,14 +288,22 @@ export function dbExerciseToExercise(row: ProgramExercise): Exercise {
         correctIndex: row.correct_index ?? 0,
         explanation: row.explanation || '',
       };
-    case 'voice':
+    case 'voice': {
+      const embeddedSystemPromptMatch = row.ai_prompt?.match(
+        /^\[\[SYSTEM_PROMPT\]\]\n([\s\S]*?)\n\[\[\/SYSTEM_PROMPT\]\]\n\n?([\s\S]*)$/
+      );
+      const systemPrompt = row.system_prompt || embeddedSystemPromptMatch?.[1]?.trim();
+      const aiPrompt = embeddedSystemPromptMatch ? embeddedSystemPromptMatch[2].trim() : row.ai_prompt || '';
+
       return {
         type: 'voice',
         id: row.id,
         scenario: row.scenario || '',
         guidance: row.guidance || '',
-        aiPrompt: row.ai_prompt || '',
+        aiPrompt,
+        systemPrompt: systemPrompt || undefined,
       };
+    }
     case 'short_answer':
       return {
         type: 'short_answer',

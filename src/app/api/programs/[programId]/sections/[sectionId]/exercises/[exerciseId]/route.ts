@@ -15,7 +15,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
     const body = await request.json();
     const {
       exercise_type, question, options, correct_index, explanation,
-      scenario, guidance, ai_prompt, sample_answer, sort_order,
+      scenario, guidance, ai_prompt, system_prompt, sample_answer, sort_order,
     } = body;
 
     const supabase = createAdminClient();
@@ -23,7 +23,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
       .from('program_exercises')
       .update({
         exercise_type, question, options, correct_index, explanation,
-        scenario, guidance, ai_prompt, sample_answer, sort_order,
+        scenario, guidance, ai_prompt, system_prompt, sample_answer, sort_order,
       })
       .eq('id', exerciseId)
       .eq('section_id', sectionId)

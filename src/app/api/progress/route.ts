@@ -113,8 +113,8 @@ export async function PUT(request: NextRequest) {
     const supabase = createAdminClient();
 
     // Server-side MC grading for program exercises (UUID exerciseIds)
-    let serverCorrect = correct;
-    let aiScore: number | null = correct ? 5 : 0;
+    let serverCorrect = correct ?? null;
+    let aiScore: number | null = null;
 
     if (exerciseType === 'multiple_choice') {
       const exercise = await getExerciseById(exerciseId);
@@ -123,8 +123,11 @@ export async function PUT(request: NextRequest) {
         const selectedIndex = parseInt(responseText, 10);
         serverCorrect = !isNaN(selectedIndex) && selectedIndex === exercise.correct_index;
         aiScore = null; // MC exercises don't get AI scores
+      } else {
+        // Legacy string exercise IDs fall back to client-provided correctness.
+        serverCorrect = correct ?? null;
+        aiScore = correct ? 5 : 0;
       }
-      // If exercise not found (legacy string ID), fall back to client-provided correct boolean
     }
 
     const { data: createdResponse, error: insertError } = await supabase

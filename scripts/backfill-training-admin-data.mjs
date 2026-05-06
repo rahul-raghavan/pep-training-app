@@ -68,6 +68,7 @@ const elementarySlugs = [
   'elem-102',
   'elem-103',
   'elem-104',
+  'storytelling-101',
 ];
 
 const learningScienceSlugs = [
