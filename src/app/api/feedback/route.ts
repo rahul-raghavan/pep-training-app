@@ -12,6 +12,8 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
+const CLAUDE_FEEDBACK_MODEL = process.env.CLAUDE_FEEDBACK_MODEL || 'claude-sonnet-4-6';
+
 const PRIVATE_ADMIN_SCORE_INSTRUCTION = `Do not include any numeric score in the teacher-facing feedback. After the teacher-facing feedback, add a final separate line exactly: Admin Score: X/5. This private administrator score should consider truth accuracy, connection thread, the target craft skill, and natural classroom voice. Use 1 = not yet usable, 2 = emerging, 3 = accurate foundation, 4 = strong, 5 = classroom-ready Montessori telling.`;
 
 function splitEmbeddedSystemPrompt(aiPrompt: unknown): {
@@ -150,7 +152,7 @@ TRAINEE'S RESPONSE:
 Please evaluate this response.`;
 
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: CLAUDE_FEEDBACK_MODEL,
       max_tokens: 1024,
       messages: [
         {
@@ -193,7 +195,10 @@ Please evaluate this response.`;
       score: hasCustomSystemPrompt ? null : score,
     });
   } catch (error) {
-    console.error('Feedback error:', error);
+    console.error('Feedback error:', {
+      model: CLAUDE_FEEDBACK_MODEL,
+      error,
+    });
     return NextResponse.json({ error: 'Failed to get feedback' }, { status: 500 });
   }
 }

@@ -9,6 +9,8 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
+const CLAUDE_FEEDBACK_MODEL = process.env.CLAUDE_FEEDBACK_MODEL || 'claude-sonnet-4-6';
+
 interface VoiceAuditProgramLink {
   title: string | null;
   slug: string | null;
@@ -136,7 +138,7 @@ TRAINEE'S RESPONSE:
 Please evaluate this response.`;
 
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: CLAUDE_FEEDBACK_MODEL,
       max_tokens: 1024,
       messages: [{ role: 'user', content: userPrompt }],
       system: systemPrompt,
@@ -157,7 +159,10 @@ Please evaluate this response.`;
       },
     });
   } catch (error) {
-    console.error('Voice audit evaluation error:', error);
+    console.error('Voice audit evaluation error:', {
+      model: CLAUDE_FEEDBACK_MODEL,
+      error,
+    });
     return NextResponse.json({ error: 'Failed to evaluate response' }, { status: 500 });
   }
 }
